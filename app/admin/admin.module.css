@@ -1,0 +1,16 @@
+.page{min-height:100vh; padding:32px clamp(16px,3vw,40px); background:var(--bg); color:var(--fg); font-size:14px}
+.page h1{margin:0 0 20px; font-size:28px; letter-spacing:-.02em}
+.page a{color:var(--accent)}
+.filters{display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:20px}
+.filters label{display:grid; gap:4px; color:var(--muted)}
+.filters select,.page button{min-height:36px; padding:0 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); font:inherit}
+.page button{cursor:pointer}
+.page button:hover{border-color:var(--accent)}
+.export{margin-left:auto; font-weight:600}
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+.table{width:100%; border-collapse:collapse}
+.table th,.table td{padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top}
+.table th{position:sticky; top:0; background:var(--surface); font-weight:600; white-space:nowrap}
+.table td{max-width:260px; overflow-wrap:anywhere}
+.del summary{cursor:pointer; color:#B4234F}
+.del button{margin-top:6px; border-color:#B4234F; color:#B4234F}

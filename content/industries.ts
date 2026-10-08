@@ -1,7 +1,12 @@
 // The three blocks of the logo. Order matters: index 0 is Blockchain (top block),
 // and it matches the headline words, the join picks and the story steps.
 
+export type IndustryId = "blockchain" | "finance" | "ai";
+export const INDUSTRY_IDS: IndustryId[] = ["blockchain", "finance", "ai"];
+
 export type Industry = {
+  /** Stored in members.blocks. */
+  id: IndustryId;
   name: string;
   /** Word as it appears in the headline, "Blockchain, finance & AI." */
   headlineWord: string;
@@ -17,6 +22,7 @@ export type Industry = {
 
 export const industries: Industry[] = [
   {
+    id: "blockchain",
     name: "Blockchain",
     headlineWord: "Blockchain,",
     cube: 2,
@@ -26,6 +32,7 @@ export const industries: Industry[] = [
     seen: "stablecoins and cross-border payments, consumer adoption, and a fireside with EigenLayer.",
   },
   {
+    id: "finance",
     name: "Finance",
     headlineWord: "finance",
     cube: 1,
@@ -35,6 +42,7 @@ export const industries: Industry[] = [
     seen: "investment funds, institutional adoption with BlackRock and J.P. Morgan, TradFi meets blockchain, and two legal and regulatory panels.",
   },
   {
+    id: "ai",
     name: "AI",
     headlineWord: "& AI.",
     cube: 0,

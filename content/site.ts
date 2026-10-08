@@ -38,6 +38,6 @@ export const joinSection = {
   text: "Pick your blocks, add your name, and you're in. Alumni discuss on LinkedIn, and events are announced on X first.",
 };
 
-/** TODO: final wording from the maintainer. Drop "preview" once the backend is wired up. */
+/** Under the final join button. No checkbox. */
 export const privacyLine =
-  "Only the society's organizers see your details, to run events and programs. This is a preview: nothing is sent yet.";
+  "By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.";

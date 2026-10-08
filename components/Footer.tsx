@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { links } from "@/content/site";
+import OpenJoin from "./OpenJoin";
 
 export default function Footer() {
   return (
@@ -10,6 +11,7 @@ export default function Footer() {
           <span>NYU Blockchain Society, New York</span>
         </div>
         <ul>
+          <li><OpenJoin>Add your block</OpenJoin></li>
           <li><a href={links.x} target="_blank" rel="noopener">X</a></li>
           <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn</a></li>
           <li><a href={links.nyuAlumni} target="_blank" rel="noopener">NYU Alumni</a></li>

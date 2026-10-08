@@ -2,24 +2,14 @@
 
 // The pinned story: the 3D blocks stay fixed while the hero (with the join flow), the
 // mission and one step per industry scroll past. Ported from docs/prototype.html.
-// The join flow is front-end only for now: the member is kept in localStorage.
 
-import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import type { Notify } from "@/content/events";
 import { industries } from "@/content/industries";
-import { affiliation, hero, mission, privacyLine } from "@/content/site";
-import { OPEN_JOIN_EVENT } from "../OpenJoin";
+import { affiliation, hero, mission } from "@/content/site";
+import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
 import { createField, type Field } from "./field";
-
-const STORAGE_KEY = "nbs-member";
-const DONE_TEXT = "That new node is you, connected to your blocks. Want to tell us a bit more? It helps us invite you to the right things.";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const INVOLVEMENT = [
-  ["mentor", "Mentor"],
-  ["speak", "Speak"],
-  ["hire", "Hire"],
-  ["invest", "Invest"],
-  ["attend", "Attend events"],
-] as const;
+import JoinFlow from "./JoinFlow";
 
 type Mode = "idle" | "joining" | "done";
 
@@ -28,12 +18,8 @@ const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)"
 export default function Story() {
   const [mode, setMode] = useState<Mode>("idle");
   const [sel, setSel] = useState<number[]>([]);
-  const [err, setErr] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [doneText, setDoneText] = useState(DONE_TEXT);
-  const [moreOpen, setMoreOpen] = useState(true);
-  const [saved, setSaved] = useState(false);
-  const [moreKey, setMoreKey] = useState(0);
+  const [notify, setNotify] = useState<Notify | undefined>();
+  const [flowKey, setFlowKey] = useState(0);
 
   const fieldRef = useRef<Field | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -45,20 +31,14 @@ export default function Story() {
   const heroTxtRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<HTMLButtonElement[]>([]);
   const stepRefs = useRef<HTMLDivElement[]>([]);
-  const pickRefs = useRef<HTMLButtonElement[]>([]);
   const openJoinRef = useRef<HTMLButtonElement>(null);
-  const doneHRef = useRef<HTMLHeadingElement>(null);
-  const jfRef = useRef<HTMLFormElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const pendingFocus = useRef<"picks" | "done" | "open" | null>(null);
+  const focusOpenButton = useRef(false);
 
   const toggle = useCallback((i: number) => {
     setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
-    setErr("");
   }, []);
 
-  // Canvas field, NY clock and the restored member.
+  // Canvas field, NY clock and the hero HUD.
   useEffect(() => {
     const field = createField(
       {
@@ -90,39 +70,20 @@ export default function Story() {
     window.addEventListener("scroll", fadeHud, { passive: true });
     window.addEventListener("resize", fadeHud);
 
-    try {
-      const m = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (m && Array.isArray(m.blocks) && m.blocks.length) {
-        const blocks = (m.blocks as number[]).filter((i) => i >= 0 && i < 3);
-        field.addMember(String(m.name || ""), blocks, true);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from localStorage after mount
-        setSaved(true);
-        setSel(blocks);
-      }
-    } catch {}
-
     return () => { clearInterval(clock); window.removeEventListener("scroll", fadeHud); window.removeEventListener("resize", fadeHud); field.destroy(); fieldRef.current = null; };
   }, [toggle]);
 
   useEffect(() => { fieldRef.current?.setJoining(mode === "joining"); }, [mode]);
   useEffect(() => { fieldRef.current?.setSelected(sel); }, [sel]);
-
-  // Move focus once the relevant part of the flow has rendered.
   useEffect(() => {
-    const target = pendingFocus.current;
-    pendingFocus.current = null;
-    if (target === "picks") {
-      const t = setTimeout(() => pickRefs.current[0]?.focus({ preventScroll: true }), prefersReducedMotion() ? 0 : 350);
-      return () => clearTimeout(t);
-    }
-    if (target === "done") doneHRef.current?.focus({ preventScroll: true });
-    if (target === "open") openJoinRef.current?.focus();
+    if (mode === "idle" && focusOpenButton.current) { focusOpenButton.current = false; openJoinRef.current?.focus(); }
   }, [mode]);
 
-  // Every "Join" CTA on the page opens the flow here.
+  // Every "Join" CTA on the page opens the flow here, optionally with a program to hear about.
   useEffect(() => {
-    const open = () => {
-      pendingFocus.current = "picks";
+    const open = (e: Event) => {
+      setNotify((e as CustomEvent<OpenJoinDetail>).detail?.notify);
+      setFlowKey((k) => k + 1);
       setMode("joining");
       document.getElementById("top")?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
     };
@@ -130,44 +91,17 @@ export default function Story() {
     return () => window.removeEventListener(OPEN_JOIN_EVENT, open);
   }, []);
 
-  const openJoin = () => window.dispatchEvent(new Event(OPEN_JOIN_EVENT));
-
-  const cancel = () => {
-    pendingFocus.current = "open";
-    setMode("idle");
-    setSel([]);
-    setErr("");
-  };
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const name = nameRef.current!.value.trim(), email = emailRef.current!.value.trim();
-    if (!sel.length) { setErr("Pick at least one block: Blockchain, Finance, or AI."); pickRefs.current[0]?.focus(); return; }
-    if (!name) { setErr("Add your name."); nameRef.current!.focus(); return; }
-    if (!EMAIL_RE.test(email)) { setErr("Enter an email we can reach you at, like name@example.com."); emailRef.current!.focus(); return; }
-    setErr("");
-    const blocks = [...sel].sort();
-    fieldRef.current?.addMember(name, blocks, false);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, blocks })); } catch {}
-    setFirstName(name.split(/\s+/)[0]);
-    setDoneText(DONE_TEXT);
-    setMoreOpen(true);
-    pendingFocus.current = "done";
+  const onProgress = useCallback((steps: number) => fieldRef.current?.setProgress(steps, sel), [sel]);
+  const onJoined = useCallback((name: string) => {
+    fieldRef.current?.addMember(name, [...sel].sort(), false);
     setMode("done");
-  };
-
-  const finish = (msg: string) => { setMoreOpen(false); setDoneText(msg); };
-
-  const reset = () => {
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
-    fieldRef.current?.clearMember();
-    setSel([]);
-    jfRef.current?.reset();
-    setSaved(false);
-    setMoreKey((k) => k + 1);
-    pendingFocus.current = "open";
+  }, [sel]);
+  const close = useCallback(() => {
+    fieldRef.current?.setProgress(0, []);
+    if (mode === "joining") setSel([]);
+    focusOpenButton.current = true;
     setMode("idle");
-  };
+  }, [mode]);
 
   return (
     <section className="story" id="top" aria-label="Blockchain, finance and AI">
@@ -186,7 +120,7 @@ export default function Story() {
         </div>
       </div>
       <div className="layer">
-        <div className="hero2 wrap">
+        <div className={mode === "idle" ? "hero2 wrap" : "hero2 wrap flow"}>
           <div className="txt" ref={heroTxtRef}>
             <h1>
               {industries.map((ind, i) => (
@@ -203,69 +137,12 @@ export default function Story() {
               </a>
             </p>
             <div className="ctas" hidden={mode !== "idle"}>
-              <button className="btn btn-w" type="button" ref={openJoinRef} onClick={openJoin}>
-                {saved ? "Edit your block" : "Join the network"}
-              </button>
+              <button className="btn btn-w" type="button" ref={openJoinRef} onClick={() => openJoin()}>Join the network</button>
               <a className="btn btn-o" href="#chain">Upcoming events</a>
             </div>
-            <form className="jf" ref={jfRef} hidden={mode !== "joining"} noValidate aria-labelledby="jf-legend" onSubmit={submit}>
-              <fieldset>
-                <legend id="jf-legend">Which blocks do you work in? Pick any, or tap them in the logo.</legend>
-                <div className="picks">
-                  {industries.map((ind, i) => (
-                    <button
-                      key={ind.name}
-                      className="pick"
-                      type="button"
-                      aria-pressed={sel.includes(i)}
-                      ref={(el) => { if (el) pickRefs.current[i] = el; }}
-                      onClick={() => toggle(i)}
-                    >
-                      {ind.name}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              <div className="fields">
-                <label>Name<input name="name" ref={nameRef} autoComplete="name" required /></label>
-                <label>Email<input name="email" ref={emailRef} type="email" autoComplete="email" inputMode="email" required /></label>
-              </div>
-              <div className="actions">
-                <button className="btn btn-w" type="submit">Add your block</button>
-                <button className="link" type="button" onClick={cancel}>Cancel</button>
-              </div>
-              <p className="err" role="alert">{err}</p>
-              <p className="fine">{privacyLine}</p>
-            </form>
-            <div className="done" hidden={mode !== "done"}>
-              <h2 ref={doneHRef} tabIndex={-1}>You&apos;re in the network, <span>{firstName}</span>.</h2>
-              <p>{doneText}</p>
-              {moreOpen && (
-                <form
-                  key={moreKey}
-                  className="more"
-                  noValidate
-                  onSubmit={(e) => { e.preventDefault(); finish("Details saved. We'll reach out about events and programs that fit your blocks."); }}
-                >
-                  <div className="two">
-                    <label>Firm<input name="firm" autoComplete="organization" /></label>
-                    <label>Role<input name="role" autoComplete="organization-title" /></label>
-                  </div>
-                  <label>LinkedIn profile URL<input name="linkedin" type="url" inputMode="url" placeholder="linkedin.com/in/..." /></label>
-                  <fieldset className="chips">
-                    <legend>I&apos;d like to</legend>
-                    {INVOLVEMENT.map(([value, label]) => (
-                      <label key={value}><input type="checkbox" name="inv" value={value} /><span>{label}</span></label>
-                    ))}
-                  </fieldset>
-                  <div className="actions">
-                    <button className="btn btn-w" type="submit">Save details</button>
-                    <button className="link" type="button" onClick={() => finish("You can add details anytime from the link in your welcome email.")}>Skip for now</button>
-                    <button className="link" type="button" onClick={reset}>Remove my block (preview)</button>
-                  </div>
-                </form>
-              )}
-            </div>
+            {mode !== "idle" && (
+              <JoinFlow key={flowKey} sel={sel} toggle={toggle} notify={notify} onProgress={onProgress} onJoined={onJoined} onClose={close} />
+            )}
           </div>
         </div>
         <div className="mission wrap">

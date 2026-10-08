@@ -137,6 +137,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .join .wrap{position:relative}
 .join h2{margin:0; font-weight:620; font-size:clamp(36px,5.6vw,90px); line-height:.9; letter-spacing:-.055em; max-width:11ch}
 .join p{margin:24px 0 0; color:var(--ink-muted); max-width:44ch; font-size:19px}
+/* network wall */
+.wall{background:var(--ink); color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(48px,5vw,80px); border-top:1px solid var(--ink-line)}
+.wall h2{margin:0; font-weight:580; font-size:clamp(30px,3.4vw,48px); letter-spacing:-.04em; line-height:1}
+.wall .wrap > p{margin:14px 0 0; color:var(--ink-muted)}
+.wall-list{list-style:none; margin:32px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px}
+.wall-list li{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--ink-line); border-radius:10px; background:var(--ink-2); font-size:15px; overflow-wrap:anywhere}
 footer{background:var(--ink); color:var(--ink-muted); border-top:1px solid var(--ink-line); font-size:14px}
 footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; padding-top:26px; padding-bottom:26px}
 footer .f{display:flex; align-items:center; gap:10px}
@@ -164,6 +170,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .fine{margin:0; font-size:13px; color:var(--ink-muted); max-width:52ch}
 .done{margin-top:28px; max-width:560px; display:grid; gap:16px; pointer-events:auto}
 .done h2{margin:0; font-size:22px; font-weight:600; letter-spacing:-.02em}
+.done h2:focus{outline:none}
 .done > p{margin:0; color:var(--ink-muted)}
 .more{display:grid; gap:12px}
 .more .two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
@@ -214,4 +221,59 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
   .mission,.step{align-items:flex-end; padding-bottom:10svh; min-height:92svh}
   .mission .txt,.step .txt{max-width:560px; background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:22px}
 }
+/* join flow: one question per step */
+.jf-top{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:40px}
+.jf-top .link{padding:8px 0}
+.jf-step{display:flex; gap:6px}
+.jf-step i{width:22px; height:4px; border-radius:2px; background:#4A2A6E; transition:background .2s ease}
+.jf-step i.now{background:var(--lilac)}
+.jf-step i.past{background:var(--glow)}
+.jf legend{font-size:clamp(20px,2vw,26px); font-weight:560; letter-spacing:-.02em; color:var(--ink-fg); margin-bottom:14px}
+.jf legend span{display:block; margin-top:4px; font-size:15px; font-weight:400; letter-spacing:0; color:var(--ink-muted)}
+.jf .q{display:grid; gap:12px}
+.jf .q > span{font-size:clamp(20px,2vw,26px); font-weight:560; letter-spacing:-.02em; color:var(--ink-fg)}
+.jf .q input{min-height:52px; padding:0 16px; border-radius:12px; border:1px solid #6A4590; background:rgba(28,5,51,.55); color:var(--ink-fg); font:inherit; font-size:18px; width:100%}
+.jf .q input:focus{outline:2px solid var(--glow); outline-offset:1px; border-color:transparent}
+.jf .q input[aria-invalid="true"]{border-color:#FFB4C8}
+.picks.you{display:grid; grid-template-columns:repeat(2,minmax(0,1fr))}
+.picks.you .pick{min-height:52px}
+.pick:disabled,.jf fieldset:disabled .pick{opacity:.6; cursor:progress}
+.hp{position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden}
+.done .more{gap:0}
+.done h3{margin:8px 0 10px; font-size:17px; font-weight:600}
+.done h3 span{display:block; margin-top:2px; font-size:14px; font-weight:400; color:var(--ink-muted)}
+.done .dev{padding:10px 12px; border:1px dashed #FFB4C8; border-radius:10px; color:#FFD5E1; font-size:14px}
+.detail{border-top:1px solid var(--ink-line)}
+.detail summary{display:flex; align-items:center; gap:6px; min-height:48px; cursor:pointer; list-style:none; font-weight:520; color:var(--ink-fg); border-radius:6px}
+.detail summary::-webkit-details-marker{display:none}
+.detail summary::before{content:"+"; width:18px; color:var(--lilac); font-weight:400; font-size:20px; line-height:1}
+.detail[open] summary::before{content:"−"}
+.detail summary:focus-visible{outline:2px solid var(--glow); outline-offset:2px}
+.detail .saved{color:var(--lilac); font-weight:400; font-size:14px}
+.detail form{display:grid; gap:10px; padding:0 0 16px}
+.hero2.flow .lede,.hero2.flow .affil{display:none}
+.detail label{display:grid; gap:6px; font-size:14px; color:var(--ink-muted)}
+.detail input:not([type=checkbox]){min-height:46px; padding:0 14px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.55); color:var(--ink-fg); font:inherit; font-size:16px; width:100%}
+.detail input:focus-visible{outline:2px solid var(--glow); outline-offset:1px}
+.detail .btn{min-height:40px; padding:0 16px}
+.detail .two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+.toggle{display:flex !important; align-items:center; gap:10px; cursor:pointer; color:var(--ink-fg) !important; font-size:15px !important}
+.toggle input{appearance:none; width:40px; height:24px; border-radius:12px; background:#4A2A6E; position:relative; cursor:pointer; flex-shrink:0; transition:background .15s ease}
+.toggle input::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .15s ease}
+.toggle input:checked{background:var(--glow)}
+.toggle input:checked::after{transform:translateX(16px)}
+.toggle input:focus-visible{outline:2px solid var(--glow); outline-offset:2px}
+.st-msg{font-size:14px; color:var(--lilac)}
+.st-msg.err{color:#FFB4C8}
+.done .actions p{margin:0; color:var(--ink-muted)}
+@media (max-width:860px){
+  .hero2.flow h1{display:none}
+  .hero2.flow .jf,.hero2.flow .done{background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:18px}
+}
+@media (max-width:560px){
+  .detail .two{grid-template-columns:1fr}
+  .jf .actions .btn-w{flex:1}
+}
+@media (prefers-reduced-motion: reduce){.jf-step i,.toggle input,.toggle input::after{transition:none}}
+footer ul{flex-wrap:wrap}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}

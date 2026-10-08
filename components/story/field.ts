@@ -25,6 +25,8 @@ export type FieldOptions = {
 export type Field = {
   setJoining: (on: boolean) => void;
   setSelected: (blocks: number[]) => void;
+  /** Join progress: `steps` completed steps draw that many nodes building toward the chain. */
+  setProgress: (steps: number, blocks: number[]) => void;
   addMember: (name: string, blocks: number[], instant: boolean) => void;
   clearMember: () => void;
   destroy: () => void;
@@ -106,7 +108,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
 
   let joining = false;
   let sel = new Set<number>();
-  let member: { pos: V3; links: number[]; blocks: number[]; name: string; t0: number } | null = null;
+  // `from` is a screen point when the block snaps in from the end of the join trail.
+  let member: { pos: V3; from: [number, number] | null; links: number[]; blocks: number[]; name: string; t0: number } | null = null;
+  let trail: { pos: V3; k: number; t: number[] } | null = null;
+  let trailEnd: [number, number] | null = null;
+  const TRAIL_F = [0, .3, .52, .7]; // where each step's node sits, from the outer start (0) to the member's spot (1)
+  const lerp3 = (a: V3, b: V3, f: number): V3 => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
 
   const wordCleanups = words.map((w, i) => {
     const on = () => { wordHover = i; lastUser = performance.now(); };
@@ -116,13 +123,19 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return () => { w.removeEventListener("mouseenter", on); w.removeEventListener("focus", on); w.removeEventListener("mouseleave", off); w.removeEventListener("blur", off); w.removeEventListener("click", click); };
   });
 
-  function addMember(name: string, blocks: number[], instant: boolean) {
+  function memberPos(blocks: number[]): V3 {
     const cs = blocks.map((i): V3 => { let x = 0, y = 0, z = 0, n = 0; for (const v of cubeV[INFO[i].cube]) { x += L0[v][0]; y += L0[v][1]; z += L0[v][2]; n++; } return [x / n, y / n, z / n]; });
     const m = cs.reduce<V3>((a, c) => [a[0] + c[0] / cs.length, a[1] + c[1] / cs.length, a[2] + c[2] / cs.length], [0, 0, 0]);
+    // (no blocks picked: m stays at the origin and the default direction below is used)
     const d = Math.hypot(m[0], m[1], m[2]); const dir: V3 = d < .2 ? [.62, .5, .6] : [m[0] / d, m[1] / d, m[2] / d];
-    const pos: V3 = [m[0] + dir[0] * 1.7, m[1] + dir[1] * 1.7, m[2] + dir[2] * 1.7];
+    return [m[0] + dir[0] * 1.7, m[1] + dir[1] * 1.7, m[2] + dir[2] * 1.7];
+  }
+  function addMember(name: string, blocks: number[], instant: boolean) {
+    const pos = memberPos(blocks);
     const links = blocks.map((i) => { let best = -1, bd = 1e9; for (const v of cubeV[INFO[i].cube]) { const q = L0[v], dd = Math.hypot(q[0] - pos[0], q[1] - pos[1], q[2] - pos[2]); if (dd < bd) { bd = dd; best = v; } } return best; });
-    member = { pos, links, blocks, name, t0: instant ? -1e9 : performance.now() };
+    // Snap in from the end of the join trail when there is one.
+    member = { pos, from: trail && trail.k && trailEnd ? trailEnd : null, links, blocks, name, t0: instant ? -1e9 : performance.now() };
+    trail = null; trailEnd = null;
     kick();
   }
 
@@ -197,8 +210,33 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     ctx.fillStyle = "#fff";
     for (const p of lp) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.6 + 2 * (p[2] + 1.6) / 3.2, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
+    if (trail && trail.k > 0) {
+      // Laid out on screen: from a point outward of the member's spot (kept inside the viewport) toward it.
+      const tr = trail, target = P(tr.pos), c0 = P([0, 0, 0]);
+      let dx = target[0] - c0[0], dy = target[1] - c0[1];
+      const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+      const R = Math.min(W * .32, 220);
+      const start = [Math.max(16, Math.min(W - 16, target[0] + dx * R)), Math.max(80, Math.min(H - 16, target[1] + dy * R))];
+      const pts = TRAIL_F.slice(0, tr.k).map((f) => [start[0] + (target[0] - start[0]) * f, start[1] + (target[1] - start[1]) * f]);
+      trailEnd = [pts[pts.length - 1][0], pts[pts.length - 1][1]];
+      ctx.save(); ctx.lineWidth = 1.4; ctx.strokeStyle = "rgba(216,194,240,.7)";
+      pts.forEach((pt, i) => {
+        const a = reduce ? 1 : ease((now - tr.t[i]) / 500);
+        const prev = i ? pts[i - 1] : pt, x = prev[0] + (pt[0] - prev[0]) * a, y = prev[1] + (pt[1] - prev[1]) * a;
+        if (i) { ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); }
+        ctx.globalAlpha = Math.min(1, a * 1.5); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(x, y, i === pts.length - 1 ? 5 : 3.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      });
+      // faint guide from the newest node to where the block will snap in
+      const last = pts[pts.length - 1];
+      ctx.strokeStyle = "rgba(216,194,240,.22)"; ctx.setLineDash([2, 6]); ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(target[0], target[1]); ctx.stroke();
+      ctx.restore();
+    }
     if (member) {
-      const mt = reduce ? 1 : ease((now - member.t0) / 1400), pos = member.pos, mp = P([pos[0] * 3.4 + (pos[0] - pos[0] * 3.4) * mt, pos[1] * 3.4 + (pos[1] - pos[1] * 3.4) * mt, pos[2] * 3.4 + (pos[2] - pos[2] * 3.4) * mt]);
+      const mt = reduce ? 1 : ease((now - member.t0) / 1400), end = P(member.pos);
+      const mp = member.from
+        ? [member.from[0] + (end[0] - member.from[0]) * mt, member.from[1] + (end[1] - member.from[1]) * mt]
+        : P(lerp3([member.pos[0] * 3.4, member.pos[1] * 3.4, member.pos[2] * 3.4], member.pos, mt));
       ctx.save(); ctx.globalAlpha = Math.min(1, mt * 1.4); ctx.strokeStyle = "rgba(216,194,240,.85)"; ctx.lineWidth = 1.4; ctx.setLineDash([4, 5]);
       for (const v of member.links) { const q = lp[v]; ctx.beginPath(); ctx.moveTo(mp[0], mp[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
       ctx.setLineDash([]); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 18; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
@@ -256,8 +294,17 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   return {
     setJoining(on) { joining = on; kick(); },
     setSelected(blocks) { sel = new Set(blocks); lastUser = performance.now(); kick(); },
+    setProgress(steps, blocks) {
+      if (steps <= 0) { trail = null; trailEnd = null; kick(); return; }
+      const pos = memberPos(blocks), now = performance.now();
+      if (!trail) trail = { pos, k: 0, t: [] };
+      trail.pos = pos;
+      for (let i = trail.k; i < steps; i++) trail.t[i] = now;
+      trail.k = Math.min(steps, TRAIL_F.length);
+      kick();
+    },
     addMember,
-    clearMember() { member = null; kick(); },
+    clearMember() { member = null; trail = null; trailEnd = null; kick(); },
     destroy() {
       alive = false; cancelAnimationFrame(raf);
       stepIO.disconnect(); visIO.disconnect(); heroRO.disconnect();
