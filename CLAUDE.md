@@ -41,9 +41,9 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
   - `favicon.svg`: favicon / app icon; `avatar.svg`: X and LinkedIn avatar
 - The three blocks represent Blockchain (top), Finance and AI. Headline words and blocks are linked: hovering either highlights the other.
 
-## Pages and sections (v1)
-Home only, in prototype order (plus `/admin`). The top is a pinned story: the 3D blocks stay fixed (`position: sticky`) while the centered hero, the mission, and one step per industry (Blockchain → Finance → AI) scroll past. Each step lights its block. The pin then releases, followed by "The chain so far" (events and programs as blocks) → conference (stats, firms, program) → network wall (once it has 12 approved entries) → join → footer. Keep the pinned section about this length: never hijack scroll speed, and keep it readable with reduced motion.
-All editable content lives in `/content` as typed TS data: `events.ts`, `program.ts`, `firms.ts`, `industries.ts`.
+## Pages and sections
+Home (in prototype order), `/conference`, `/conference/[year]`, `/media-kit`, plus `/admin`. Public pages live in the `app/(site)` route group, which adds the nav and footer. The top is a pinned story: the 3D blocks stay fixed (`position: sticky`) while the centered hero, the mission, and one step per industry (Blockchain → Finance → AI) scroll past. Each step lights its block. The pin then releases, followed by "The chain so far" (events and programs as blocks) → network wall (once it has 12 approved entries) → join → footer. The full conference section lives on its own pages, not the home page. Keep the pinned section about this length: never hijack scroll speed, and keep it readable with reduced motion.
+All editable content lives in `/content` as typed TS data: `events.ts`, `conferences.ts` (editions), `program.ts`, `firms.ts`, `industries.ts`, `site.ts`, `brand.ts` (media-kit marks and colors), `boilerplate.ts`.
 
 ## Confirmed facts (use exactly)
 - Conference: NYU Blockchain Conference 2024, November 1, 2024, New York University, 44 West 4th Street. 632 registrations (never say "attendees"), 35 speakers and moderators, 7 panels plus a fireside. Do not name any NYU school as host. Program, moderators and speakers are in `content/program.ts`; never invent titles.
@@ -61,16 +61,19 @@ Type and layout
 - Hero headline `clamp(36px, 5.3vw, 120px)`. Subtitle and CTAs must stay above the fold at 1440×900 and 1280×720. Join heading `clamp(36px, 5.6vw, 90px)` with tight section padding. Mission one step down; story text is capped so it never overlaps the 3D blocks. Check 390, 1024, 1280 and 1440 px.
 - The pinned story releases exactly when it ends (negative margin on the content layer, not on the pin).
 - The HUD ("New York · time ET · Hover a block · drag to rotate") shows only over the hero and fades out on scroll.
-- Background: a sparse field of tiny wireframe node-stack cubes with faint links, slow drift and slight parallax. Very low opacity; the hero blocks stay the focal point. Static under reduced motion; the render loop pauses when the tab is hidden or the canvas is off-screen.
+- Background (`components/story/network.ts`): a drifting constellation (nodes, faint edges between near neighbours, small dots travelling along edges) with a "blocks forming" cycle. Every 6–10 s, 8 nearby nodes away from the logo and the hero copy ease into an isometric cube, its 12 edges draw one by one with racing dots, a brief glow confirms the block, it holds ~2 s, then relaxes back. Max 2 at once, low opacity; the hero logo stays the focal point. Reduced motion: static constellation, no formations. One canvas, one rAF loop, paused when the tab is hidden or the canvas is off-screen.
 
 Content
 - Under the hero subtitle: "An official NYU Alumni special-interest club ↗" linking to the NYU Alumni page (new tab, rel="noopener"). Text only, never NYU logos. Keep the footer link.
 - No bracket placeholders in `/content`.
+- Hero: "Join the network" is the only CTA (no "Upcoming events"). Hovering a block or a headline word shows an annotation: a thin lilac line from the block's nearest corner node to a violet-glass label (title + the industry's one-line `tagline`). On touch, tap shows it and tapping elsewhere hides it. It works under reduced motion too.
 - "The chain so far": every block is clickable (the whole card), and hover/focus lights the edge to the next block.
-  - Block 00 · Done · NYU Blockchain Conference: scrolls to the conference section.
+  - Block 00 · Annual · NYU Blockchain Conference, "Annual · since 2024", with a mini edition chain: [2024 ✓] → [Next edition · Planning]. The card opens /conference; the 2024 chip opens /conference/2024; the next-edition chip opens Luma once that edition is "announced" with a `lumaUrl`, otherwise the join flow with `notify=conference`.
   - Block 01 · Networking Nights, the recurring alumni networking series, driven by `networkingNights` in `content/events.ts` (`nextDate`, `venue`, `lumaUrl`, all optional). With a date and a Luma URL it shows "Upcoming" and opens Luma; otherwise "Next date soon" and opens the join flow with `notify=networking`. Clear the fields after each event.
   - Block 02 Mentorship and Block 03 Accelerator · Building · "Get notified" opens the join flow with `notify=mentorship` / `notify=accelerator`.
-- Conference section: "NYU Blockchain Conference 2024" with date and address, a "Speakers came from" text wordmark list, and program rows as native disclosures listing moderator and speakers.
+- Conference is an annual series. `content/conferences.ts` holds the editions ({ year, date, venue, address, status: done | announced | planning, stats, program, firms, lumaUrl }); the next edition has status "planning" and no year ("Next edition"). When it's announced, set status, year, date and lumaUrl there.
+  - `/conference`: "NYU Blockchain Conference", "Annual, since 2024", editions as a vertical chain of blocks, newest first.
+  - `/conference/[year]`: the full edition page (date and address, stats, "Speakers came from" text wordmarks, program rows as native disclosures with moderator and speakers). Statically generated with per-page metadata and OG image; unknown years return a real 404 (checked in `proxy.ts`).
 - The two society co-leads who moderated (15:00, 16:00) are listed by firm only: Light Node Ventures, Harmonic Chain Digital. Never add their names.
 
 Join flow ("Add your block")
@@ -78,7 +81,8 @@ Join flow ("Add your block")
 - Each completed step draws a node and edge toward the chain in the hero; on success the block snaps on. Copy: "Block #<n> added. You're on the chain." (n = join order = `members.id`), plus "We'll tell you when <Program> launches." when the person came from a notify block.
 - One line under the final step, no checkbox: "By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details."
 - Optional "Strengthen your block": LinkedIn URL, role and company, NYU school and grad year, and "Show my name on the network wall" with a display name. Each saves on its own; skipping is fine.
-- Entry points: nav "Join", hero "Join the network", join section and footer "Add your block", and the Networking/Building blocks (with notify). `?src=<event>` is stored as the member's source.
+- Entry points: nav "Join", hero "Join the network", join section and footer "Add your block", the Networking/Building blocks and the conference's next edition (with notify). From another page, Join goes to `/?join=1&notify=…`, which opens the flow and is then removed from the URL. `?src=<event>` is stored as the member's source.
+- notify options: networking, mentorship, accelerator, conference ("We'll tell you when the next conference is announced.").
 - While the flow is open the lede is hidden (and the headline on mobile) so each question sits under the visual.
 
 Data and security
@@ -87,9 +91,19 @@ Data and security
 - Server actions with zod, a honeypot, a signed minimum-fill-time token, and Postgres rate limiting keyed by an HMAC of the IP. Never store raw IPs. `FORM_SECRET` is optional (falls back to `DATABASE_URL`).
 - Without `DATABASE_URL` outside Vercel, the flow shows a clear local-only message instead of failing.
 
+Navigation
+- Nav: "The chain" → /#chain, "Focus" → /#focus, "Conference" → /conference, "Join" → join flow. No "Events". Anchors use next/link so they work from any page; targets have scroll-margin-top for the fixed nav; smooth scroll (not under reduced motion); active state via aria-current (page for Conference, location for the home section in view). The nav is solid on sub-pages.
+- Footer: Add your block, Conference, Media kit, X, LinkedIn, NYU Alumni.
+
+Media kit (`/media-kit`)
+- Every mark in `public/brand` previewed on dark and light, downloadable as SVG and transparent PNG (512/1024/2048), plus "Download all" ZIP. PNGs and the ZIP are generated by `scripts/media-kit.mjs` (sharp + archiver) into `public/media-kit/` before `build` and `dev`; that folder is git-ignored. Never hand-upload them.
+- Color swatches for the `:root` tokens (click to copy hex), Geist / Geist Mono usage notes, usage rules (clear space ≥ ¼ of the mark's height; node mark ≥ 48 px, solid mark below that and never under 16 px; don't recolor, stretch or rotate; never with or instead of the NYU logo or torch), approved conference facts worded exactly.
+- Boilerplate (one-liner, ~50 and ~100 words) lives in `content/boilerplate.ts` and shows "Draft, pending review" until the maintainer sets `boilerplateStatus` to "approved".
+- No people and no contact email (the society has no email yet). No team section.
+
 Network wall and admin
 - Network wall shows only rows with `show_on_wall` AND `wall_approved`, as small blocks (wall name + block glyph). Hidden entirely until at least 12 approved entries exist. Cached with tag `wall`; admin changes refresh it.
-- `/admin` (basic auth via `ADMIN_USER` / `ADMIN_PASS` in `proxy.ts`, re-checked in admin actions and the export route; noindex): member table filtered by affiliation, block, notify and wall status; approve/unapprove wall entries; delete a member for removal requests; CSV export (formula-safe).
+- `/admin` stays on HTTP basic auth until personal magic-link logins (round 4) (basic auth via `ADMIN_USER` / `ADMIN_PASS` in `proxy.ts`, re-checked in admin actions and the export route; noindex): member table filtered by affiliation, block, notify and wall status; approve/unapprove wall entries; delete a member for removal requests; CSV export (formula-safe).
 
 ## Rules
 - Never invent facts, people, numbers, sponsors or partners. If something is unknown, leave it out or ask the maintainer.
