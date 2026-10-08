@@ -10,7 +10,8 @@
 }
 :root[data-theme="dark"]{ --bg:#160428; --surface:#1C0533; --fg:#F5EEFB; --muted:#B9A3D0; --line:#3E1D5E; --accent:#C9A2F0; }
 *,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 72px); scroll-behavior:smooth}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 72px)}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
 body{margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-geist-sans),'Helvetica Neue',Helvetica,sans-serif; font-size:17px; line-height:1.55; -webkit-font-smoothing:antialiased}
 a{color:inherit}
 a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offset:3px; border-radius:6px}
@@ -101,10 +102,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 @media (max-width:900px){.conf-grid{grid-template-columns:1fr}}
 
 /* join */
-.join{position:relative; overflow:hidden; background:var(--ink); color:var(--ink-fg); padding-top:clamp(96px,12vw,180px); padding-bottom:clamp(96px,12vw,180px); border-top:1px solid var(--ink-line)}
+.join{position:relative; overflow:hidden; background:var(--ink); color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(64px,7vw,112px); border-top:1px solid var(--ink-line)}
 .join::before{content:""; position:absolute; left:50%; top:100%; width:1100px; height:700px; transform:translate(-50%,-50%); background:radial-gradient(closest-side, rgba(87,6,140,.75), rgba(87,6,140,0)); pointer-events:none}
 .join .wrap{position:relative}
-.join h2{margin:0; font-weight:620; font-size:clamp(48px,8vw,128px); line-height:.9; letter-spacing:-.055em; max-width:11ch}
+.join h2{margin:0; font-weight:620; font-size:clamp(36px,5.6vw,90px); line-height:.9; letter-spacing:-.055em; max-width:11ch}
 .join p{margin:24px 0 0; color:var(--ink-muted); max-width:44ch; font-size:19px}
 footer{background:var(--ink); color:var(--ink-muted); border-top:1px solid var(--ink-line); font-size:14px}
 footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; padding-top:26px; padding-bottom:26px}
@@ -153,15 +154,15 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .layer a,.layer button,.layer input,.layer label,.layer form,.layer fieldset{pointer-events:auto}
 .hero2{min-height:100svh; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; text-align:center; padding-top:96px; padding-bottom:clamp(36px,7vh,72px)}
 .hero2 .txt{width:100%; display:flex; flex-direction:column; align-items:center}
-.hero2 h1{max-width:none; font-size:clamp(46px,7.2vw,116px); line-height:.92}
+.hero2 h1{max-width:none; font-size:clamp(36px,5.3vw,120px); line-height:.92}
 .hero2 .lede{margin:22px auto 0; max-width:46ch}
 .hero2 .ctas{justify-content:center}
 .hero2 .jf,.hero2 .done{width:100%; text-align:left; margin-left:auto; margin-right:auto}
 .hero2 .jf legend{text-align:center; width:100%}
 .hero2 .picks{justify-content:center}
 .mission,.step{min-height:88svh; display:flex; align-items:center}
-.mission .txt,.step .txt{max-width:560px}
-.mission p{margin:0; font-weight:500; font-size:clamp(30px,3.6vw,54px); line-height:1.04; letter-spacing:-.035em}
+.mission .txt,.step .txt{max-width:min(560px,46vw)}
+.mission p{margin:0; font-weight:500; font-size:clamp(26px,2.7vw,40px); line-height:1.04; letter-spacing:-.035em}
 .mission p span{color:var(--ink-muted)}
 .step h2{margin:0 0 18px; font-weight:620; font-size:clamp(48px,6.4vw,104px); line-height:.9; letter-spacing:-.055em; transition:color .3s ease, text-shadow .3s ease}
 .step.on h2{color:#E2CCF8; text-shadow:0 0 36px rgba(185,120,240,.5)}
@@ -178,6 +179,6 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
   .pin .readout{display:none}
   .hero2{padding-top:50svh}
   .mission,.step{align-items:flex-end; padding-bottom:10svh; min-height:92svh}
-  .mission .txt,.step .txt{background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:22px}
+  .mission .txt,.step .txt{max-width:560px; background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:22px}
 }
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
