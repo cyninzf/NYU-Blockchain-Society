@@ -1,0 +1,58 @@
+.page{background:var(--ink); color:var(--ink-fg); padding-bottom:clamp(80px,10vw,140px); min-height:100svh}
+.head h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,88px); line-height:.95; letter-spacing:-.05em}
+.lede{margin:18px 0 26px; max-width:48ch; font-size:clamp(17px,1.5vw,20px); color:var(--ink-muted)}
+.section{margin-top:clamp(56px,7vw,96px); padding-top:28px; border-top:1px solid var(--ink-line)}
+.section h2{margin:0; font-weight:580; font-size:clamp(26px,2.8vw,38px); letter-spacing:-.035em; line-height:1.05; display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+.note{margin:10px 0 0; color:var(--ink-muted); max-width:60ch}
+
+.marks{list-style:none; margin:28px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:28px 20px}
+.mark h3{margin:12px 0 0; font-size:17px; font-weight:600}
+.previews{display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--ink-line); border-radius:12px; overflow:hidden}
+.tile{position:relative; display:grid; place-items:center; aspect-ratio:1; padding:22%}
+.tile img{width:100%; height:auto}
+.dark{background:#1C0533}
+.light{background:#F5F1F9}
+.best{position:absolute; left:8px; bottom:6px; font-size:11px}
+.dark .best{color:var(--lilac)}
+.light .best{color:#57068C}
+.use{margin:4px 0 0; color:var(--ink-muted); font-size:15px}
+.dl{margin:10px 0 0; display:flex; flex-wrap:wrap; gap:6px}
+.dl a{display:inline-flex; align-items:center; min-height:32px; padding:0 10px; border:1px solid #6A4590; border-radius:8px; text-decoration:none; font-size:12px}
+.dl a:hover{border-color:var(--glow); background:rgba(155,77,219,.15)}
+
+.rules{margin:22px 0 0; padding-left:1.1em; display:grid; gap:10px; max-width:70ch; color:var(--ink-muted)}
+.rules b{color:var(--ink-fg); font-weight:550}
+
+.group{margin-top:26px}
+.group h3{margin:0 0 10px; font-weight:400; font-size:13px; color:var(--ink-muted)}
+.swatches{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px}
+.swatch{all:unset; box-sizing:border-box; display:grid; gap:2px; width:100%; padding:10px; border:1px solid var(--ink-line); border-radius:12px; cursor:pointer; background:var(--ink-2); transition:border-color .15s ease}
+.swatch:hover{border-color:var(--glow)}
+.swatch:focus-visible{outline:2px solid var(--glow); outline-offset:2px}
+.chip{display:block; height:64px; border-radius:8px; margin-bottom:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sname{font-weight:550; font-size:15px}
+.hex{font-size:12px; color:var(--ink-muted)}
+.snote{font-size:13px; color:var(--ink-muted)}
+.swatch > span:last-child:not(.snote):not(.hex):not(.sname):not(.chip){font-size:12px; color:var(--lilac); min-height:1.2em}
+
+.type{margin-top:22px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px}
+.specimen{margin:0; font-size:clamp(40px,5vw,72px); font-weight:600; letter-spacing:-.045em; line-height:1}
+.specimen:global(.mono){font-size:clamp(32px,4vw,56px); letter-spacing:0; font-weight:500}
+
+.draft{display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:999px; border:1px dashed #FFB4C8; color:#FFD5E1; font-size:12px; font-weight:400; letter-spacing:0}
+.boiler{list-style:none; margin:22px 0 0; padding:0; display:grid; gap:18px; max-width:76ch}
+.boiler li{padding:18px 20px; border:1px solid var(--ink-line); border-radius:12px; background:var(--ink-2)}
+.bhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px}
+.bhead h3{margin:0; font-size:16px; font-weight:600}
+.bhead h3 span{margin-left:8px; font-size:12px; font-weight:400; color:var(--ink-muted)}
+.bhead :global(.btn){min-height:36px; padding:0 14px; font-size:14px}
+.boiler p{margin:12px 0 0; color:var(--ink-muted)}
+
+.facts{list-style:none; margin:22px 0 0; padding:0; border-top:1px solid var(--ink-line); max-width:80ch}
+.facts li{display:grid; grid-template-columns:120px minmax(0,1fr); gap:4px 20px; padding:14px 0; border-bottom:1px solid var(--ink-line)}
+.facts li span{color:var(--ink-muted); padding-top:3px}
+
+@media (max-width:640px){
+  .type{grid-template-columns:1fr}
+  .facts li{grid-template-columns:1fr}
+}
