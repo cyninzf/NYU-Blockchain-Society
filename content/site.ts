@@ -31,7 +31,7 @@ export const mission = {
 };
 
 export const chainIntro =
-  "Every event, program, and partnership adds a block. Here's what's confirmed, what's next, and what we're building.";
+  "Every event, program, and partnership adds a block. Here's what's done, what's next, and what we're building.";
 
 export const joinSection = {
   title: "Add yourself to the network.",

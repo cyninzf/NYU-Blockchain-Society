@@ -1,9 +1,11 @@
-import { events, type EventStatus } from "@/content/events";
+import { events, type BlockStatus } from "@/content/events";
 import { chainIntro } from "@/content/site";
+import OpenJoin from "./OpenJoin";
 
-const STATUS: Record<EventStatus, { label: string; dot: string; block: string }> = {
-  confirmed: { label: "Confirmed", dot: "st ok", block: "blk" },
-  pending: { label: "Pending", dot: "st pend", block: "blk live" },
+const STATUS: Record<BlockStatus, { label: string; dot: string; block: string }> = {
+  done: { label: "Done", dot: "st ok", block: "blk" },
+  upcoming: { label: "Upcoming", dot: "st pend", block: "blk live" },
+  soon: { label: "Next date soon", dot: "st pend", block: "blk live" },
   building: { label: "Building", dot: "st", block: "blk dim" },
 };
 
@@ -18,6 +20,9 @@ export default function Chain() {
         <ol className="blocks">
           {events.map((ev) => {
             const st = STATUS[ev.status];
+            const live = st.block.includes("live");
+            const cls = `blk-go ${live ? "btn btn-w" : "go"}`;
+            const a = ev.action;
             return (
               <li className={st.block} key={ev.label}>
                 <div className="top mono">
@@ -33,9 +38,17 @@ export default function Chain() {
                     ))}
                   </div>
                 )}
-                {ev.cta && (
-                  <a className="btn btn-w" href={ev.cta.href} target="_blank" rel="noopener">
-                    {ev.cta.label}
+                {a.kind === "join" ? (
+                  <OpenJoin className={cls} notify={a.notify}>
+                    {a.label}<span className="sr">: {ev.title}</span>
+                  </OpenJoin>
+                ) : a.external ? (
+                  <a className={cls} href={a.href} target="_blank" rel="noopener">
+                    {a.label} <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span>
+                  </a>
+                ) : (
+                  <a className={cls} href={a.href}>
+                    {a.label} <span aria-hidden="true">↓</span>
                   </a>
                 )}
               </li>

@@ -4,8 +4,10 @@ export const conference = {
   registrations: 632,
   speakers: 35,
   panels: 7,
-  /** TODO: confirm with the maintainer. */
-  year: "[Year]",
+  year: 2024,
+  date: "November 1, 2024",
+  venue: "New York University",
+  address: "New York University, 44 West 4th Street",
 };
 
 export type Session = { time: string; title: string; who: string };
