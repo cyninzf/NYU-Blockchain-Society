@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { siteDescription, siteName, siteUrl } from "@/content/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NYU Blockchain Society",
-  description:
-    "The professional network for NYU alumni at the intersection of blockchain, finance, and AI.",
+  metadataBase: new URL(siteUrl),
+  title: siteName,
+  description: siteDescription,
+  alternates: { canonical: "/" },
+  // Images come from app/opengraph-image.tsx and app/twitter-image.tsx,
+  // resolved to absolute URLs against metadataBase.
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName,
+    title: siteName,
+    description: siteDescription,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@NYU_Blockchain",
+    title: siteName,
+    description: siteDescription,
+  },
   icons: { icon: "/brand/favicon.svg", apple: "/brand/favicon.svg" },
 };
 

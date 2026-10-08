@@ -1,5 +1,12 @@
 // Site-wide copy and links.
 
+/** Canonical production URL. The bare domain 308-redirects here. */
+export const siteUrl = "https://www.nyublockchainsociety.com";
+
+export const siteName = "NYU Blockchain Society";
+export const siteDescription =
+  "The professional network for NYU alumni at the intersection of blockchain, finance, and AI.";
+
 export const links = {
   x: "https://x.com/NYU_Blockchain",
   linkedin: "https://www.linkedin.com/groups/8652445/",
