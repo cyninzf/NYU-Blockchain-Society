@@ -1,11 +1,9 @@
-// The hero's 3D field: the three-block logo inside a sparse lattice, drawn on a 2D canvas.
+// The hero's 3D field: the three-block logo inside a drifting network, drawn on a 2D canvas.
 // Ported from the inline script in docs/prototype.html. The DOM it drives (headline words,
 // story steps, caption) is rendered by React; this module only reads it and toggles classes.
 
 import { industries } from "@/content/industries";
-
-type V3 = [number, number, number];
-type P2 = [number, number, number]; // screen x, screen y, depth
+import { createNetwork, type P2, type V3 } from "./network";
 
 export type FieldElements = {
   canvas: HTMLCanvasElement;
@@ -59,32 +57,16 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const center = (p: V3): V3 => [p[0] - C[0], p[1] - C[1], p[2] - C[2]];
   const L0 = LV.map(center);
 
-  // --- background: sparse tiny wireframe cubes (node-stack style), faintly linked, drifting ---
-  const CUBE_V: V3[] = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
-  const CUBE_E: [number, number][] = [];
-  for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) { const d = CUBE_V[a].reduce((n, v, i) => n + (v !== CUBE_V[b][i] ? 1 : 0), 0); if (d === 1) CUBE_E.push([a, b]); }
-  const CUBE_TOP = [2, 3, 7, 6];
-  const bg: { c: V3; s: number; dir: V3; ph: number; sp: number }[] = [];
-  for (let tries = 0; bg.length < 22 && tries < 2000; tries++) {
-    const c: V3 = [(rnd() - .5) * 15, (rnd() - .5) * 10, (rnd() - .5) * 15];
-    const r = Math.hypot(c[0], c[1], c[2]);
-    if (r < 3.4 || r > 7.6) continue;
-    if (bg.some((o) => Math.hypot(o.c[0] - c[0], o.c[1] - c[1], o.c[2] - c[2]) < 1.8)) continue;
-    const d: V3 = [rnd() - .5, rnd() - .5, rnd() - .5], dl = Math.hypot(d[0], d[1], d[2]) || 1;
-    bg.push({ c, s: .13 + rnd() * .09, dir: [d[0] / dl, d[1] / dl, d[2] / dl], ph: rnd() * Math.PI * 2, sp: .05 + rnd() * .06 });
-  }
-  // Link each cube to its nearest neighbours, corner to corner.
-  const bgLinks: [number, number, number, number][] = [];
-  const linked = new Set<string>();
-  bg.forEach((a, i) => {
-    bg.map((b, j) => [j, Math.hypot(a.c[0] - b.c[0], a.c[1] - b.c[1], a.c[2] - b.c[2])] as const)
-      .filter(([j, d]) => j !== i && d < 4.2).sort((x, y) => x[1] - y[1]).slice(0, 2)
-      .forEach(([j]) => {
-        const k = i < j ? i + "-" + j : j + "-" + i; if (linked.has(k)) return; linked.add(k);
-        const b = bg[j], corner = (from: typeof a, to: typeof a) => { let best = 0, bd = 1e9; CUBE_V.forEach((v, n) => { const d = Math.hypot(from.c[0] + v[0] * from.s - to.c[0], from.c[1] + v[1] * from.s - to.c[1], from.c[2] + v[2] * from.s - to.c[2]); if (d < bd) { bd = d; best = n; } }); return best; };
-        bgLinks.push([i, corner(a, b), j, corner(b, a)]);
-      });
-  });
+  // --- background: drifting constellation that periodically forms blocks (network.ts) ---
+  const network = createNetwork(rnd);
+  // Text the blocks must not form behind: the hero copy and any story step card in view.
+  const copyRects = () => {
+    const c = cv.getBoundingClientRect();
+    return [heroTxt, ...steps].map((el) => el.querySelector(".txt") ?? el).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left - c.left, top: r.top - c.top, right: r.right - c.left, bottom: r.bottom - c.top };
+    });
+  };
   const Ls = L0.map((): V3 => [(rnd() - .5) * 9, (rnd() - .5) * 9, (rnd() - .5) * 9]);
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
@@ -176,22 +158,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     setActive(want, direct || (scrollActive < 0 && want >= 0));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     ctx.clearRect(0, 0, W, H);
-    // background cubes: drift slowly; nearer cubes shift more with scroll (parallax)
-    const par = Math.min(scrollY, H * 1.5) * .05;
-    const bgp = bg.map((cb) => {
-      const w = reduce ? 0 : Math.sin(el * cb.sp * Math.PI * 2 + cb.ph) * .35;
-      const o: V3 = [cb.c[0] + cb.dir[0] * w, cb.c[1] + cb.dir[1] * w, cb.c[2] + cb.dir[2] * w];
-      return CUBE_V.map((v) => { const q = P([o[0] + v[0] * cb.s, o[1] + v[1] * cb.s, o[2] + v[2] * cb.s]); return [q[0], q[1] - par * (1 + q[2] / 8), q[2]] as P2; });
-    });
-    const depth = (z: number) => Math.min(1, Math.max(0, (z + 7) / 14));
-    ctx.lineWidth = 1;
-    for (const [i, a, j, b] of bgLinks) { const A = bgp[i][a], B = bgp[j][b]; ctx.strokeStyle = `rgba(185,138,232,${(.03 + .05 * depth((A[2] + B[2]) / 2)) * gk})`; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }
-    for (const vs of bgp) {
-      const dz = depth(vs.reduce((n, q) => n + q[2], 0) / 8);
-      ctx.fillStyle = `rgba(155,77,219,${(.04 + .06 * dz) * gk})`; ctx.beginPath(); CUBE_TOP.forEach((n, j) => { if (j) ctx.lineTo(vs[n][0], vs[n][1]); else ctx.moveTo(vs[n][0], vs[n][1]); }); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = `rgba(216,194,240,${(.07 + .13 * dz) * gk})`; ctx.beginPath(); for (const [a, b] of CUBE_E) { ctx.moveTo(vs[a][0], vs[a][1]); ctx.lineTo(vs[b][0], vs[b][1]); } ctx.stroke();
-      ctx.fillStyle = `rgba(216,194,240,${(.1 + .2 * dz) * gk})`; for (const q of vs) { ctx.beginPath(); ctx.arc(q[0], q[1], .7 + .6 * dz, 0, Math.PI * 2); ctx.fill(); }
-    }
+    // background: nearer nodes shift more with scroll (parallax); blocks form away from the logo
+    network.draw(ctx, { now, el, reduce, gk, P, W, H, par: Math.min(scrollY, H * 1.5) * .05, avoid: { x: ox, y: oy, r: S * 3.2 }, avoidRects: copyRects });
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
     ctx.save(); ctx.globalAlpha = k;
