@@ -138,7 +138,6 @@ export default function Story() {
             </p>
             <div className="ctas" hidden={mode !== "idle"}>
               <button className="btn btn-w" type="button" ref={openJoinRef} onClick={() => openJoin()}>Join the network</button>
-              <a className="btn btn-o" href="#chain">Upcoming events</a>
             </div>
             {mode !== "idle" && (
               <JoinFlow key={flowKey} sel={sel} toggle={toggle} notify={notify} onProgress={onProgress} onJoined={onJoined} onClose={close} />

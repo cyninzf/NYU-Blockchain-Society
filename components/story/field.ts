@@ -71,7 +71,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
 
-  let scrollActive = -1, capOn = false, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 };
+  let scrollActive = -1, capOn = false, capA = 0, capW = 0, capH = 0, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 };
   const stepIO = new IntersectionObserver((ens) => {
     for (const en of ens) { const i = +((en.target as HTMLElement).dataset.step ?? -1); if (en.isIntersecting) scrollActive = i; else if (scrollActive === i) scrollActive = -1; }
     steps.forEach((st, j) => st.classList.toggle("on", j === scrollActive));
@@ -84,7 +84,10 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   function setActive(i: number, showCap: boolean) {
     const c = i >= 0 && showCap; if (i === active && c === capOn) return; active = i; capOn = c;
     words.forEach((w, j) => w.classList.toggle("on", j === i));
-    if (c) { capTitle.textContent = INFO[i].name; capText.textContent = INFO[i].caption; cap.classList.add("show"); } else cap.classList.remove("show");
+    if (c) {
+      capTitle.textContent = INFO[i].name; capText.textContent = INFO[i].tagline; cap.classList.add("show");
+      capW = cap.offsetWidth; capH = cap.offsetHeight; // measured once per change, not per frame
+    } else cap.classList.remove("show");
   }
   const kick = () => { if (reduce) frame(performance.now()); };
 
@@ -98,8 +101,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const lerp3 = (a: V3, b: V3, f: number): V3 => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
 
   const wordCleanups = words.map((w, i) => {
-    const on = () => { wordHover = i; lastUser = performance.now(); };
-    const off = () => { wordHover = -1; lastUser = performance.now(); };
+    const on = () => { wordHover = i; lastUser = performance.now(); kick(); };
+    const off = () => { wordHover = -1; lastUser = performance.now(); kick(); };
     const click = () => { if (joining) { opts.onToggle(i); return; } pinned = pinned === i ? -1 : i; lastUser = performance.now(); kick(); };
     w.addEventListener("mouseenter", on); w.addEventListener("focus", on); w.addEventListener("mouseleave", off); w.addEventListener("blur", off); w.addEventListener("click", click);
     return () => { w.removeEventListener("mouseenter", on); w.removeEventListener("focus", on); w.removeEventListener("mouseleave", off); w.removeEventListener("blur", off); w.removeEventListener("click", click); };
@@ -211,10 +214,24 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       if (!reduce && mt >= 1) { const pt = ((now - member.t0) / 1000) % 2.4; ctx.strokeStyle = `rgba(216,194,240,${Math.max(0, 1 - pt / 1.3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5 + pt * 20, 0, Math.PI * 2); ctx.stroke(); }
       ctx.fillStyle = "#F5EEFB"; ctx.font = `500 13px ${fontFamily}`; ctx.fillText(member.name ? "You · " + member.name.split(/\s+/)[0] : "You", mp[0] + 13, mp[1] + 4); ctx.restore();
     }
-    if (active >= 0 && centers[active]) {
-      const [cx, cy] = centers[active], right = cx < W * .62 || W <= 860;
-      const small = W <= 860; const x = small ? W / 2 - cap.offsetWidth / 2 : right ? cx + S * .95 : cx - S * .95 - cap.offsetWidth, y = small ? oy + S * 1.55 : cy - cap.offsetHeight / 2;
-      cap.style.transform = `translate(${Math.max(8, Math.min(W - cap.offsetWidth - 8, x))}px, ${Math.max(76, y)}px)`;
+    // Annotation: a thin lilac line from the active block's nearest corner node to its label.
+    capA += ((capOn ? 1 : 0) - capA) * (reduce ? 1 : .2);
+    if (active >= 0 && centers[active] && capA > .01) {
+      const [cx, cy] = centers[active], small = W <= 860, right = cx < W * .62;
+      let lx: number, ly: number;
+      if (small) { lx = W / 2 - capW / 2; ly = Math.max(oy + S * 1.7, cy + S * 1.1); }
+      else { lx = right ? cx + S * 1.4 : cx - S * 1.4 - capW; ly = cy - S * .9; }
+      lx = Math.max(8, Math.min(W - capW - 8, lx)); ly = Math.max(76, Math.min(H - capH - 8, ly));
+      // where the line meets the label: top centre below the logo, else the near side
+      const ax = small ? lx + capW / 2 : right ? lx : lx + capW, ay = small ? ly : ly + Math.min(22, capH / 2);
+      let corner = lp[0], cd = 1e9;
+      for (const v of cubeV[INFO[active].cube]) { const q = lp[v], d = Math.hypot(q[0] - ax, q[1] - ay); if (d < cd) { cd = d; corner = q; } }
+      ctx.save(); ctx.globalAlpha = capA; ctx.strokeStyle = "rgba(216,194,240,.8)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(corner[0], corner[1]); ctx.lineTo(ax, ay); ctx.stroke();
+      ctx.beginPath(); ctx.arc(corner[0], corner[1], 4.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#D8C2F0"; ctx.beginPath(); ctx.arc(ax, ay, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      cap.style.transform = `translate(${lx}px, ${ly}px)`;
     }
     if (!reduce && k >= 1) {
       ctx.save(); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#E9DBF8";
@@ -229,21 +246,38 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     schedule();
   }
 
-  const onDown = (e: PointerEvent) => { dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; };
+  const hitAt = (e: PointerEvent) => {
+    const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    let best = -1, bd = S * .75;
+    centers.forEach((c, i) => { const d = Math.hypot(c[0] - px, c[1] - py); if (d < bd) { bd = d; best = i; } });
+    return best;
+  };
+  // Touch has no hover: hit-test on press so a tap shows (or toggles) the label.
+  const onDown = (e: PointerEvent) => { hover = hitAt(e); dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; };
   const onMove = (e: PointerEvent) => {
     const r = cv.getBoundingClientRect(); mx = (e.clientX - r.left) / r.width - .5; my = (e.clientY - r.top) / r.height - .5;
-    const px = e.clientX - r.left, py = e.clientY - r.top; let best = -1, bd = S * .75;
-    centers.forEach((c, i) => { const d = Math.hypot(c[0] - px, c[1] - py); if (d < bd) { bd = d; best = i; } });
-    if (!dragging) { hover = best; if (best >= 0) lastUser = performance.now(); cv.style.cursor = best >= 0 ? "pointer" : "grab"; return; }
+    const best = hitAt(e);
+    if (!dragging) {
+      if (best >= 0) lastUser = performance.now();
+      if (best !== hover) { hover = best; cv.style.cursor = best >= 0 ? "pointer" : "grab"; kick(); }
+      return;
+    }
     moved += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
     tYaw += (e.clientX - lx) * .008; tPitch = Math.max(-.3, Math.min(1.2, tPitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; lastInput = performance.now();
     if (reduce) { yaw = tYaw; pitch = tPitch; frame(performance.now()); }
   };
   const onUp = () => {
     if (dragging && moved < 6) { if (joining) { if (hover >= 0) opts.onToggle(hover); } else { pinned = hover >= 0 && pinned !== hover ? hover : -1; } lastUser = performance.now(); }
-    dragging = false; cv.style.cursor = "grab"; lastInput = performance.now();
+    dragging = false; cv.style.cursor = "grab"; lastInput = performance.now(); kick();
   };
-  const onLeave = () => { hover = -1; };
+  const onLeave = () => { hover = -1; kick(); };
+  // Tapping or clicking anywhere else (not the canvas or a headline word) hides a pinned label.
+  const onDocDown = (e: PointerEvent) => {
+    const t = e.target as Element | null;
+    if (t === cv || words.some((w) => w.contains(t))) return;
+    if (pinned >= 0) { pinned = -1; kick(); }
+  };
+  document.addEventListener("pointerdown", onDocDown);
   const onResize = () => { resize(); if (reduce) frame(performance.now()); };
   const onScrollReduced = () => frame(performance.now());
   cv.addEventListener("pointerdown", onDown);
@@ -281,6 +315,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onUp);
       removeEventListener("resize", onResize); removeEventListener("scroll", onScrollReduced);
       document.removeEventListener("visibilitychange", schedule);
+      document.removeEventListener("pointerdown", onDocDown);
     },
   };
 }
