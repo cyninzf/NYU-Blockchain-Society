@@ -109,10 +109,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .firms span{transition:color .15s ease}
 .firms span:hover{color:var(--ink-fg)}
 .prog{list-style:none; margin:0; padding:0; border-top:1px solid var(--ink-line)}
-.prog li{display:grid; grid-template-columns:64px minmax(0,1fr); gap:4px 20px; padding:16px 0; border-bottom:1px solid var(--ink-line)}
+.prog > li{border-bottom:1px solid var(--ink-line)}
+.prog summary{display:grid; grid-template-columns:64px minmax(0,1fr) 20px; gap:4px 20px; padding:16px 0; cursor:pointer; list-style:none; border-radius:6px}
+.prog summary::-webkit-details-marker{display:none}
+.prog summary:focus-visible{outline:2px solid var(--glow); outline-offset:3px}
+.prog summary:hover .t{color:#fff; text-decoration:underline; text-decoration-color:rgba(185,163,208,.5); text-underline-offset:4px}
+.prog .chev{grid-column:3; grid-row:1; align-self:center; justify-self:end; width:10px; height:10px; border-right:1.5px solid var(--ink-muted); border-bottom:1.5px solid var(--ink-muted); transform:translateY(-3px) rotate(45deg); transition:transform .2s ease}
+.prog details[open] .chev{transform:translateY(2px) rotate(-135deg)}
+.prog .ppl{padding:0 40px 18px 84px; font-size:15px}
+.prog .ppl p{margin:0 0 8px}
+.prog .ppl ul{list-style:none; margin:0; padding:0; display:grid; gap:4px; color:var(--ink-muted)}
+.prog .role{display:block; color:var(--ink-muted); font-size:12px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:4px}
+.prog .ppl p:not(.role){color:var(--ink-fg)}
+.conf .when{margin:16px 0 0; color:var(--ink-muted)}
+.firms-h{margin:40px 0 0; font-weight:400; color:var(--ink-muted)}
+.firms-h + .firms{margin-top:12px}
+@media (max-width:560px){.prog .ppl{padding-left:0; padding-right:0}}
 .prog time{color:var(--ink-muted); padding-top:3px}
 .prog .t{font-weight:500; font-size:18px; letter-spacing:-.01em}
 .prog .w{grid-column:2; color:var(--ink-muted); font-size:15px}
+.prog .t{grid-column:2; grid-row:1}
 @media (max-width:900px){.conf-grid{grid-template-columns:1fr}}
 
 /* join */
