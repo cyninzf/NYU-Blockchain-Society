@@ -52,20 +52,37 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   }
   const LEdges = [...LE].map((s) => s.split("-").map(Number) as [number, number]);
 
-  // --- lattice: sparse grid around the logo ---
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const G: V3[] = [], GI = new Map<string, number>(), R = 4;
-  for (let x = -R; x <= R + 1; x++) for (let y = -R; y <= R + 1; y++) for (let z = -R; z <= R + 1; z++) {
-    if (LI.has(key([x, y, z]))) continue;
-    const d = Math.hypot(x - .8, y - .8, z - .8);
-    if (d < 1.9 || d > R + 1.2) continue;
-    if (rnd() < .2) { GI.set(key([x, y, z]), G.length); G.push([x, y, z]); }
-  }
-  const GE: [number, number][] = [];
-  G.forEach((p, i) => { for (const [dx, dy, dz] of [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) { const j = GI.get(key([p[0] + dx, p[1] + dy, p[2] + dz])); if (j !== undefined) GE.push([i, j]); } });
   const C: V3 = [.8, .8, .8];
   const center = (p: V3): V3 => [p[0] - C[0], p[1] - C[1], p[2] - C[2]];
-  const L0 = LV.map(center), G0 = G.map(center);
+  const L0 = LV.map(center);
+
+  // --- background: sparse tiny wireframe cubes (node-stack style), faintly linked, drifting ---
+  const CUBE_V: V3[] = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+  const CUBE_E: [number, number][] = [];
+  for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) { const d = CUBE_V[a].reduce((n, v, i) => n + (v !== CUBE_V[b][i] ? 1 : 0), 0); if (d === 1) CUBE_E.push([a, b]); }
+  const CUBE_TOP = [2, 3, 7, 6];
+  const bg: { c: V3; s: number; dir: V3; ph: number; sp: number }[] = [];
+  for (let tries = 0; bg.length < 22 && tries < 2000; tries++) {
+    const c: V3 = [(rnd() - .5) * 15, (rnd() - .5) * 10, (rnd() - .5) * 15];
+    const r = Math.hypot(c[0], c[1], c[2]);
+    if (r < 3.4 || r > 7.6) continue;
+    if (bg.some((o) => Math.hypot(o.c[0] - c[0], o.c[1] - c[1], o.c[2] - c[2]) < 1.8)) continue;
+    const d: V3 = [rnd() - .5, rnd() - .5, rnd() - .5], dl = Math.hypot(d[0], d[1], d[2]) || 1;
+    bg.push({ c, s: .13 + rnd() * .09, dir: [d[0] / dl, d[1] / dl, d[2] / dl], ph: rnd() * Math.PI * 2, sp: .05 + rnd() * .06 });
+  }
+  // Link each cube to its nearest neighbours, corner to corner.
+  const bgLinks: [number, number, number, number][] = [];
+  const linked = new Set<string>();
+  bg.forEach((a, i) => {
+    bg.map((b, j) => [j, Math.hypot(a.c[0] - b.c[0], a.c[1] - b.c[1], a.c[2] - b.c[2])] as const)
+      .filter(([j, d]) => j !== i && d < 4.2).sort((x, y) => x[1] - y[1]).slice(0, 2)
+      .forEach(([j]) => {
+        const k = i < j ? i + "-" + j : j + "-" + i; if (linked.has(k)) return; linked.add(k);
+        const b = bg[j], corner = (from: typeof a, to: typeof a) => { let best = 0, bd = 1e9; CUBE_V.forEach((v, n) => { const d = Math.hypot(from.c[0] + v[0] * from.s - to.c[0], from.c[1] + v[1] * from.s - to.c[1], from.c[2] + v[2] * from.s - to.c[2]); if (d < bd) { bd = d; best = n; } }); return best; };
+        bgLinks.push([i, corner(a, b), j, corner(b, a)]);
+      });
+  });
   const Ls = L0.map((): V3 => [(rnd() - .5) * 9, (rnd() - .5) * 9, (rnd() - .5) * 9]);
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
@@ -130,7 +147,11 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return [ox + x * S * persp + smx * z2 * 6, oy - y2 * S * persp + smy * z2 * 4, z2];
   }
 
+  const shouldRun = () => alive && visible && !reduce && !document.hidden;
+  const schedule = () => { if (!raf && shouldRun()) raf = requestAnimationFrame(frame); };
+
   function frame(now: number) {
+    raf = 0;
     if (!alive) return;
     const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5), gk = reduce ? 1 : ease((el - .5) / 1.6);
     if (!dragging && !reduce && (now - lastInput) / 1000 > 2.5) { tYaw = ISO_YAW + Math.sin(el * .22) * .7; tPitch = ISO_PITCH + Math.sin(el * .17) * .1; }
@@ -142,11 +163,22 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     setActive(want, direct || (scrollActive < 0 && want >= 0));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     ctx.clearRect(0, 0, W, H);
-    // lattice
-    const gp = G0.map(P);
+    // background cubes: drift slowly; nearer cubes shift more with scroll (parallax)
+    const par = Math.min(scrollY, H * 1.5) * .05;
+    const bgp = bg.map((cb) => {
+      const w = reduce ? 0 : Math.sin(el * cb.sp * Math.PI * 2 + cb.ph) * .35;
+      const o: V3 = [cb.c[0] + cb.dir[0] * w, cb.c[1] + cb.dir[1] * w, cb.c[2] + cb.dir[2] * w];
+      return CUBE_V.map((v) => { const q = P([o[0] + v[0] * cb.s, o[1] + v[1] * cb.s, o[2] + v[2] * cb.s]); return [q[0], q[1] - par * (1 + q[2] / 8), q[2]] as P2; });
+    });
+    const depth = (z: number) => Math.min(1, Math.max(0, (z + 7) / 14));
     ctx.lineWidth = 1;
-    for (const [a, b] of GE) { const A = gp[a], B = gp[b], d = (A[2] + B[2]) / 2; ctx.strokeStyle = `rgba(185,138,232,${(0.05 + 0.13 * (d + 6) / 12) * gk})`; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }
-    for (const p of gp) { const a = (0.12 + 0.35 * (p[2] + 6) / 12) * gk; ctx.fillStyle = `rgba(216,194,240,${a})`; ctx.beginPath(); ctx.arc(p[0], p[1], 1.2 + 1.4 * (p[2] + 6) / 12, 0, Math.PI * 2); ctx.fill(); }
+    for (const [i, a, j, b] of bgLinks) { const A = bgp[i][a], B = bgp[j][b]; ctx.strokeStyle = `rgba(185,138,232,${(.03 + .05 * depth((A[2] + B[2]) / 2)) * gk})`; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }
+    for (const vs of bgp) {
+      const dz = depth(vs.reduce((n, q) => n + q[2], 0) / 8);
+      ctx.fillStyle = `rgba(155,77,219,${(.04 + .06 * dz) * gk})`; ctx.beginPath(); CUBE_TOP.forEach((n, j) => { if (j) ctx.lineTo(vs[n][0], vs[n][1]); else ctx.moveTo(vs[n][0], vs[n][1]); }); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = `rgba(216,194,240,${(.07 + .13 * dz) * gk})`; ctx.beginPath(); for (const [a, b] of CUBE_E) { ctx.moveTo(vs[a][0], vs[a][1]); ctx.lineTo(vs[b][0], vs[b][1]); } ctx.stroke();
+      ctx.fillStyle = `rgba(216,194,240,${(.1 + .2 * dz) * gk})`; for (const q of vs) { ctx.beginPath(); ctx.arc(q[0], q[1], .7 + .6 * dz, 0, Math.PI * 2); ctx.fill(); }
+    }
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
     ctx.save(); ctx.globalAlpha = k;
@@ -188,7 +220,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       }
       ctx.restore();
     }
-    if (visible && !reduce) raf = requestAnimationFrame(frame);
+    schedule();
   }
 
   const onDown = (e: PointerEvent) => { dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; };
@@ -215,9 +247,11 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   addEventListener("resize", onResize);
   if (reduce) addEventListener("scroll", onScrollReduced, { passive: true });
   const heroRO = new ResizeObserver(() => resize()); heroRO.observe(heroTxt);
-  const visIO = new IntersectionObserver(([en]) => { const was = visible; visible = en.isIntersecting; if (visible && !was && !reduce) raf = requestAnimationFrame(frame); });
+  const visIO = new IntersectionObserver(([en]) => { visible = en.isIntersecting; schedule(); });
   visIO.observe(cv);
-  resize(); raf = requestAnimationFrame(frame);
+  document.addEventListener("visibilitychange", schedule);
+  resize();
+  if (reduce) frame(performance.now()); else schedule();
 
   return {
     setJoining(on) { joining = on; kick(); },
@@ -231,6 +265,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       cv.removeEventListener("pointerdown", onDown); cv.removeEventListener("pointermove", onMove); cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onUp);
       removeEventListener("resize", onResize); removeEventListener("scroll", onScrollReduced);
+      document.removeEventListener("visibilitychange", schedule);
     },
   };
 }
