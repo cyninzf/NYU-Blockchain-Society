@@ -3,6 +3,11 @@
 Repo: https://github.com/cyninzf/NYU-Blockchain-Society
 Maintainer: Fang. Co-leads: two society organizers (names kept out of this public repo).
 
+## Public repo rules
+- Never commit secrets: database URLs, passwords, API keys. Use .env.local locally and Vercel environment variables in production. Provide a .env.example with empty values only.
+- Never commit member data: no CSVs, Luma exports, spreadsheets, or real names/emails in seed data or tests. Use obviously fake test data (e.g. test@example.com).
+- Never put personal contact details of organizers or members in code or docs.
+
 ## The spec
 `docs/prototype.html` is the approved design. Match it closely: layout, copy, colors, type, motion and the hero interaction. Port it; don't redesign it. When unsure, open it in a browser and compare.
 
