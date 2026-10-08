@@ -53,8 +53,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .readout{pointer-events:none; text-align:right; color:var(--ink-muted); display:grid; gap:6px; padding-bottom:6px}
 .readout span b{color:var(--ink-fg); font-weight:500}
 @media (prefers-reduced-motion: no-preference){
-  .hero2 h1, .hero2 .lede, .hero2 .ctas{animation:in 1s cubic-bezier(.2,.8,.2,1) both}
-  .hero2 .lede{animation-delay:.9s} .hero2 .ctas{animation-delay:1.05s} .hero2 h1{animation-delay:.7s}
+  .hero2 h1, .hero2 .lede, .hero2 .affil, .hero2 .ctas{animation:in 1s cubic-bezier(.2,.8,.2,1) both}
+  .hero2 .lede{animation-delay:.9s} .hero2 .affil{animation-delay:.98s} .hero2 .ctas{animation-delay:1.05s} .hero2 h1{animation-delay:.7s}
   @keyframes in{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
 }
 
@@ -157,6 +157,9 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .hero2 h1{max-width:none; font-size:clamp(36px,5.3vw,120px); line-height:.92}
 .hero2 .lede{margin:22px auto 0; max-width:46ch}
 .hero2 .ctas{justify-content:center}
+.affil{margin:14px 0 0; font-size:14px; color:var(--ink-muted)}
+.affil a{text-decoration:underline; text-decoration-color:rgba(185,163,208,.45); text-underline-offset:4px; transition:color .15s ease}
+.affil a:hover{color:var(--ink-fg); text-decoration-color:currentColor}
 .hero2 .jf,.hero2 .done{width:100%; text-align:left; margin-left:auto; margin-right:auto}
 .hero2 .jf legend{text-align:center; width:100%}
 .hero2 .picks{justify-content:center}

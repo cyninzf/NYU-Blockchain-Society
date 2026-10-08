@@ -6,7 +6,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { industries } from "@/content/industries";
-import { hero, mission, privacyLine } from "@/content/site";
+import { affiliation, hero, mission, privacyLine } from "@/content/site";
 import { OPEN_JOIN_EVENT } from "../OpenJoin";
 import { createField, type Field } from "./field";
 
@@ -197,6 +197,11 @@ export default function Story() {
               ))}
             </h1>
             <p className="lede"><b>{hero.ledeLead}</b> {hero.lede}</p>
+            <p className="affil">
+              <a href={affiliation.href} target="_blank" rel="noopener">
+                {affiliation.label} <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span>
+              </a>
+            </p>
             <div className="ctas" hidden={mode !== "idle"}>
               <button className="btn btn-w" type="button" ref={openJoinRef} onClick={openJoin}>
                 {saved ? "Edit your block" : "Join the network"}

@@ -19,6 +19,12 @@ export const hero = {
   lede: "for people building, investing, and working where the three converge. Each block is one of them.",
 };
 
+/** Shown under the hero subtitle. Text only: no NYU logos. */
+export const affiliation = {
+  label: "An official NYU Alumni special-interest club",
+  href: links.nyuAlumni,
+};
+
 export const mission = {
   text: "We bring together the institutions, builders, investors, and policymakers shaping what comes next.",
   muted: "Then we help NYU founders build it.",
