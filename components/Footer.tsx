@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { links } from "@/content/site";
 import OpenJoin from "./OpenJoin";
 
@@ -12,6 +13,8 @@ export default function Footer() {
         </div>
         <ul>
           <li><OpenJoin>Add your block</OpenJoin></li>
+          <li><Link href="/conference">Conference</Link></li>
+          <li><Link href="/media-kit">Media kit</Link></li>
           <li><a href={links.x} target="_blank" rel="noopener">X</a></li>
           <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn</a></li>
           <li><a href={links.nyuAlumni} target="_blank" rel="noopener">NYU Alumni</a></li>

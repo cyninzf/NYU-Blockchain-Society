@@ -160,7 +160,7 @@ export default function Story() {
           <div
             key={ind.name}
             className="step wrap"
-            id={i === 0 ? "industries" : undefined}
+            id={i === 0 ? "focus" : undefined}
             data-step={i}
             ref={(el) => { if (el) stepRefs.current[i] = el; }}
           >
