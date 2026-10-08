@@ -41,6 +41,7 @@ export default function Story() {
   const capTitleRef = useRef<HTMLElement>(null);
   const capTextRef = useRef<HTMLSpanElement>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
+  const hudRef = useRef<HTMLDivElement>(null);
   const heroTxtRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<HTMLButtonElement[]>([]);
   const stepRefs = useRef<HTMLDivElement[]>([]);
@@ -78,6 +79,17 @@ export default function Story() {
     tick();
     const clock = setInterval(tick, 1000);
 
+    // The HUD belongs to the hero only: fade it out over the first half-screen of scroll.
+    const hud = hudRef.current!;
+    const fadeHud = () => {
+      const o = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.5));
+      hud.style.opacity = String(o);
+      hud.style.visibility = o > 0 ? "visible" : "hidden";
+    };
+    fadeHud();
+    window.addEventListener("scroll", fadeHud, { passive: true });
+    window.addEventListener("resize", fadeHud);
+
     try {
       const m = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       if (m && Array.isArray(m.blocks) && m.blocks.length) {
@@ -89,7 +101,7 @@ export default function Story() {
       }
     } catch {}
 
-    return () => { clearInterval(clock); field.destroy(); fieldRef.current = null; };
+    return () => { clearInterval(clock); window.removeEventListener("scroll", fadeHud); window.removeEventListener("resize", fadeHud); field.destroy(); fieldRef.current = null; };
   }, [toggle]);
 
   useEffect(() => { fieldRef.current?.setJoining(mode === "joining"); }, [mode]);
@@ -167,7 +179,7 @@ export default function Story() {
           aria-label="The society's logo: three connected blocks for blockchain, finance and AI, floating inside a larger network. Use the words in the headline to highlight each block."
         ></canvas>
         <div className="cap" ref={capRef} aria-live="polite"><b ref={capTitleRef}></b><span ref={capTextRef}></span></div>
-        <div className="readout mono" aria-hidden="true">
+        <div className="readout mono" ref={hudRef} aria-hidden="true">
           <span>New York</span>
           <span ref={clockRef}>--:--:-- ET</span>
           <span className="hint-d">Hover a block · drag to rotate</span>
