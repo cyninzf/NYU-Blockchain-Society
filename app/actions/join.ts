@@ -61,7 +61,7 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     // The response is identical either way, so it never reveals whether an email exists.
     const res = await db.execute<{ id: number; inserted: boolean }>(sql`
       insert into members (name, email, affiliation, blocks, notify, source)
-      values (${d.name}, ${d.email}, ${d.affiliation}, ${blocks}::text[], ${notify}::text[], ${d.src ?? null})
+      values (${d.name}, ${d.email}, ${d.affiliation}, ${pgArray(blocks)}::text[], ${pgArray(notify)}::text[], ${d.src ?? null})
       on conflict ((lower(email))) do update set
         name = excluded.name,
         affiliation = excluded.affiliation,
@@ -80,6 +80,12 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     return { ok: false, error: GENERIC };
   }
 }
+
+/**
+ * Postgres array literal. Drizzle's sql`` would expand a JS array into a parameter list,
+ * so pass it as one text param. Only used for validated enum values (no quoting needed).
+ */
+const pgArray = (values: string[]) => `{${values.join(",")}}`;
 
 const opt = (max: number) => z.string().trim().max(max).transform((v) => v || null);
 const linkedin = z
