@@ -1,17 +1,18 @@
 // "The chain so far": events and programs, one block each. Every block is clickable.
 // Mentorship and the accelerator are "building": never present them as live.
 
-import { conference } from "./program";
+import { series } from "./conferences";
 
 /** Programs people can ask to hear about from the join flow (`notify`). */
-export type Notify = "networking" | "mentorship" | "accelerator";
-export const NOTIFY: Notify[] = ["networking", "mentorship", "accelerator"];
+export type Notify = "networking" | "mentorship" | "accelerator" | "conference";
+export const NOTIFY: Notify[] = ["networking", "mentorship", "accelerator", "conference"];
 
 /** Line added to the join success screen when someone came from a block's "Get notified". */
 export const notifyMessages: Record<Notify, string> = {
   networking: "We'll tell you when the next Networking Night is set.",
   mentorship: "We'll tell you when Mentorship launches.",
   accelerator: "We'll tell you when the Accelerator launches.",
+  conference: "We'll tell you when the next conference is announced.",
 };
 
 /**
@@ -21,7 +22,7 @@ export const notifyMessages: Record<Notify, string> = {
  */
 export const networkingNights: { nextDate?: string; venue?: string; lumaUrl?: string } = {};
 
-export type BlockStatus = "done" | "upcoming" | "soon" | "building";
+export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "building";
 
 export type BlockAction =
   | { kind: "link"; label: string; href: string; external?: boolean }
@@ -33,6 +34,8 @@ export type ChainBlock = {
   title: string;
   text: string;
   stats?: { value: number; label: string }[];
+  /** Show the conference's mini edition chain (from conferences.ts) inside the card. */
+  editions?: boolean;
   action: BlockAction;
 };
 
@@ -57,15 +60,11 @@ function networkingBlock(): ChainBlock {
 export const events: ChainBlock[] = [
   {
     label: "Block 00",
-    status: "done",
-    title: "NYU Blockchain Conference",
-    text: `${conference.date} · ${conference.venue}`,
-    stats: [
-      { value: conference.registrations, label: "registrations" },
-      { value: conference.speakers, label: "speakers and moderators" },
-      { value: conference.panels, label: "panels + a fireside" },
-    ],
-    action: { kind: "link", label: "See the program", href: "#conference" },
+    status: "annual",
+    title: series.name,
+    text: `Annual · since ${series.since}`,
+    editions: true,
+    action: { kind: "link", label: "The conference series", href: "/conference" },
   },
   networkingBlock(),
   {

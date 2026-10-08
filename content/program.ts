@@ -1,14 +1,5 @@
-// The NYU Blockchain Conference. Use "registrations", never "attendees".
-
-export const conference = {
-  registrations: 632,
-  speakers: 35,
-  panels: 7,
-  year: 2024,
-  date: "November 1, 2024",
-  venue: "New York University",
-  address: "New York University, 44 West 4th Street",
-};
+// Conference programs: sessions with moderator and speakers. Editions live in conferences.ts.
+// Never invent titles: leave out whatever isn't confirmed.
 
 /** Shown as "name, title, org". Leave out what isn't confirmed: never invent titles. */
 export type Person = { name?: string; title?: string; org: string };
@@ -22,7 +13,7 @@ export type Session = {
   speakers: Person[];
 };
 
-export const program: Session[] = [
+export const program2024: Session[] = [
   {
     time: "10:00",
     title: "Stablecoins and cross-border payments",

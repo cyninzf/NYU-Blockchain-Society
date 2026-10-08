@@ -4,7 +4,7 @@
 // mission and one step per industry scroll past. Ported from docs/prototype.html.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import type { Notify } from "@/content/events";
+import { NOTIFY, type Notify } from "@/content/events";
 import { industries } from "@/content/industries";
 import { affiliation, hero, mission } from "@/content/site";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
@@ -88,6 +88,15 @@ export default function Story() {
       document.getElementById("top")?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
     };
     window.addEventListener(OPEN_JOIN_EVENT, open);
+    // Arrived from a Join link on another page (/?join=1&notify=...): open the flow, then tidy the URL.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("join")) {
+      const n = params.get("notify");
+      openJoin({ notify: NOTIFY.includes(n as Notify) ? (n as Notify) : undefined });
+      params.delete("join"); params.delete("notify");
+      const q = params.toString();
+      window.history.replaceState(window.history.state, "", `/${q ? `?${q}` : ""}#top`);
+    }
     return () => window.removeEventListener(OPEN_JOIN_EVENT, open);
   }, []);
 

@@ -94,6 +94,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .blk:hover .go{text-decoration:underline; text-underline-offset:4px}
 .blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:-2px}
 .blk-go:focus-visible{outline:none}
+/* conference card: mini chain of editions; chips sit above the card's stretched link */
+.editions{list-style:none; margin:4px 0 0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:8px 0}
+.editions li{display:flex; align-items:center}
+.editions li + li::before{content:""; width:16px; height:1px; background:#7B5A9E; margin:0 2px}
+.ed{position:relative; z-index:3; display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 11px; border-radius:8px; border:1px solid #6A4590; font-size:14px; font-weight:550; text-decoration:none; color:var(--ink-fg); background:rgba(28,5,51,.5); transition:border-color .15s ease, background .15s ease}
+.ed:hover{border-color:var(--glow); background:rgba(155,77,219,.18)}
+.ed.past span{color:#B98AE8}
+.ed.next{border-style:dashed}
+.ed.next .mono{font-size:12px; color:var(--ink-muted); font-weight:400}
 /* highlight the edge to the next block */
 .blk::after{transition:background .2s ease, border-color .2s ease, box-shadow .2s ease}
 .blk:is(:hover,:focus-within)::after{background:var(--glow); border-color:var(--lilac); box-shadow:0 0 14px rgba(155,77,219,.9)}
@@ -123,7 +132,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .prog .role{display:block; color:var(--ink-muted); font-size:12px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:4px}
 .prog .ppl p:not(.role){color:var(--ink-fg)}
 .conf .when{margin:16px 0 0; color:var(--ink-muted)}
-.firms-h{margin:40px 0 0; font-weight:400; color:var(--ink-muted)}
+.conf .firms-h{margin:40px 0 0; font-weight:400; font-size:13px; letter-spacing:0; line-height:1.55; color:var(--ink-muted)}
 .firms-h + .firms{margin-top:12px}
 @media (max-width:560px){.prog .ppl{padding-left:0; padding-right:0}}
 .prog time{color:var(--ink-muted); padding-top:3px}
@@ -131,6 +140,32 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .prog .w{grid-column:2; color:var(--ink-muted); font-size:15px}
 .prog .t{grid-column:2; grid-row:1}
 @media (max-width:900px){.conf-grid{grid-template-columns:1fr}}
+
+/* sub-pages (conference, media kit): clear the fixed nav */
+.page-top{padding-top:calc(env(safe-area-inset-top,0px) + 68px + clamp(40px,6vw,80px))}
+.crumbs{margin-bottom:28px}
+.crumbs a{color:var(--ink-muted); text-decoration:none}
+.crumbs a:hover{color:var(--ink-fg)}
+.conf h1{margin:0; font-weight:580; font-size:clamp(34px,4vw,56px); letter-spacing:-.04em; line-height:1}
+.conf.page-top{border-top:0; min-height:100svh}
+/* conference series: editions as a vertical chain of blocks */
+.series{background:var(--ink); color:var(--ink-fg); padding-bottom:clamp(80px,10vw,140px); min-height:100svh}
+.kicker{margin:0 0 14px; color:var(--ink-muted)}
+.series h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,88px); line-height:.95; letter-spacing:-.05em}
+.series-sub{margin:16px 0 0; font-size:clamp(18px,1.6vw,21px); color:var(--ink-muted)}
+.ed-chain{list-style:none; margin:clamp(40px,5vw,64px) 0 0; padding:0; max-width:640px; display:grid; gap:36px}
+.ed-blk{position:relative; display:flex; flex-direction:column; gap:10px; padding:22px 24px 24px; border:1px solid var(--ink-line); background:var(--ink-2); transition:background .2s ease}
+.ed-blk:hover{background:#2E0F50}
+.ed-blk.next{border-style:dashed; background:transparent}
+.ed-blk + .ed-blk::before{content:""; position:absolute; left:32px; top:-37px; width:1px; height:36px; background:#5B3E78}
+.ed-blk + .ed-blk::after{content:""; position:absolute; left:26px; top:-25px; width:11px; height:11px; border-radius:50%; background:var(--ink); border:1px solid #7B5A9E}
+.ed-blk .top{display:flex; justify-content:space-between; align-items:center; color:var(--ink-muted)}
+.ed-blk h2{margin:6px 0 0; font-weight:600; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em; line-height:1.1}
+.ed-blk p{margin:0; color:var(--ink-muted)}
+.ed-blk .stats{font-size:13px; color:var(--ink-fg)}
+.ed-blk .go{margin-top:6px; color:var(--ink-fg); font-weight:550; text-decoration:none}
+.ed-blk:hover .go{text-decoration:underline; text-underline-offset:4px}
+.ed-blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:2px}
 
 /* join */
 .join{position:relative; overflow:hidden; background:var(--ink); color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(64px,7vw,112px); border-top:1px solid var(--ink-line)}
@@ -151,7 +186,7 @@ footer ul{list-style:none; display:flex; gap:22px; margin:0; padding:0}
 footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 /* hero join flow */
 .jf{margin-top:28px; display:grid; gap:18px; max-width:560px; pointer-events:auto}
-.jf[hidden],.done[hidden],.ctas[hidden]{display:none}
+.jf[hidden],.jf-done[hidden],.ctas[hidden]{display:none}
 .jf legend{padding:0; margin:0 0 10px; font-size:15px; color:var(--ink-muted)}
 .jf fieldset{border:0; margin:0; padding:0; min-width:0}
 .picks{display:flex; flex-wrap:wrap; gap:8px}
@@ -169,10 +204,10 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .link:hover{color:var(--ink-fg)}
 .err{margin:0; min-height:1.2em; color:#FFB4C8; font-size:14px}
 .fine{margin:0; font-size:13px; color:var(--ink-muted); max-width:52ch}
-.done{margin-top:28px; max-width:560px; display:grid; gap:16px; pointer-events:auto}
-.done h2{margin:0; font-size:22px; font-weight:600; letter-spacing:-.02em}
-.done h2:focus{outline:none}
-.done > p{margin:0; color:var(--ink-muted)}
+.jf-done{margin-top:28px; max-width:560px; display:grid; gap:16px; pointer-events:auto}
+.jf-done h2{margin:0; font-size:22px; font-weight:600; letter-spacing:-.02em}
+.jf-done h2:focus{outline:none}
+.jf-done > p{margin:0; color:var(--ink-muted)}
 .more{display:grid; gap:12px}
 .more .two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
 .chips{display:flex; flex-wrap:wrap; gap:8px; border:0; margin:0; padding:0}
@@ -198,7 +233,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .affil{margin:14px 0 0; font-size:14px; color:var(--ink-muted)}
 .affil a{text-decoration:underline; text-decoration-color:rgba(185,163,208,.45); text-underline-offset:4px; transition:color .15s ease}
 .affil a:hover{color:var(--ink-fg); text-decoration-color:currentColor}
-.hero2 .jf,.hero2 .done{width:100%; text-align:left; margin-left:auto; margin-right:auto}
+.hero2 .jf,.hero2 .jf-done{width:100%; text-align:left; margin-left:auto; margin-right:auto}
 .hero2 .jf legend{text-align:center; width:100%}
 .hero2 .picks{justify-content:center}
 .mission,.step{min-height:88svh; display:flex; align-items:center}
@@ -240,10 +275,10 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .picks.you .pick{min-height:52px}
 .pick:disabled,.jf fieldset:disabled .pick{opacity:.6; cursor:progress}
 .hp{position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden}
-.done .more{gap:0}
-.done h3{margin:8px 0 10px; font-size:17px; font-weight:600}
-.done h3 span{display:block; margin-top:2px; font-size:14px; font-weight:400; color:var(--ink-muted)}
-.done .dev{padding:10px 12px; border:1px dashed #FFB4C8; border-radius:10px; color:#FFD5E1; font-size:14px}
+.jf-done .more{gap:0}
+.jf-done h3{margin:8px 0 10px; font-size:17px; font-weight:600}
+.jf-done h3 span{display:block; margin-top:2px; font-size:14px; font-weight:400; color:var(--ink-muted)}
+.jf-done .dev{padding:10px 12px; border:1px dashed #FFB4C8; border-radius:10px; color:#FFD5E1; font-size:14px}
 .detail{border-top:1px solid var(--ink-line)}
 .detail summary{display:flex; align-items:center; gap:6px; min-height:48px; cursor:pointer; list-style:none; font-weight:520; color:var(--ink-fg); border-radius:6px}
 .detail summary::-webkit-details-marker{display:none}
@@ -266,10 +301,10 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .toggle input:focus-visible{outline:2px solid var(--glow); outline-offset:2px}
 .st-msg{font-size:14px; color:var(--lilac)}
 .st-msg.err{color:#FFB4C8}
-.done .actions p{margin:0; color:var(--ink-muted)}
+.jf-done .actions p{margin:0; color:var(--ink-muted)}
 @media (max-width:860px){
   .hero2.flow h1{display:none}
-  .hero2.flow .jf,.hero2.flow .done{background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:18px}
+  .hero2.flow .jf,.hero2.flow .jf-done{background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:18px}
 }
 @media (max-width:560px){
   .detail .two{grid-template-columns:1fr}

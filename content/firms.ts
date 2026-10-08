@@ -1,6 +1,6 @@
-// Firms our conference speakers came from. Names as text only, never logos.
+// Firms the 2024 conference speakers came from. Names as text only, never logos.
 
-export const firms: string[] = [
+export const firms2024: string[] = [
   "BlackRock",
   "J.P. Morgan",
   "Franklin Templeton",

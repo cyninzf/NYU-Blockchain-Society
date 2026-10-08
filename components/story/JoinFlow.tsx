@@ -163,7 +163,7 @@ function Success({ done, headingRef, defaultWallName, onClose }: { done: Done; h
   const [open, setOpen] = useState(true);
   const save = (input: Parameters<typeof saveDetails>[1]) => saveDetails(done.token ?? "", input);
   return (
-    <div className="done">
+    <div className="jf-done">
       <h2 ref={headingRef} tabIndex={-1}>
         {done.n ? <>Block #{done.n} added.</> : <>Block added.</>} You&apos;re on the chain.
       </h2>

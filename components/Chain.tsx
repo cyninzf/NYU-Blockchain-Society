@@ -1,8 +1,12 @@
+import Link from "next/link";
+import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
 import { events, type BlockStatus } from "@/content/events";
 import { chainIntro } from "@/content/site";
+import NextEditionLink from "./conference/NextEditionLink";
 import OpenJoin from "./OpenJoin";
 
 const STATUS: Record<BlockStatus, { label: string; dot: string; block: string }> = {
+  annual: { label: "Annual", dot: "st ok", block: "blk" },
   done: { label: "Done", dot: "st ok", block: "blk" },
   upcoming: { label: "Upcoming", dot: "st pend", block: "blk live" },
   soon: { label: "Next date soon", dot: "st pend", block: "blk live" },
@@ -31,6 +35,22 @@ export default function Chain() {
                 </div>
                 <h3>{ev.title}</h3>
                 <p>{ev.text}</p>
+                {ev.editions && (
+                  <ol className="editions" aria-label="Editions">
+                    {pastEditions.map((e) => (
+                      <li key={e.year}>
+                        <Link className="ed past" href={`/conference/${e.year}`}>{e.year} <span aria-hidden="true">✓</span><span className="sr"> (done)</span></Link>
+                      </li>
+                    ))}
+                    {nextEdition && (
+                      <li>
+                        <NextEditionLink className="ed next">
+                          {nextEdition.year ?? "Next edition"} <span className="mono">· {statusLabel[nextEdition.status]}</span>
+                        </NextEditionLink>
+                      </li>
+                    )}
+                  </ol>
+                )}
                 {ev.stats && (
                   <div className="foot mono">
                     {ev.stats.map((s) => (
@@ -42,6 +62,10 @@ export default function Chain() {
                   <OpenJoin className={cls} notify={a.notify}>
                     {a.label}<span className="sr">: {ev.title}</span>
                   </OpenJoin>
+                ) : a.href.startsWith("/") && !a.href.startsWith("/#") ? (
+                  <Link className={cls} href={a.href}>
+                    {a.label} <span aria-hidden="true">→</span>
+                  </Link>
                 ) : a.external ? (
                   <a className={cls} href={a.href} target="_blank" rel="noopener">
                     {a.label} <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span>
