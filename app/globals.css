@@ -83,6 +83,20 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .blk.live p,.blk.live .top{color:var(--lilac)}
 .blk.live .btn{margin-top:auto; align-self:flex-start}
 .blk.dim h3{color:#CDBEDB}
+/* every block is clickable: its action stretches over the whole card */
+.blk{transition:background .2s ease}
+.blk-go::before{content:""; position:absolute; inset:0; z-index:2}
+.blk .go{margin-top:auto; align-self:flex-start; color:var(--ink-fg); font-weight:550; font-size:15px; text-decoration:none}
+.blk .foot + .go{margin-top:0}
+.blk:hover{background:#2E0F50}
+.blk.live:hover{background:#640A9E}
+.blk:hover .go{text-decoration:underline; text-underline-offset:4px}
+.blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:-2px}
+.blk-go:focus-visible{outline:none}
+/* highlight the edge to the next block */
+.blk::after{transition:background .2s ease, border-color .2s ease, box-shadow .2s ease}
+.blk:is(:hover,:focus-within)::after{background:var(--glow); border-color:var(--lilac); box-shadow:0 0 14px rgba(155,77,219,.9)}
+.blk:is(:hover,:focus-within) + .blk{border-left-color:var(--glow)}
 
 
 /* conference */
@@ -147,10 +161,10 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 @media (max-width:560px){.fields,.more .two{grid-template-columns:1fr}}
 /* pinned story */
 .story{position:relative; background:#1C0533; color:var(--ink-fg)}
-.pin{position:sticky; top:0; height:100svh; margin-bottom:-100svh; overflow:hidden; background:radial-gradient(110% 80% at 50% 36%, #3A0A63 0%, #24063F 48%, #1C0533 100%)}
+.pin{position:sticky; top:0; height:100svh; overflow:hidden; background:radial-gradient(110% 80% at 50% 36%, #3A0A63 0%, #24063F 48%, #1C0533 100%)}
 .pin canvas{position:absolute; inset:0; width:100%; height:100%; cursor:grab; touch-action:pan-y}
 .pin .readout{position:absolute; right:clamp(20px,4vw,56px); bottom:clamp(24px,4vh,40px); text-align:right}
-.layer{position:relative; z-index:1; pointer-events:none}
+.layer{position:relative; z-index:1; pointer-events:none; margin-top:-100svh}
 .layer a,.layer button,.layer input,.layer label,.layer form,.layer fieldset{pointer-events:auto}
 .hero2{min-height:100svh; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; text-align:center; padding-top:96px; padding-bottom:clamp(36px,7vh,72px)}
 .hero2 .txt{width:100%; display:flex; flex-direction:column; align-items:center}
