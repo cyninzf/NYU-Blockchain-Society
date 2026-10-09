@@ -7,6 +7,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { NOTIFY, type Notify } from "@/content/events";
 import { industries } from "@/content/industries";
 import { affiliation, hero, mission } from "@/content/site";
+import Icon from "../Icon";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
 import { createField, type Field } from "./field";
 import JoinFlow from "./JoinFlow";
@@ -113,7 +114,7 @@ export default function Story() {
   }, [mode]);
 
   return (
-    <section className="story" id="top" aria-label="Blockchain, finance and AI">
+    <section className="story" id="top" aria-label="Blockchain, Finance & AI">
       <div className="pin">
         <canvas
           id="field"
@@ -142,7 +143,7 @@ export default function Story() {
             <p className="lede"><b>{hero.ledeLead}</b> {hero.lede}</p>
             <p className="affil">
               <a href={affiliation.href} target="_blank" rel="noopener">
-                {affiliation.label} <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span>
+                {affiliation.label} <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span>
               </a>
             </p>
             <div className="ctas" hidden={mode !== "idle"}>

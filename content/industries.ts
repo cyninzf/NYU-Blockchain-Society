@@ -8,7 +8,7 @@ export type Industry = {
   /** Stored in members.blocks. */
   id: IndustryId;
   name: string;
-  /** Word as it appears in the headline, "Blockchain, finance & AI." */
+  /** Word as it appears in the headline, "Blockchain, Finance & AI." */
   headlineWord: string;
   /** Which cube of the 3D logo this industry lights (0 = AI, 1 = Finance, 2 = Blockchain). */
   cube: number;
@@ -34,7 +34,7 @@ export const industries: Industry[] = [
   {
     id: "finance",
     name: "Finance",
-    headlineWord: "finance",
+    headlineWord: "Finance",
     cube: 1,
     tagline: "Banks, asset managers, regulators.",
     description: "How banks, asset managers, and regulators adopt and govern new technology.",

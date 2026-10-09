@@ -33,7 +33,8 @@ const joinSchema = z.object({
   blocks: z.array(z.enum(INDUSTRY_IDS)).max(3),
   name: z.string().trim().min(1, "Add your name.").max(120),
   email: z.email("Enter an email we can reach you at, like name@example.com.").trim().max(254),
-  affiliation: z.enum(AFFILIATIONS),
+  // "friend" is kept for old rows only; the flow no longer offers it.
+  affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
   notify: z.enum(NOTIFY).optional(),
   src: z.string().regex(/^[\w-]{1,40}$/).optional(),
 });

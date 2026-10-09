@@ -18,6 +18,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .wrap{max-width:1320px; margin:0 auto; padding-left:clamp(20px,4vw,56px); padding-right:clamp(20px,4vw,56px)}
 .mono{font-family:var(--font-geist-mono),ui-monospace,monospace; font-size:13px}
 .mk{display:block; flex-shrink:0}
+.ic{display:inline-block; vertical-align:-.1em; flex-shrink:0}
 
 /* nav */
 .nav{position:fixed; top:0; left:0; right:0; z-index:10; padding-top:env(safe-area-inset-top,0px); color:var(--ink-fg); transition:background .25s ease, border-color .25s ease; border-bottom:1px solid transparent}

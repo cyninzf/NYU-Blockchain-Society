@@ -12,11 +12,11 @@ import type { Affiliation } from "@/lib/db/schema";
 
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const YOU: [Affiliation, string][] = [
+const YOU: [Exclude<Affiliation, "friend">, string][] = [
   ["alumni", "Alumni"],
-  ["student", "Student"],
+  ["industry", "Industry professional"],
   ["faculty_staff", "Faculty/Staff"],
-  ["friend", "Friend of NYU"],
+  ["student", "Student"],
 ];
 
 type Props = {
@@ -63,7 +63,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     if (id !== "you") { setStep(step + 1); return; }
 
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    const affiliation = submitter?.value as Affiliation | undefined;
+    const affiliation = YOU.find(([v]) => v === submitter?.value)?.[0];
     if (!affiliation) { setErr("Pick the one that fits best."); return; }
 
     const params = new URLSearchParams(window.location.search);

@@ -128,7 +128,7 @@ export default function MediaKitPage() {
             <li><span className="mono">Conference</span>NYU Blockchain Conference {first.year}, {first.date}, {first.address}</li>
             {first.stats && <li><span className="mono">Figures</span>{statsLine(first.stats).replace(" + ", " plus ")}</li>}
             <li><span className="mono">Series</span>Annual, since {first.year}</li>
-            <li><span className="mono">Affiliation</span>An official NYU Alumni special-interest club</li>
+            <li><span className="mono">Affiliation</span>Official NYU Alumni Club</li>
           </ul>
         </section>
       </div>

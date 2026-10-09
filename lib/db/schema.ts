@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
 import { bigserial, boolean, index, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const AFFILIATIONS = ["alumni", "student", "faculty_staff", "friend"] as const;
+// "friend" is no longer offered in the join flow but stays valid for existing rows.
+export const AFFILIATIONS = ["alumni", "industry", "student", "faculty_staff", "friend"] as const;
 export type Affiliation = (typeof AFFILIATIONS)[number];
 export const affiliation = pgEnum("affiliation", AFFILIATIONS);
 

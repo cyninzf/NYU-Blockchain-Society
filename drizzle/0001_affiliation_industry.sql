@@ -1,0 +1,1 @@
+ALTER TYPE "public"."affiliation" ADD VALUE 'industry' BEFORE 'student';

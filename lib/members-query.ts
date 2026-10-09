@@ -29,7 +29,8 @@ export function listMembers(db: Db, f: MemberFilters) {
 
 export const AFFILIATION_LABELS: Record<Affiliation, string> = {
   alumni: "Alumni",
-  student: "Student",
+  industry: "Industry professional",
   faculty_staff: "Faculty/Staff",
-  friend: "Friend of NYU",
+  student: "Student",
+  friend: "Friend of NYU (legacy)",
 };

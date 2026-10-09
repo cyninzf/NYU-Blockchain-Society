@@ -16,12 +16,12 @@ export const links = {
 
 export const hero = {
   ledeLead: "The NYU alumni network",
-  lede: "for people building, investing, and working where the three converge. Each block is one of them.",
+  lede: "for professionals building, investing, and working where the three converge. Each block is one of them.",
 };
 
 /** Shown under the hero subtitle. Text only: no NYU logos. */
 export const affiliation = {
-  label: "An official NYU Alumni special-interest club",
+  label: "Official NYU Alumni Club",
   href: links.nyuAlumni,
 };
 
