@@ -8,6 +8,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { NOTIFY, type Notify } from "@/content/events";
 import { industries } from "@/content/industries";
 import { affiliation, hero, mission } from "@/content/site";
+import { clearMarker, firstName, loadMarker, saveMarker } from "@/lib/you-marker";
 import Icon from "../Icon";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
 import { createField, type Field } from "./field";
@@ -30,6 +31,8 @@ export default function Story() {
   const capRef = useRef<HTMLDivElement>(null);
   const capTitleRef = useRef<HTMLElement>(null);
   const capTextRef = useRef<HTMLSpanElement>(null);
+  const youRef = useRef<HTMLDivElement>(null);
+  const youNameRef = useRef<HTMLSpanElement>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
   const heroTxtRef = useRef<HTMLDivElement>(null);
@@ -56,10 +59,15 @@ export default function Story() {
         words: wordRefs.current,
         cards: cardRefs.current,
         focus: focusRef.current!,
+        you: youRef.current!,
+        youName: youNameRef.current!,
       },
       { onToggle: toggle },
     );
     fieldRef.current = field;
+    // Someone who joined in this browser (within 30 days) sees their block again.
+    const mine = loadMarker();
+    if (mine) field.addMember(mine.name, mine.blocks.map((id) => industries.findIndex((x) => x.id === id)).sort(), true);
 
     const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
     const tick = () => { if (clockRef.current) clockRef.current.textContent = fmt.format(new Date()) + " ET"; };
@@ -109,9 +117,16 @@ export default function Story() {
 
   const onProgress = useCallback((steps: number) => fieldRef.current?.setProgress(steps, sel), [sel]);
   const onJoined = useCallback((name: string) => {
-    fieldRef.current?.addMember(name, [...sel].sort(), false);
+    const blocks = [...sel].sort();
+    saveMarker(name, blocks.map((i) => industries[i].id));
+    fieldRef.current?.addMember(firstName(name), blocks, false);
     setMode("done");
   }, [sel]);
+  const hideMarker = useCallback(() => {
+    clearMarker();
+    fieldRef.current?.clearMember();
+    openJoinRef.current?.focus({ preventScroll: true });
+  }, []);
   const close = useCallback(() => {
     fieldRef.current?.setProgress(0, []);
     if (mode === "joining") setSel([]);
@@ -128,6 +143,10 @@ export default function Story() {
           role="img"
           aria-label="The society's logo: three connected blocks for blockchain, finance and AI, floating inside a larger network. Use the words in the headline to highlight each block."
         ></div>
+        <div className="you-mark" ref={youRef}>
+          <span ref={youNameRef}></span>
+          <button className="link" type="button" onClick={hideMarker}>Hide<span className="sr"> your marker on the logo</span></button>
+        </div>
         <div className="cap" ref={capRef} aria-live="polite"><b className="mono" ref={capTitleRef}></b><span ref={capTextRef}></span></div>
         <div className="readout mono" ref={hudRef} aria-hidden="true">
           <span>New York</span>

@@ -21,6 +21,9 @@ export type FieldElements = {
   cards: HTMLElement[];
   /** The Focus section: the logo moves above its cards while it's in view. */
   focus: HTMLElement;
+  /** "You · <first name>" beside the member's block, with its Hide button; `youName` holds the text. */
+  you: HTMLElement;
+  youName: HTMLElement;
 };
 
 export type FieldOptions = {
@@ -47,9 +50,8 @@ const ease = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 const LBL_NODES = 110, LBL_EDGES = [70, 320], LBL_DOT = [220, 470], LBL_TEXT = 440;
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
-  const { surface: cv, cap, capTitle, capText, heroTxt, words, cards, focus } = el;
+  const { surface: cv, cap, capTitle, capText, heroTxt, words, cards, focus, you, youName } = el;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const fontFamily = getComputedStyle(cv).fontFamily || "sans-serif";
   const INFO = industries;
 
   // --- logo: three cubes ---
@@ -120,9 +122,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   function memberPos(blocks: number[]): V3 {
     const cs = blocks.map((i): V3 => { let x = 0, y = 0, z = 0, n = 0; for (const v of cubeV[INFO[i].cube]) { x += L0[v][0]; y += L0[v][1]; z += L0[v][2]; n++; } return [x / n, y / n, z / n]; });
     const m = cs.reduce<V3>((a, c) => [a[0] + c[0] / cs.length, a[1] + c[1] / cs.length, a[2] + c[2] / cs.length], [0, 0, 0]);
-    // (no blocks picked: m stays at the origin and the default direction below is used)
-    const d = Math.hypot(m[0], m[1], m[2]); const dir: V3 = d < .2 ? [.62, .5, .6] : [m[0] / d, m[1] / d, m[2] / d];
-    return [m[0] + dir[0] * 1.7, m[1] + dir[1] * 1.7, m[2] + dir[2] * 1.7];
+    // (no blocks picked: m stays at the origin and the marker sits to the right)
+    // Beside the blocks, toward the side of the logo they're on: in the isometric view
+    // (x - z) is screen-horizontal, and straight up from the top block would sit under the nav.
+    const side = m[0] - m[2] < -.1 ? -1 : 1, dir: V3 = [side * .68, .26, -side * .68];
+    const r = W <= 560 ? 1.25 : 1.7; // phones: keep it on screen
+    return [m[0] + dir[0] * r, m[1] + dir[1] * r, m[2] + dir[2] * r];
   }
   function addMember(name: string, blocks: number[], instant: boolean) {
     const pos = memberPos(blocks);
@@ -130,8 +135,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     // Snap in from the end of the join trail when there is one.
     member = { pos, from: trail && trail.k && trailEnd ? trailEnd : null, links, blocks, name, t0: instant ? -1e9 : performance.now() };
     trail = null; trailEnd = null;
+    youName.textContent = name ? `You · ${name}` : "You";
+    youW = youH = 0;
     kick();
   }
+  let youOn = false, youW = 0, youH = 0;
+  const showYou = (on: boolean) => { if (on !== youOn) { youOn = on; you.classList.toggle("show", on); } };
 
   let dragging = false, moved = 0, lx = 0, ly = 0, lastInput = -1e9, W = 0, H = 0, ox = 0, oy = 0, S = 1, pinTop = 0, logoA = 1;
   const t0 = performance.now();
@@ -258,8 +267,17 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       for (const v of member.links) { const q = lp[v]; ctx.beginPath(); ctx.moveTo(mp[0], mp[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
       ctx.setLineDash([]); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 18; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
       if (!reduce && mt >= 1) { const pt = ((now - member.t0) / 1000) % 2.4; ctx.strokeStyle = `rgba(216,194,240,${Math.max(0, 1 - pt / 1.3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5 + pt * 20, 0, Math.PI * 2); ctx.stroke(); }
-      ctx.fillStyle = "#F5EEFB"; ctx.font = `500 13px ${fontFamily}`; ctx.fillText(member.name ? "You · " + member.name.split(/\s+/)[0] : "You", mp[0] + 13, mp[1] + 4); ctx.restore();
-    }
+      ctx.restore();
+      // the label is DOM (it carries a Hide button): beside the node, flipped left near the edge
+      showYou(mt > .6 && logoA > .3 && mp[1] + pinTop > 84); // never under the nav
+      if (youOn) {
+        youW ||= you.offsetWidth; youH ||= you.offsetHeight;
+        // beside the node; under it when there's no room on the right (phones)
+        const fits = mp[0] + 13 + youW <= W - 8;
+        const x = fits ? mp[0] + 13 : Math.max(8, Math.min(W - 8 - youW, mp[0] - youW / 2)), y = fits ? mp[1] - youH / 2 : mp[1] + 6;
+        you.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      }
+    } else showYou(false);
     // Label: a block-explorer card joined to the active cube by a connector from its nearest corner node.
     capA += ((capOn ? 1 : 0) - capA) * (reduce ? 1 : .25);
     if (active >= 0 && centers[active] && capA > .01) {
@@ -375,7 +393,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       kick();
     },
     addMember,
-    clearMember() { member = null; trail = null; trailEnd = null; kick(); },
+    clearMember() { member = null; trail = null; trailEnd = null; showYou(false); kick(); },
     destroy() {
       removePainter();
       heroRO.disconnect();
