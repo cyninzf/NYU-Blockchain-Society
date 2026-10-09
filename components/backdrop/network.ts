@@ -19,11 +19,17 @@ const END = HOLD_END + RELAX;
 /** Node volume (world units). The engine scales it to fill the viewport. */
 export const BOX: V3 = [20, 13, 12];
 
-/** Density for a viewport: ~140 nodes and ~27 dots at 1440×900, scaled by area; phones get half. */
+/**
+ * Density for a viewport. The base is ~140 nodes at 1440×900, scaled by area (phones half).
+ * Screens ≥1280px wide get 30% more nodes; phones and tablets keep the base. Dots are 1.5× the
+ * old ratio (base × .19 × 1.5, ~40 at 1440×900), so most of the extra density is motion. If
+ * frame time ever needs trimming, cut nodes (the ≥1280 bonus first), not dots.
+ */
 export function densityFor(W: number, H: number) {
   const phone = W < 700;
-  const nodes = Math.round(Math.min(230, Math.max(26, 140 * (W * H) / (1440 * 900) * (phone ? .5 : 1))));
-  return { nodes, dots: Math.round(nodes * .19), maxFormations: phone ? 1 : 3 };
+  const base = Math.min(230, Math.max(26, 140 * (W * H) / (1440 * 900) * (phone ? .5 : 1)));
+  const nodes = Math.round(Math.min(300, base * (W >= 1280 ? 1.3 : 1)));
+  return { nodes, base: Math.round(base), dots: Math.round(base * .19 * 1.5), maxFormations: phone ? 1 : 3 };
 }
 export type Density = ReturnType<typeof densityFor>;
 
@@ -72,8 +78,9 @@ export function createNetwork(rnd: () => number, density: Density) {
     nodes.push({ home: p, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], sp: .12 + rnd() * .14, w: 0, busy: false });
   }
 
-  // Faint edges between near neighbours, at most 3 per node.
-  const reach = minGap * 2.6;
+  // Faint edges between near neighbours, at most 3 per node. The reach is ~20% longer than the
+  // old 2.6 gaps, measured on the base density so the extra nodes on large screens don't shrink it.
+  const reach = Math.cbrt((BOX[0] * BOX[1] * BOX[2]) / density.base) * .55 * 2.6 * 1.2;
   const edges: [number, number][] = [];
   const deg = nodes.map(() => 0);
   const pairs: [number, number, number][] = [];
