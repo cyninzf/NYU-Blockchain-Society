@@ -1,7 +1,8 @@
 "use client";
 
 // The pinned story: the 3D blocks stay fixed while the hero (with the join flow), the
-// mission and one step per industry scroll past. Ported from docs/prototype.html.
+// conference proof strip, the mission and the Focus cards scroll past. Ported from
+// docs/prototype.html.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { NOTIFY, type Notify } from "@/content/events";
@@ -11,6 +12,7 @@ import Icon from "../Icon";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
 import { createField, type Field } from "./field";
 import JoinFlow from "./JoinFlow";
+import ProofStrip from "./ProofStrip";
 
 type Mode = "idle" | "joining" | "done";
 
@@ -31,7 +33,9 @@ export default function Story() {
   const hudRef = useRef<HTMLDivElement>(null);
   const heroTxtRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<HTMLButtonElement[]>([]);
-  const stepRefs = useRef<HTMLDivElement[]>([]);
+  const cardRefs = useRef<HTMLLIElement[]>([]);
+  const focusRef = useRef<HTMLElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
   const openJoinRef = useRef<HTMLButtonElement>(null);
   const focusOpenButton = useRef(false);
 
@@ -49,7 +53,10 @@ export default function Story() {
         capText: capTextRef.current!,
         heroTxt: heroTxtRef.current!,
         words: wordRefs.current,
-        steps: stepRefs.current,
+        cards: cardRefs.current,
+        focus: focusRef.current!,
+        // Background blocks never form behind any of the copy.
+        avoid: [...layerRef.current!.querySelectorAll<HTMLElement>(".hero2 .txt, .proof-in, .mission .txt, .focus-in")],
       },
       { onToggle: toggle },
     );
@@ -129,7 +136,7 @@ export default function Story() {
           <span className="hint-d">Hover a block · drag to rotate</span>
         </div>
       </div>
-      <div className="layer">
+      <div className="layer" ref={layerRef}>
         <div className={mode === "idle" ? "hero2 wrap" : "hero2 wrap flow"}>
           <div className="txt" ref={heroTxtRef}>
             <h1>
@@ -154,24 +161,24 @@ export default function Story() {
             )}
           </div>
         </div>
+        <ProofStrip />
         <div className="mission wrap">
           <div className="txt"><p>{mission.text} <span>{mission.muted}</span></p></div>
         </div>
-        {industries.map((ind, i) => (
-          <div
-            key={ind.name}
-            className="step wrap"
-            id={i === 0 ? "focus" : undefined}
-            data-step={i}
-            ref={(el) => { if (el) stepRefs.current[i] = el; }}
-          >
-            <div className="txt">
-              <h2>{ind.name}</h2>
-              <p>{ind.description}</p>
-              <p className="seen"><b>{ind.seenLead}</b> {ind.seen}</p>
-            </div>
+        <section className="focus" id="focus" aria-labelledby="focus-h" ref={focusRef}>
+          <div className="wrap focus-in">
+            <h2 id="focus-h" className="mono">Focus</h2>
+            <ul className="cards">
+              {industries.map((ind, i) => (
+                <li key={ind.id} className="card" ref={(el) => { if (el) cardRefs.current[i] = el; }}>
+                  <h3 id={`focus-${ind.id}`}>{ind.name}</h3>
+                  <p>{ind.description}</p>
+                  <p className="seen"><b>{ind.seenLead}</b> {ind.seen}</p>
+                </li>
+              ))}
+            </ul>
           </div>
-        ))}
+        </section>
         <div className="story-end" aria-hidden="true"></div>
       </div>
     </section>

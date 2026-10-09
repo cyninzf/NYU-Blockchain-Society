@@ -1,4 +1,5 @@
 import { joinSection, links } from "@/content/site";
+import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
 export default function JoinSection() {
@@ -9,9 +10,11 @@ export default function JoinSection() {
         <p>{joinSection.text}</p>
         <div className="ctas">
           <OpenJoin className="btn btn-w">Add your block</OpenJoin>
-          <a className="btn btn-o" href={links.linkedin} target="_blank" rel="noopener">Join on LinkedIn</a>
-          <a className="btn btn-o" href={links.x} target="_blank" rel="noopener">Follow on X</a>
         </div>
+        <ul className="also">
+          <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn group <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></li>
+          <li><a href={links.x} target="_blank" rel="noopener">Follow on X <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></li>
+        </ul>
       </div>
     </section>
   );

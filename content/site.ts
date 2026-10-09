@@ -35,7 +35,7 @@ export const chainIntro =
 
 export const joinSection = {
   title: "Add yourself to the network.",
-  text: "Pick your blocks, add your name, and you're in. Alumni discuss on LinkedIn, and events are announced on X first.",
+  text: "Pick your blocks, add your name, and you're in. Members hear about events first.",
 };
 
 /** Under the final join button. No checkbox. */

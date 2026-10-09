@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import OpenJoin from "./OpenJoin";
 
-type Section = "chain" | "focus" | null;
+type Section = "chain" | null;
 
 export default function Nav() {
   const pathname = usePathname();
@@ -22,19 +22,12 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // On the home page, mark the section in the middle of the viewport as current.
+  // On the home page, mark "The chain" as current while it's in the middle of the viewport.
   useEffect(() => {
-    if (!home) return;
-    const targets: [Element, Section][] = [
-      ...[...document.querySelectorAll(".step")].map((el) => [el, "focus"] as [Element, Section]),
-      ...[document.getElementById("chain")].filter(Boolean).map((el) => [el!, "chain"] as [Element, Section]),
-    ];
-    const inView = new Set<Element>();
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) if (e.isIntersecting) inView.add(e.target); else inView.delete(e.target);
-      setSection(targets.find(([el]) => inView.has(el))?.[1] ?? null);
-    }, { rootMargin: "-45% 0px -45% 0px" });
-    targets.forEach(([el]) => io.observe(el));
+    const chain = home && document.getElementById("chain");
+    if (!chain) return;
+    const io = new IntersectionObserver(([e]) => setSection(e.isIntersecting ? "chain" : null), { rootMargin: "-45% 0px -45% 0px" });
+    io.observe(chain);
     return () => io.disconnect();
   }, [home]);
 
@@ -50,7 +43,6 @@ export default function Nav() {
         <nav aria-label="Main">
           <ul>
             <li className="l"><Link href="/#chain" {...current(home && section === "chain", "location")}>The chain</Link></li>
-            <li className="l"><Link href="/#focus" {...current(home && section === "focus", "location")}>Focus</Link></li>
             <li className="l"><Link href="/conference" {...current(pathname.startsWith("/conference"), "page")}>Conference</Link></li>
             <li><OpenJoin className="btn btn-w">Join</OpenJoin></li>
           </ul>

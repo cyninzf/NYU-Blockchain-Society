@@ -1,6 +1,6 @@
 // The hero's 3D field: the three-block logo inside a drifting network, drawn on a 2D canvas.
 // Ported from the inline script in docs/prototype.html. The DOM it drives (headline words,
-// story steps, caption) is rendered by React; this module only reads it and toggles classes.
+// Focus cards, caption) is rendered by React; this module only reads it and toggles classes.
 
 import { industries } from "@/content/industries";
 import { createNetwork, type P2, type V3 } from "./network";
@@ -12,7 +12,12 @@ export type FieldElements = {
   capText: HTMLElement;
   heroTxt: HTMLElement;
   words: HTMLElement[];
-  steps: HTMLElement[];
+  /** Focus cards: hovering one lights its block. */
+  cards: HTMLElement[];
+  /** The Focus section: the logo moves above its cards while it's in view. */
+  focus: HTMLElement;
+  /** Copy that background blocks must not form behind. */
+  avoid: HTMLElement[];
 };
 
 export type FieldOptions = {
@@ -34,7 +39,7 @@ const key = (p: number[]) => p.join(",");
 const ease = (t: number) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
-  const { canvas: cv, cap, capTitle, capText, heroTxt, words, steps } = el;
+  const { canvas: cv, cap, capTitle, capText, heroTxt, words, cards, focus, avoid } = el;
   const ctx = cv.getContext("2d")!;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const fontFamily = getComputedStyle(cv).fontFamily || "sans-serif";
@@ -59,10 +64,10 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
 
   // --- background: drifting constellation that periodically forms blocks (network.ts) ---
   const network = createNetwork(rnd);
-  // Text the blocks must not form behind: the hero copy and any story step card in view.
+  // Text the blocks must not form behind: the hero copy, proof strip, mission and Focus cards.
   const copyRects = () => {
     const c = cv.getBoundingClientRect();
-    return [heroTxt, ...steps].map((el) => el.querySelector(".txt") ?? el).map((el) => {
+    return avoid.map((el) => {
       const r = el.getBoundingClientRect();
       return { left: r.left - c.left, top: r.top - c.top, right: r.right - c.left, bottom: r.bottom - c.top };
     });
@@ -71,15 +76,9 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
 
-  let scrollActive = -1, capOn = false, capA = 0, capW = 0, capH = 0, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 };
-  const stepIO = new IntersectionObserver((ens) => {
-    for (const en of ens) { const i = +((en.target as HTMLElement).dataset.step ?? -1); if (en.isIntersecting) scrollActive = i; else if (scrollActive === i) scrollActive = -1; }
-    steps.forEach((st, j) => st.classList.toggle("on", j === scrollActive));
-    if (reduce) frame(performance.now());
-  }, { rootMargin: "-42% 0px -42% 0px" });
-  steps.forEach((st) => stepIO.observe(st));
+  let capOn = false, capA = 0, capW = 0, capH = 0, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 }, focusPose = { ox: 0, oy: 0, S: 1 }, focusTop = 0;
 
-  let active = -1, hover = -1, pinned = -1, wordHover = -1, lastUser = -1e9, centers: [number, number][] = [];
+  let active = -1, hover = -1, pinned = -1, wordHover = -1, cardHover = -1, lastUser = -1e9, centers: [number, number][] = [];
   const glow = [0, 0, 0];
   function setActive(i: number, showCap: boolean) {
     const c = i >= 0 && showCap; if (i === active && c === capOn) return; active = i; capOn = c;
@@ -108,6 +107,14 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return () => { w.removeEventListener("mouseenter", on); w.removeEventListener("focus", on); w.removeEventListener("mouseleave", off); w.removeEventListener("blur", off); w.removeEventListener("click", click); };
   });
 
+  // Focus cards light their block (no label: the card already says what it is).
+  const cardCleanups = cards.map((c, i) => {
+    const on = () => { cardHover = i; kick(); };
+    const off = () => { if (cardHover === i) cardHover = -1; kick(); };
+    c.addEventListener("mouseenter", on); c.addEventListener("mouseleave", off);
+    return () => { c.removeEventListener("mouseenter", on); c.removeEventListener("mouseleave", off); };
+  });
+
   function memberPos(blocks: number[]): V3 {
     const cs = blocks.map((i): V3 => { let x = 0, y = 0, z = 0, n = 0; for (const v of cubeV[INFO[i].cube]) { x += L0[v][0]; y += L0[v][1]; z += L0[v][2]; n++; } return [x / n, y / n, z / n]; });
     const m = cs.reduce<V3>((a, c) => [a[0] + c[0] / cs.length, a[1] + c[1] / cs.length, a[2] + c[2] / cs.length], [0, 0, 0]);
@@ -134,6 +141,9 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const wide = W > 860, ht = heroTxt.offsetTop;
     hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: H * .25, S: Math.min(W, H) * .15 };
     side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .24, S: Math.min(W, H) * .15 };
+    // Above the Focus cards, smaller.
+    focusPose = wide ? { ox: W / 2, oy: H * .26, S: Math.min(W * .085, H * .1) } : { ox: W / 2, oy: H * .2, S: Math.min(W, H) * .11 };
+    focusTop = focus.getBoundingClientRect().top + scrollY;
   }
 
   function P(p: V3): P2 {
@@ -154,11 +164,17 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5), gk = reduce ? 1 : ease((el - .5) / 1.6);
     if (!dragging && !reduce && (now - lastInput) / 1000 > 2.5) { tYaw = ISO_YAW + Math.sin(el * .22) * .7; tPitch = ISO_PITCH + Math.sin(el * .17) * .1; }
     yaw += (tYaw - yaw) * .06; pitch += (tPitch - pitch) * .06; smx += (mx - smx) * .05; smy += (my - smy) * .05;
-    { const pr = Math.min(1, Math.max(0, scrollY / (H * .7))), e2 = pr * pr * (3 - 2 * pr); ox = hero0.ox + (side.ox - hero0.ox) * e2; oy = hero0.oy + (side.oy - hero0.oy) * e2; S = hero0.S + (side.S - hero0.S) * e2; }
+    {
+      // hero → side (mission) over the first 70% of a screen, then → above the Focus cards
+      const sm = (t: number) => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x); };
+      const e2 = sm(scrollY / (H * .7)), e3 = sm((H - (focusTop - scrollY)) / (H * .75));
+      const at = (k: "ox" | "oy" | "S") => { const b = hero0[k] + (side[k] - hero0[k]) * e2; return b + (focusPose[k] - b) * e3; };
+      ox = at("ox"); oy = at("oy"); S = at("S");
+    }
     const direct = wordHover >= 0 || hover >= 0;
-    let want = wordHover >= 0 ? wordHover : hover >= 0 ? hover : scrollActive >= 0 ? scrollActive : pinned;
+    let want = wordHover >= 0 ? wordHover : hover >= 0 ? hover : cardHover >= 0 ? cardHover : pinned;
     if (want < 0 && !joining && scrollY < H * .3 && !reduce && k >= 1 && (now - lastUser) > 4000 && (now - lastInput) > 4000) { const c = Math.floor((el - 2) / 3.2); want = c >= 0 && c % 4 < 3 ? c % 4 : -1; }
-    setActive(want, direct || (scrollActive < 0 && want >= 0));
+    setActive(want, direct || (want >= 0 && want !== cardHover));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     ctx.clearRect(0, 0, W, H);
     // background: nearer nodes shift more with scroll (parallax); blocks form away from the logo
@@ -309,8 +325,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     clearMember() { member = null; trail = null; trailEnd = null; kick(); },
     destroy() {
       alive = false; cancelAnimationFrame(raf);
-      stepIO.disconnect(); visIO.disconnect(); heroRO.disconnect();
-      wordCleanups.forEach((f) => f());
+      visIO.disconnect(); heroRO.disconnect();
+      wordCleanups.forEach((f) => f()); cardCleanups.forEach((f) => f());
       cv.removeEventListener("pointerdown", onDown); cv.removeEventListener("pointermove", onMove); cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onUp);
       removeEventListener("resize", onResize); removeEventListener("scroll", onScrollReduced);
