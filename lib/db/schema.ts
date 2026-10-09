@@ -190,3 +190,29 @@ export const authTokens = pgTable(
   },
   (t) => [uniqueIndex("auth_tokens_hash_idx").on(t.tokenHash)],
 );
+
+export type AnnouncementFilters = { blocks?: string[]; notify?: string[]; affiliation?: string; country?: string };
+
+/**
+ * Announcements from /admin: every test and every send, with who, the filters and the counts.
+ * `contentHash` (subject + body) ties a send to an earlier test of the same text.
+ */
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: serial().primaryKey(),
+    /** test | sent | partial | failed */
+    status: text().notNull(),
+    subject: text().notNull(),
+    body: text().notNull(),
+    contentHash: text("content_hash").notNull(),
+    filters: jsonb().$type<AnnouncementFilters>().notNull().default({}),
+    recipientCount: integer("recipient_count").notNull(),
+    sentCount: integer("sent_count").notNull(),
+    sentBy: text("sent_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("announcements_hash_idx").on(t.contentHash, t.createdAt)],
+);
+
+export type Announcement = typeof announcements.$inferSelect;

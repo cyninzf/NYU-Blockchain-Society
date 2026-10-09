@@ -64,6 +64,13 @@
       "when": 1791589812617,
       "tag": "0008_unsubscribe",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791590114575,
+      "tag": "0009_announcements",
+      "breakpoints": true
     }
   ]
 }

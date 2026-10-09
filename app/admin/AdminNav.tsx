@@ -12,6 +12,7 @@ const TABS = [
   { href: "/admin/contacts/import", label: "Import contacts", superOnly: true },
   { href: "/admin/linkedin", label: "LinkedIn group" },
   { href: "/admin/linkedin/import", label: "Import LinkedIn group", superOnly: true },
+  { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/team", label: "Team", superOnly: true },
   { href: "/admin/media-kit-preview", label: "Media kit preview", superOnly: true },
