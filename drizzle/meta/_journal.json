@@ -43,6 +43,13 @@
       "when": 1791583913657,
       "tag": "0005_member_location",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791588916029,
+      "tag": "0006_email_log",
+      "breakpoints": true
     }
   ]
 }

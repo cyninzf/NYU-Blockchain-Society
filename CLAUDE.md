@@ -57,6 +57,13 @@ All editable content lives in `/content` as typed TS data: `events.ts`, `confere
 Built. See "Decided" below for the flow, data model and admin.
 - Not built yet: welcome email and magic link for editing later (Resend). Until then, a member edits by re-joining with the same email, which can only fill empty fields.
 
+## Email (round 9)
+- Sent through Resend's HTTP API (`lib/email.ts`, no SDK) from "NYU Blockchain Society <hello@nyublockchainsociety.com>", reply-to `REPLY_TO_EMAIL`. DNS (DKIM, SPF on `send.`, DMARC) is in Wix DNS.
+- Secrets live only in Vercel: `RESEND_API_KEY`, `SUPER_ADMIN_EMAIL`, `REPLY_TO_EMAIL`, `AUTH_SECRET`. Never print, log or commit their values.
+- One template (`renderEmail`): violet-night header band, white card, system fonts, one violet button; inline styles only (font stacks use single quotes inside `style=""`); always a plain-text version. Admin-written text is escaped.
+- `email_log` stores counts only (kind, recipients, time), never addresses or content. Every email counts toward the daily limit (`EMAIL_DAILY_LIMIT`, default 100 for Resend's free plan), checked over a rolling 24 hours. Batches go out 100 per request, spaced 600 ms.
+- Links in emails use `baseUrl()` (`lib/base-url.ts`): production → the canonical domain; a preview links to itself, since its tokens live in that preview's database. Without `RESEND_API_KEY` (Codespaces) nothing is sent.
+
 ## Phase 2 (don't build yet)
 An opt-in public directory and the live network map, where the hero lattice shows real members clustered by industry. Turn the map on at about 50 members. Members never need an account to join. To view or edit their own entry they get an email magic link (passwordless, via Auth.js). Optional extras later: "Continue with LinkedIn" as a convenience, and wallet sign-in only for onchain features such as event attendance badges. Never make either one required.
 

@@ -124,3 +124,19 @@ export const linkedinGroupMembers = pgTable(
 );
 
 export type LinkedinGroupMember = typeof linkedinGroupMembers.$inferSelect;
+
+/**
+ * Every email sent through Resend, as counts only (no addresses, no content): the daily quota
+ * check for announcements counts all of them, since welcome emails and sign-in links use it too.
+ */
+export const emailLog = pgTable(
+  "email_log",
+  {
+    id: serial().primaryKey(),
+    /** welcome, admin-link, member-link, announcement, announcement-test */
+    kind: text().notNull(),
+    recipients: integer().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("email_log_created_idx").on(t.createdAt)],
+);
