@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import Guard from "../../Guard";
 import ImportRoster from "./ImportRoster";
 
 export const metadata: Metadata = {
@@ -10,7 +12,9 @@ export default function ImportRosterPage() {
   return (
     <>
       <h1>Import LinkedIn group</h1>
-      <ImportRoster />
+      <Suspense fallback={null}>
+        <Guard min="super_admin">{() => <ImportRoster />}</Guard>
+      </Suspense>
     </>
   );
 }

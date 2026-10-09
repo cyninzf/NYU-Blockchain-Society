@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { desc, inArray } from "drizzle-orm";
 import { Suspense } from "react";
+import { isSuper, type Admin } from "@/lib/admin";
 import { NOTIFY } from "@/content/events";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
@@ -8,6 +9,7 @@ import { adminAudit, AFFILIATIONS, type AdminAudit, type Affiliation } from "@/l
 import { AFFILIATION_LABELS, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
 import { deleteMember, setWallApproved } from "./actions";
 import EditMember from "./EditMember";
+import Guard from "./Guard";
 import styles from "./admin.module.css";
 
 export const metadata: Metadata = {
@@ -22,7 +24,7 @@ export default function AdminPage({ searchParams }: { searchParams: SP }) {
     <>
       <h1>Members</h1>
       <Suspense fallback={<p>Loading…</p>}>
-        <Members searchParams={searchParams} />
+        <Guard>{(admin) => <Members searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
     </>
   );
@@ -38,7 +40,7 @@ function describe(c: AdminAudit["changes"]) {
   return Object.entries(c).map(([k, [from, to]]) => k === "contact" ? `linked contact ${to}` : `${k} ${label(k, from)} → ${label(k, to)}`).join(" · ");
 }
 
-async function Members({ searchParams }: { searchParams: SP }) {
+async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
   const sp = await searchParams;
   const f = parseFilters(sp);
   const db = getDb();
@@ -48,7 +50,7 @@ async function Members({ searchParams }: { searchParams: SP }) {
   const audit = new Map<number, AdminAudit[]>();
   if (rows.length) {
     const log = await db.select().from(adminAudit).where(inArray(adminAudit.memberId, rows.map((m) => m.id))).orderBy(desc(adminAudit.createdAt));
-    for (const a of log) { const l = audit.get(a.memberId) ?? []; if (l.length < 3) audit.set(a.memberId, [...l, a]); }
+    for (const a of log) { if (a.memberId === null) continue; const l = audit.get(a.memberId) ?? []; if (l.length < 3) audit.set(a.memberId, [...l, a]); }
   }
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 
@@ -99,7 +101,7 @@ async function Members({ searchParams }: { searchParams: SP }) {
         </label>
         <button type="submit">Filter</button>
         <a href="/admin">Clear</a>
-        <a className={styles.export} href={`/admin/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>
+        {isSuper(admin) && <a className={styles.export} href={`/admin/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
       </form>
 
       <div className={styles.scroll}>
@@ -147,18 +149,20 @@ async function Members({ searchParams }: { searchParams: SP }) {
                   {audit.has(m.id) && (
                     <ul className={styles.audit} aria-label={`Last edits to #${m.id}`}>
                       {audit.get(m.id)!.map((a) => (
-                        <li key={a.id}><time dateTime={a.createdAt.toISOString()}>{timeFmt.format(a.createdAt)}</time> · {a.actor}: {describe(a.changes)}</li>
+                        <li key={a.id}><time dateTime={a.createdAt.toISOString()}>{timeFmt.format(a.createdAt)}</time> · {a.actor}: {describe(a.changes) || a.detail}</li>
                       ))}
                     </ul>
                   )}
-                  <details className={styles.del}>
-                    <summary>Delete</summary>
-                    <form action={deleteMember}>
-                      <input type="hidden" name="id" value={m.id} />
-                      <input type="hidden" name="confirm" value="yes" />
-                      <button type="submit">Delete #{m.id} permanently</button>
-                    </form>
-                  </details>
+                  {isSuper(admin) && (
+                    <details className={styles.del}>
+                      <summary>Delete</summary>
+                      <form action={deleteMember}>
+                        <input type="hidden" name="id" value={m.id} />
+                        <input type="hidden" name="confirm" value="yes" />
+                        <button type="submit">Delete #{m.id} permanently</button>
+                      </form>
+                    </details>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,24 +1,38 @@
-import { connection } from "next/server";
 import { Suspense } from "react";
+import { getAdmin, ROLE_LABELS } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { adminCounts } from "@/lib/contacts-query";
 import AdminNav from "./AdminNav";
+import { signOut } from "./login/actions";
 import styles from "./admin.module.css";
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <main className={styles.page}>
-      <header className={styles.head}>
-        <AdminNav />
-        <Suspense fallback={null}><Counts /></Suspense>
-      </header>
+      <Suspense fallback={null}><Header /></Suspense>
       {children}
     </main>
   );
 }
 
+/** Nothing on the sign-in pages: the header appears once someone is signed in. */
+async function Header() {
+  const admin = await getAdmin();
+  if (!admin) return null;
+  return (
+    <header className={styles.head}>
+      <AdminNav role={admin.role} />
+      <div className={styles.who}>
+        <span>Signed in as <b>{admin.email ?? "shared password"}</b></span>
+        <span className={styles.badge}>{ROLE_LABELS[admin.role]}</span>
+        {admin.via === "email" && <form action={signOut}><button type="submit">Sign out</button></form>}
+      </div>
+      <Counts />
+    </header>
+  );
+}
+
 async function Counts() {
-  await connection();
   const db = getDb();
   if (!db) return null;
   const c = await adminCounts(db);

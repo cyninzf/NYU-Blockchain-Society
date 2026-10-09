@@ -50,6 +50,13 @@
       "when": 1791588916029,
       "tag": "0006_email_log",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791589075142,
+      "tag": "0007_admin_logins",
+      "breakpoints": true
     }
   ]
 }

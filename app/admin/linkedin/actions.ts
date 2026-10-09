@@ -6,7 +6,7 @@
 
 import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
-import { requireAdmin } from "@/lib/admin";
+import { audit, requireAdmin } from "@/lib/admin";
 import { SOURCE_RE } from "@/lib/contacts-import";
 import { parseCsv } from "@/lib/csv";
 import { linkedinGroupMembers as roster, members } from "@/lib/db/schema";
@@ -37,7 +37,7 @@ async function readRoster(fd: FormData): Promise<{ rows: RosterRow[]; ignored: n
 
 /** Step 1: the first 5 rows as they'll be stored (name, headline, role only). */
 export async function previewRoster(fd: FormData): Promise<RosterPreview> {
-  await requireAdmin();
+  await requireAdmin("super_admin");
   const r = await readRoster(fd);
   if (typeof r === "string") return { ok: false, error: r };
   if (!r.rows.length) return { ok: false, error: "That file has no rows under the header." };
@@ -46,7 +46,7 @@ export async function previewRoster(fd: FormData): Promise<RosterPreview> {
 
 /** Step 2: add people not on the roster yet. Existing rows are never touched. */
 export async function importRoster(fd: FormData): Promise<RosterImport> {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin("super_admin");
   const source = String(fd.get("source") ?? "").trim().toLowerCase();
   if (!SOURCE_RE.test(source)) return { ok: false, error: "Use a short source label: lowercase letters, numbers and dashes, like linkedin-group-2026-10." };
   const r = await readRoster(fd);
@@ -72,8 +72,10 @@ export async function importRoster(fd: FormData): Promise<RosterImport> {
     }
   } catch (e) {
     console.error("roster import failed", e instanceof Error ? e.message : e);
+    await audit(db, actor, "linkedin.import", `LinkedIn group import "${source}" stopped after ${s.imported} rows`).catch(() => {});
     return { ok: false, error: `The import stopped after ${s.imported} rows because of a database error. Re-run it: rows already imported are skipped.` };
   }
+  await audit(db, actor, "linkedin.import", `Imported LinkedIn group "${source}": ${s.imported} imported, ${s.duplicates} duplicates, ${s.skipped} skipped`);
   refresh();
   return { ok: true, ...s };
 }
@@ -82,28 +84,31 @@ const intOf = (v: FormDataEntryValue | null) => { const n = Number(String(v ?? "
 
 /** Manual only: an admin links a roster row to a member (by block number). Never automatic. */
 export async function linkRosterMember(fd: FormData) {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin();
   const id = intOf(fd.get("id")), memberId = intOf(fd.get("memberId"));
   if (!id || !memberId) throw new Error("Enter a block number.");
   const [m] = await db.select({ id: members.id }).from(members).where(eq(members.id, memberId));
   if (!m) throw new Error(`No member #${memberId}.`);
   await db.update(roster).set({ memberId }).where(eq(roster.id, id));
+  await audit(db, actor, "linkedin.link", `Linked roster row #${id} to member #${memberId}`, { memberId });
   refresh();
 }
 
 export async function unlinkRosterMember(fd: FormData) {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin();
   const id = intOf(fd.get("id"));
   if (!id) throw new Error("Bad request");
   await db.update(roster).set({ memberId: null }).where(eq(roster.id, id));
+  await audit(db, actor, "linkedin.unlink", `Unlinked roster row #${id}`);
   refresh();
 }
 
-/** For removal requests. Permanent. */
+/** For removal requests; super admins only. Permanent. */
 export async function deleteRosterRow(fd: FormData) {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin("super_admin");
   const id = intOf(fd.get("id"));
   if (!id || fd.get("confirm") !== "yes") throw new Error("Bad request");
-  await db.delete(roster).where(eq(roster.id, id));
+  const [gone] = await db.delete(roster).where(eq(roster.id, id)).returning({ id: roster.id });
+  if (gone) await audit(db, actor, "linkedin.delete", `Deleted roster row #${id}`);
   refresh();
 }

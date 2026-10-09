@@ -1,13 +1,15 @@
-import { ADMIN_CHALLENGE, isAdminAuthorized } from "@/lib/admin-auth";
+import { adminForRoute, audit, describeFilters } from "@/lib/admin";
 import { csvResponse } from "@/lib/csv";
-import { getDb } from "@/lib/db";
 import { listMembers, parseFilters } from "@/lib/members-query";
 
 export async function GET(request: Request) {
-  if (!isAdminAuthorized(request.headers.get("authorization"))) return new Response("Authentication required.", ADMIN_CHALLENGE);
-  const db = getDb();
-  if (!db) return new Response("DATABASE_URL is not set for this environment.", { status: 503 });
-  const rows = await listMembers(db, parseFilters(Object.fromEntries(new URL(request.url).searchParams)));
+  // All CSV exports: super admins only, and every one is logged.
+  const auth = await adminForRoute("super_admin");
+  if (auth instanceof Response) return auth;
+  const { db, actor } = auth;
+  const filters = parseFilters(Object.fromEntries(new URL(request.url).searchParams));
+  const rows = await listMembers(db, filters);
+  await audit(db, actor, "export.members", `Exported ${rows.length} members (filters: ${describeFilters(filters)})`);
   const cols = ["id", "name", "email", "affiliation", "blocks", "notify", "source", "linkedinUrl", "role", "company", "school", "gradYear", "location", "country", "showOnWall", "wallName", "wallApproved", "createdAt", "updatedAt"] as const;
   return csvResponse("members", cols, rows);
 }

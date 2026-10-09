@@ -1,5 +1,5 @@
-// HTTP basic auth for /admin. Used by proxy.ts and re-checked inside admin actions and
-// routes, because server actions can be invoked from any path.
+// HTTP basic auth for /admin: the shared-password fallback until every admin signs in with
+// their own email (lib/admin.ts). Used by proxy.ts and lib/admin.ts.
 
 const enc = new TextEncoder();
 

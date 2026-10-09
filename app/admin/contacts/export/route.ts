@@ -1,13 +1,15 @@
-import { ADMIN_CHALLENGE, isAdminAuthorized } from "@/lib/admin-auth";
+import { adminForRoute, audit, describeFilters } from "@/lib/admin";
 import { listContacts, parseContactFilters } from "@/lib/contacts-query";
 import { csvResponse } from "@/lib/csv";
-import { getDb } from "@/lib/db";
 
 export async function GET(request: Request) {
-  if (!isAdminAuthorized(request.headers.get("authorization"))) return new Response("Authentication required.", ADMIN_CHALLENGE);
-  const db = getDb();
-  if (!db) return new Response("DATABASE_URL is not set for this environment.", { status: 503 });
-  const rows = await listContacts(db, parseContactFilters(Object.fromEntries(new URL(request.url).searchParams)));
+  // All CSV exports: super admins only, and every one is logged.
+  const auth = await adminForRoute("super_admin");
+  if (auth instanceof Response) return auth;
+  const { db, actor } = auth;
+  const filters = parseContactFilters(Object.fromEntries(new URL(request.url).searchParams));
+  const rows = await listContacts(db, filters);
+  await audit(db, actor, "export.contacts", `Exported ${rows.length} contacts (filters: ${describeFilters(filters)})`);
   const cols = ["id", "name", "email", "source", "checkedIn", "memberId", "invitedAt", "importedAt"] as const;
   return csvResponse("contacts", cols, rows);
 }

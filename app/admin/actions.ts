@@ -3,7 +3,7 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
-import { requireAdmin, requireAdminUser } from "@/lib/admin";
+import { audit, auditRow, requireAdmin } from "@/lib/admin";
 import { adminAudit, AFFILIATIONS, contacts, members, type AuditChanges } from "@/lib/db/schema";
 
 const idOf = (fd: FormData) => {
@@ -13,17 +13,26 @@ const idOf = (fd: FormData) => {
 };
 
 export async function setWallApproved(fd: FormData) {
-  const db = await requireAdmin();
-  await db.update(members).set({ wallApproved: fd.get("approved") === "1" }).where(eq(members.id, idOf(fd)));
+  const { db, actor } = await requireAdmin();
+  const id = idOf(fd), on = fd.get("approved") === "1";
+  await db.batch([
+    db.update(members).set({ wallApproved: on }).where(eq(members.id, id)),
+    db.insert(adminAudit).values(auditRow(actor, on ? "wall.approve" : "wall.unapprove", `${on ? "Approved" : "Unapproved"} the wall entry of #${id}`, { memberId: id })),
+  ]);
   updateTag("wall");
   refresh();
 }
 
-/** For removal requests. Permanent (the member's audit rows go with it). */
+/**
+ * For removal requests; super admins only. Permanent: the member's audit rows go with it (they
+ * hold old emails), and the delete itself is logged without any personal data.
+ */
 export async function deleteMember(fd: FormData) {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin("super_admin");
   if (fd.get("confirm") !== "yes") throw new Error("Not confirmed");
-  await db.delete(members).where(eq(members.id, idOf(fd)));
+  const id = idOf(fd);
+  const [gone] = await db.delete(members).where(eq(members.id, id)).returning({ id: members.id });
+  if (gone) await audit(db, actor, "member.delete", `Deleted member #${id}`);
   updateTag("wall");
   refresh();
 }
@@ -43,7 +52,7 @@ const EditInput = z.object({
  * contact to this member. Every change is logged in admin_audit.
  */
 export async function updateMember(_prev: EditResult, fd: FormData): Promise<EditResult> {
-  const { db, actor } = await requireAdminUser();
+  const { db, actor } = await requireAdmin();
   const parsed = EditInput.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the fields." };
   const input = parsed.data;
@@ -75,7 +84,7 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
     const update = db.update(members)
       .set({ name: input.name, email: input.email, affiliation: input.affiliation, updatedAt: new Date() })
       .where(eq(members.id, m.id));
-    const log = db.insert(adminAudit).values({ memberId: m.id, actor, action: "edit", changes });
+    const log = db.insert(adminAudit).values(auditRow(actor, "edit", `Edited #${m.id}`, { memberId: m.id, changes }));
     if (linkContact) await db.batch([update, log, db.update(contacts).set({ memberId: m.id }).where(eq(contacts.id, linkContact))]);
     else await db.batch([update, log]);
   } catch (e) {

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
 import { deleteContact } from "./actions";
+import Guard from "../Guard";
 import styles from "../admin.module.css";
 
 export const metadata: Metadata = {
@@ -18,7 +20,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
       <h1>Contacts</h1>
       <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and never appear on the wall. When one joins, they&apos;re linked to their member row.</p>
       <Suspense fallback={<p>Loading…</p>}>
-        <Contacts searchParams={searchParams} />
+        <Guard>{(admin) => <Contacts searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
     </>
   );
@@ -27,7 +29,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
 const checked = (v: boolean | null) => (v === null ? "Unknown" : v ? "Yes" : "No");
 
-async function Contacts({ searchParams }: { searchParams: SP }) {
+async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
   const f = parseContactFilters(await searchParams);
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
@@ -60,7 +62,7 @@ async function Contacts({ searchParams }: { searchParams: SP }) {
         </label>
         <button type="submit">Filter</button>
         <a href="/admin/contacts">Clear</a>
-        <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>
+        {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
       </form>
 
       <div className={styles.scroll}>
@@ -85,14 +87,16 @@ async function Contacts({ searchParams }: { searchParams: SP }) {
                 <td>{c.invitedAt ? dateFmt.format(c.invitedAt) : "—"}</td>
                 <td>{dateFmt.format(c.importedAt)}</td>
                 <td>
-                  <details className={styles.del}>
-                    <summary>Delete</summary>
-                    <form action={deleteContact}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="confirm" value="yes" />
-                      <button type="submit">Delete contact {c.id} permanently</button>
-                    </form>
-                  </details>
+                  {isSuper(admin) && (
+                    <details className={styles.del}>
+                      <summary>Delete</summary>
+                      <form action={deleteContact}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="confirm" value="yes" />
+                        <button type="submit">Delete contact {c.id} permanently</button>
+                      </form>
+                    </details>
+                  )}
                 </td>
               </tr>
             ))}

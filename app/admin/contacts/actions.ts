@@ -6,7 +6,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/admin";
+import { audit, requireAdmin } from "@/lib/admin";
 import { contacts, members } from "@/lib/db/schema";
 import { parseCsv } from "@/lib/csv";
 import { EMAIL_RE, maskEmail, MAX_IMPORT_BYTES, parseCheckIn, SOURCE_RE, type ImportSummary, type Mapping } from "@/lib/contacts-import";
@@ -29,7 +29,7 @@ async function readCsv(fd: FormData): Promise<string[][] | string> {
 
 /** Step 1: headers and the first 5 rows (emails masked), so the admin can map columns. */
 export async function previewContacts(fd: FormData): Promise<PreviewResult> {
-  await requireAdmin();
+  await requireAdmin("super_admin");
   const rows = await readCsv(fd);
   if (typeof rows === "string") return { ok: false, error: rows };
   const [headers, ...data] = rows;
@@ -44,7 +44,7 @@ const isEmail = (v: string) => v.length <= 254 && EMAIL_RE.test(v) && z.email().
 
 /** Step 2: import with the confirmed mapping. Never overwrites existing contacts or members. */
 export async function importContacts(fd: FormData): Promise<ImportResult> {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin("super_admin");
   const source = String(fd.get("source") ?? "").trim().toLowerCase();
   if (!SOURCE_RE.test(source)) return { ok: false, error: "Use a short source label: lowercase letters, numbers and dashes, like conference-2024." };
   const rows = await readCsv(fd);
@@ -93,17 +93,20 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
     }
   } catch (e) {
     console.error("contacts import failed", e instanceof Error ? e.message : e);
+    await audit(db, actor, "contacts.import", `Contacts import "${source}" stopped after ${s.imported} rows`).catch(() => {});
     return { ok: false, error: `The import stopped after ${s.imported} rows because of a database error. Re-run it: rows already imported are skipped.` };
   }
+  await audit(db, actor, "contacts.import", `Imported contacts "${source}": ${s.imported} imported, ${s.duplicates} duplicates, ${s.invalid} invalid, ${s.alreadyMembers} already members`);
   refresh();
   return { ok: true, ...s };
 }
 
-/** For removal requests. Permanent. */
+/** For removal requests; super admins only. Permanent. */
 export async function deleteContact(fd: FormData) {
-  const db = await requireAdmin();
+  const { db, actor } = await requireAdmin("super_admin");
   const id = Number(fd.get("id"));
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
-  await db.delete(contacts).where(eq(contacts.id, id));
+  const [gone] = await db.delete(contacts).where(eq(contacts.id, id)).returning({ id: contacts.id });
+  if (gone) await audit(db, actor, "contact.delete", `Deleted contact #${id}`);
   refresh();
 }

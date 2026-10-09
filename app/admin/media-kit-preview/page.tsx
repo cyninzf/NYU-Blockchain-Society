@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import Guard from "../Guard";
 import Boilerplate from "@/components/Boilerplate";
 import { boilerplateStatus } from "@/content/boilerplate";
 import styles from "../admin.module.css";
@@ -9,6 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function MediaKitPreviewPage() {
+  return <Suspense fallback={null}><Guard min="super_admin">{() => <Preview />}</Guard></Suspense>;
+}
+
+function Preview() {
   const draft = boilerplateStatus === "draft";
   return (
     <>

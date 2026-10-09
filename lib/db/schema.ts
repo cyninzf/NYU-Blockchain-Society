@@ -76,23 +76,27 @@ export const contacts = pgTable(
 export type Contact = typeof contacts.$inferSelect;
 
 /** Field changes as { field: [old, new] }, e.g. { email: ["a@example.com", "b@example.com"] }. */
-export type AuditChanges = Partial<Record<"name" | "email" | "affiliation" | "contact", [string | null, string | null]>>;
+export type AuditChanges = Record<string, [string | null, string | null]>;
 
 /**
- * Admin edits to members, so changes are traceable: who (the basic-auth user), when, and old →
- * new values. Rows go with the member when a member is deleted (removal requests).
+ * Every admin action: who (the admin's email; "basic:<user>" under the shared-password fallback),
+ * when, what. Member edits carry old → new values in `changes`; other actions (deletes, imports,
+ * exports, sends, team changes) describe themselves in `detail`. A member's rows go with the
+ * member when it's deleted (they hold old emails); the delete itself is logged without a member.
  */
 export const adminAudit = pgTable(
   "admin_audit",
   {
     id: serial().primaryKey(),
-    memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+    memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }),
     actor: text().notNull(),
+    /** e.g. edit, member.delete, contacts.import, export.members, team.add, announcement.send */
     action: text().notNull(),
-    changes: jsonb().$type<AuditChanges>().notNull(),
+    changes: jsonb().$type<AuditChanges>().notNull().default({}),
+    detail: text(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("admin_audit_member_idx").on(t.memberId, t.createdAt)],
+  (t) => [index("admin_audit_member_idx").on(t.memberId, t.createdAt), index("admin_audit_actor_idx").on(t.actor, t.createdAt)],
 );
 
 export type AdminAudit = typeof adminAudit.$inferSelect;
@@ -139,4 +143,48 @@ export const emailLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("email_log_created_idx").on(t.createdAt)],
+);
+
+export const ADMIN_ROLES = ["super_admin", "admin"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+export const adminRole = pgEnum("admin_role", ADMIN_ROLES);
+
+/**
+ * Personal admin logins. SUPER_ADMIN_EMAIL (an environment variable) is always a super admin on
+ * top of these rows and is never stored here. Removing sets `removed_at` (re-adding clears it).
+ */
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: serial().primaryKey(),
+    /** Stored lowercase. */
+    email: text().notNull(),
+    role: adminRole().notNull().default("admin"),
+    addedBy: text("added_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("admin_users_email_idx").on(sql`lower(${t.email})`)],
+);
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+
+/**
+ * Magic-link tokens (admin sign-in, member "Update your block"). Only a SHA-256 of the token is
+ * stored; each works once (`used_at`) and expires after 15 minutes.
+ */
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: serial().primaryKey(),
+    tokenHash: text("token_hash").notNull(),
+    /** admin | member */
+    purpose: text().notNull(),
+    /** admin: the lowercase email; member: the member id */
+    subject: text().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("auth_tokens_hash_idx").on(t.tokenHash)],
 );

@@ -47,3 +47,10 @@
 .mix{margin:16px 0 20px}
 .mix h2{margin:0 0 8px; font-size:15px}
 .mix h2 span{display:block; font-weight:400; font-size:13px; color:var(--muted)}
+.narrow{max-width:520px}
+.field{display:grid; gap:4px; color:var(--muted)}
+.who{display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--muted)}
+.who b{color:var(--fg); font-weight:600}
+.who form{display:inline}
+.badge{display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border-radius:999px; border:1px solid var(--line); font-size:12px; color:var(--fg)}
+.forbidden{padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface); max-width:70ch}

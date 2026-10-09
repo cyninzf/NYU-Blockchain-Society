@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { linkedinGroupMembers as roster, members } from "@/lib/db/schema";
 import { fieldBuckets, nameScore } from "@/lib/linkedin-import";
 import { listRoster, parseRosterFilters, rosterCounts } from "@/lib/roster-query";
 import { deleteRosterRow, linkRosterMember, unlinkRosterMember } from "./actions";
+import Guard from "../Guard";
 import styles from "../admin.module.css";
 
 export const metadata: Metadata = {
@@ -21,7 +23,7 @@ export default function RosterPage({ searchParams }: { searchParams: SP }) {
       <h1>LinkedIn group</h1>
       <p className={styles.lede}>The group roster from LinkedIn&apos;s member export: name, headline and group role only. People on it aren&apos;t members until they join; link a row to a member by hand when you&apos;re sure it&apos;s the same person.</p>
       <Suspense fallback={<p>Loading…</p>}>
-        <Roster searchParams={searchParams} />
+        <Guard>{(admin) => <Roster searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
     </>
   );
@@ -31,7 +33,7 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone
 const ROLE = { owner: "Owner", manager: "Manager" } as const;
 const SHOWN = 200;
 
-async function Roster({ searchParams }: { searchParams: SP }) {
+async function Roster({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
   const f = parseRosterFilters(await searchParams);
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
@@ -89,8 +91,8 @@ async function Roster({ searchParams }: { searchParams: SP }) {
         </label>
         <button type="submit">Filter</button>
         <a href="/admin/linkedin">Clear</a>
-        <Link href="/admin/linkedin/import">Import a newer export</Link>
-        <a className={styles.export} href={`/admin/linkedin/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>
+        {isSuper(admin) && <Link href="/admin/linkedin/import">Import a newer export</Link>}
+        {isSuper(admin) && <a className={styles.export} href={`/admin/linkedin/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
       </form>
 
       <div className={styles.scroll}>
@@ -139,14 +141,16 @@ async function Roster({ searchParams }: { searchParams: SP }) {
                   )}
                 </td>
                 <td>
-                  <details className={styles.del}>
-                    <summary>Delete</summary>
-                    <form action={deleteRosterRow}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <input type="hidden" name="confirm" value="yes" />
-                      <button type="submit">Delete row {r.id} permanently</button>
-                    </form>
-                  </details>
+                  {isSuper(admin) && (
+                    <details className={styles.del}>
+                      <summary>Delete</summary>
+                      <form action={deleteRosterRow}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="confirm" value="yes" />
+                        <button type="submit">Delete row {r.id} permanently</button>
+                      </form>
+                    </details>
+                  )}
                 </td>
               </tr>
             ))}
