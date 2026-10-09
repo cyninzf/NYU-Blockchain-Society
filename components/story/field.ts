@@ -5,6 +5,7 @@
 
 import { addPainter, requestBackdropFrame } from "@/components/backdrop/backdrop";
 import type { P2, V3 } from "@/components/backdrop/network";
+import { focusTags } from "@/content/focus";
 import { industries } from "@/content/industries";
 
 export type FieldElements = {
@@ -82,7 +83,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     cap.classList.remove("show");
     if (fresh) {
       capTitle.textContent = `Focus ${String(i + 1).padStart(2, "0")} · ${INFO[i].name}`;
-      capText.replaceChildren(...INFO[i].topics.map((t) => { const s = document.createElement("i"); s.textContent = t; return s; }));
+      // Single source of truth: the first three tags of that Focus block.
+      capText.replaceChildren(...focusTags(INFO[i].id).map((t) => { const s = document.createElement("i"); s.textContent = t; return s; }));
       capW = cap.offsetWidth; capH = cap.offsetHeight; // measured once per change, not per frame
       capT0 = reduce ? -1e9 : performance.now();
     }
@@ -130,7 +132,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     kick();
   }
 
-  let dragging = false, moved = 0, lx = 0, ly = 0, lastInput = -1e9, W = 0, H = 0, ox = 0, oy = 0, S = 1, pinTop = 0;
+  let dragging = false, moved = 0, lx = 0, ly = 0, lastInput = -1e9, W = 0, H = 0, ox = 0, oy = 0, S = 1, pinTop = 0, logoA = 1;
   const t0 = performance.now();
   const packets = Array.from({ length: 9 }, () => ({ e: (rnd() * LEdges.length) | 0, t: rnd(), s: .35 + rnd() * .4, f: rnd() < .5 }));
 
@@ -145,8 +147,10 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const sS = Math.max(30, flowSmall ? Math.min(W * .16, Math.min(W * .5, H * .3) / 3.15) : Math.min(W * .21, Math.min(W * .66, H * .42) / 3.15));
     hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: Math.max(68 + sS * 1.6, ht - 12 - sS * 1.58), S: sS };
     side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .26, S: Math.min(W * .16, H * .1) };
-    // Above the Focus cards, smaller.
-    focusPose = wide ? { ox: W / 2, oy: H * .26, S: Math.min(W * .085, H * .1) } : { ox: W / 2, oy: H * .2, S: Math.min(W, H) * .11 };
+    // Above the Focus blocks, sized to the space they leave (the logo fades where they'd overlap).
+    const fin = focus.querySelector<HTMLElement>(".focus-in") ?? focus;
+    const avail = H - fin.offsetHeight - parseFloat(getComputedStyle(focus).paddingBottom) - 76;
+    focusPose = { ox: W / 2, oy: 72 + Math.max(avail, 0) / 2, S: Math.max(12, Math.min(wide ? W * .085 : W * .11, H * .1, avail / 3.4)) };
     focusTop = focus.getBoundingClientRect().top + scrollY;
   }
 
@@ -170,6 +174,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
 
   function frame(ctx: CanvasRenderingContext2D, now: number) {
     const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5);
+    // Fade the logo out wherever the (transparent) Focus blocks would run into it.
+    const fin = focus.querySelector<HTMLElement>(".focus-in") ?? focus;
     if (!dragging && !reduce && (now - lastInput) / 1000 > 2.5) { tYaw = ISO_YAW + Math.sin(el * .22) * .7; tPitch = ISO_PITCH + Math.sin(el * .17) * .1; }
     yaw += (tYaw - yaw) * .06; pitch += (tPitch - pitch) * .06; smx += (mx - smx) * .05; smy += (my - smy) * .05;
     {
@@ -179,6 +185,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       const at = (k: "ox" | "oy" | "S") => { const b = hero0[k] + (side[k] - hero0[k]) * e2; return b + (focusPose[k] - b) * e3; };
       ox = at("ox"); oy = at("oy"); S = at("S");
     }
+    logoA = clamp01((fin.getBoundingClientRect().top - pinTop - (oy + S * 1.7)) / 50);
     const direct = wordHover >= 0 || hover >= 0;
     let want = wordHover >= 0 ? wordHover : hover >= 0 ? hover : cardHover >= 0 ? cardHover : pinned;
     let auto = false;
@@ -188,7 +195,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
-    ctx.save(); ctx.globalAlpha = k;
+    ctx.save(); ctx.globalAlpha = k * logoA;
     centers = INFO.map((inf) => { let x = 0, y = 0, n = 0; for (const v of cubeV[inf.cube]) { x += lp[v][0]; y += lp[v][1]; n++; } return [x / n, y / n]; });
     INFO.forEach((inf, i) => {
       if (glow[i] < .01) return; const id = [...cubeV[inf.cube]];
@@ -277,8 +284,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       cap.style.transform = `translate(${lx - .5}px, ${ly - .5}px)`;
       if (capOn && t >= LBL_TEXT) cap.classList.add("show");
     }
-    if (!reduce && k >= 1) {
-      ctx.save(); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#E9DBF8";
+    if (!reduce && k >= 1 && logoA > .01) {
+      ctx.save(); ctx.globalAlpha = logoA; ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#E9DBF8";
       for (const pk of packets) {
         pk.t += pk.s / 60;
         let [a, b] = LEdges[pk.e]; if (pk.f) [a, b] = [b, a];
@@ -291,7 +298,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
 
   const hitAt = (e: PointerEvent) => {
     const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-    let best = -1, bd = S * .75;
+    let best = -1, bd = logoA > .3 ? S * .75 : 0;
     centers.forEach((c, i) => { const d = Math.hypot(c[0] - px, c[1] - py); if (d < bd) { bd = d; best = i; } });
     return best;
   };

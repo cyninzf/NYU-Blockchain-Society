@@ -11,6 +11,7 @@ import { affiliation, hero, mission } from "@/content/site";
 import Icon from "../Icon";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
 import { createField, type Field } from "./field";
+import FocusBlocks from "./FocusBlocks";
 import JoinFlow from "./JoinFlow";
 import ProofStrip from "./ProofStrip";
 
@@ -33,7 +34,8 @@ export default function Story() {
   const hudRef = useRef<HTMLDivElement>(null);
   const heroTxtRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<HTMLButtonElement[]>([]);
-  const cardRefs = useRef<HTMLLIElement[]>([]);
+  const cardRefs = useRef<HTMLElement[]>([]);
+  const registerCard = useCallback((i: number, el: HTMLElement) => { cardRefs.current[i] = el; }, []);
   const focusRef = useRef<HTMLElement>(null);
   const openJoinRef = useRef<HTMLButtonElement>(null);
   const focusOpenButton = useRef(false);
@@ -165,15 +167,7 @@ export default function Story() {
         <section className="focus" id="focus" aria-labelledby="focus-h" ref={focusRef}>
           <div className="wrap focus-in">
             <h2 id="focus-h" className="mono">Focus</h2>
-            <ul className="cards">
-              {industries.map((ind, i) => (
-                <li key={ind.id} className="card" data-bg="dim" ref={(el) => { if (el) cardRefs.current[i] = el; }}>
-                  <h3 id={`focus-${ind.id}`}>{ind.name}</h3>
-                  <p>{ind.description}</p>
-                  <p className="seen"><b>{ind.seenLead}</b> {ind.seen}</p>
-                </li>
-              ))}
-            </ul>
+            <FocusBlocks register={registerCard} />
           </div>
         </section>
         <div className="story-end" aria-hidden="true"></div>
