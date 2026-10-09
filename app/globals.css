@@ -108,12 +108,33 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .chain-head{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:20px; margin-bottom:40px}
 .chain h2{margin:0; font-weight:580; font-size:clamp(34px,4vw,56px); letter-spacing:-.04em; line-height:1}
 .chain-head p{margin:0; max-width:38ch; color:var(--ink-muted)}
-.blocks{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(260px,1fr)); gap:0; overflow-x:auto; scroll-snap-type:x mandatory}
-.blk{scroll-snap-align:start; position:relative; border:1px solid var(--ink-line); border-right:none; padding:24px 24px 28px; min-height:300px; display:flex; flex-direction:column; gap:14px; background:rgba(37,10,66,.82)}
-.blk:last-child{border-right:1px solid var(--ink-line)}
-.blk::after{content:""; position:absolute; top:52px; right:-7px; width:13px; height:13px; border-radius:50%; background:var(--ink); border:1px solid #5B3E78; z-index:1}
-.blk:last-child::after{display:none}
-.blk .top{display:flex; justify-content:space-between; align-items:center; color:var(--ink-muted)}
+/* the chain: blocks drawn like the Focus blocks (transparent, 1px lilac edges, glowing corner
+   nodes, .frame), linked by connectors that carry a dot 00 → 01 → 02 (.flink). How a block is
+   drawn shows its status (Chain.tsx): .confirmed solid, .active glowing with a slow pulse,
+   .building dashed, as if still being mined. */
+.blocks{--gap:48px; list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--gap)}
+.blk{position:relative; padding:22px 24px 26px; min-height:300px; display:flex; flex-direction:column; gap:14px}
+.bhead{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:4px 12px; color:var(--lilac); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
+.bhead .st{color:var(--ink-muted)}
+.blk.in .frame .c{transform:scale(1)}
+.blk.in .frame .e{transform:none; transition-delay:.12s}
+.blk.active .frame .e{background:var(--lilac); box-shadow:0 0 8px rgba(185,120,240,.7)}
+.blk.active .frame .c{box-shadow:0 0 12px rgba(216,194,240,1)}
+.blk.building .frame .t,.blk.building .frame .b{background:repeating-linear-gradient(90deg, rgba(216,194,240,.6) 0 6px, transparent 6px 12px)}
+.blk.building .frame .l,.blk.building .frame .r{background:repeating-linear-gradient(180deg, rgba(216,194,240,.6) 0 6px, transparent 6px 12px)}
+.blk.building .frame .c{background:var(--ink); border:1px solid var(--lilac); box-shadow:none}
+.blk.building h3{color:#CDBEDB}
+@media (prefers-reduced-motion: no-preference){
+  .blk.active.in .frame .e{animation:bpulse 3.2s ease-in-out .7s infinite}
+  .blk.active.in .frame .c{animation:bpulse-c 3.2s ease-in-out .7s infinite}
+  @keyframes bpulse{50%{box-shadow:0 0 18px rgba(185,120,240,1), 0 0 4px rgba(216,194,240,.9)}}
+  @keyframes bpulse-c{50%{box-shadow:0 0 20px rgba(216,194,240,1); transform:scale(1.25)}}
+  .blk.building.in .frame .t,.blk.building.in .frame .b{animation:mine-x 1.6s linear infinite}
+  .blk.building.in .frame .l,.blk.building.in .frame .r{animation:mine-y 1.6s linear infinite}
+  @keyframes mine-x{from{background-position:0 0} to{background-position:12px 0}}
+  @keyframes mine-y{from{background-position:0 0} to{background-position:0 12px}}
+  .blk:nth-child(2) .flink b{animation-delay:.9s}
+}
 .st{display:inline-flex; align-items:center; gap:7px}
 .st i{width:7px; height:7px; border-radius:50%; background:#6B5A7C}
 .st.ok i{background:#B98AE8}
@@ -123,20 +144,14 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .blk p{margin:0; color:var(--ink-muted); font-size:16px}
 .blk .foot{margin-top:auto; display:flex; flex-wrap:wrap; gap:6px 16px; color:var(--ink-muted)}
 .blk .foot b{color:var(--ink-fg); font-weight:500}
-.blk.live{background:var(--violet); border-color:var(--violet)}
-.blk.live p,.blk.live .top{color:var(--lilac)}
-.blk.live .btn{margin-top:auto; align-self:flex-start}
-.blk.dim h3{color:#CDBEDB}
+.blk.active .btn{margin-top:auto; align-self:flex-start}
 .blk .next{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; color:var(--ink-fg); font-size:15px}
 .blk .next b{font-weight:550}
 .tag{display:inline-flex; align-items:center; min-height:22px; padding:0 8px; border:1px solid rgba(216,194,240,.6); border-radius:6px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--lilac)}
 /* every block is clickable: its action stretches over the whole card */
-.blk{transition:background .2s ease}
 .blk-go::before{content:""; position:absolute; inset:0; z-index:2}
 .blk .go{margin-top:auto; align-self:flex-start; color:var(--ink-fg); font-weight:550; font-size:15px; text-decoration:none}
 .blk .foot + .go{margin-top:0}
-.blk:hover{background:#2E0F50}
-.blk.live:hover{background:#640A9E}
 .blk:hover .go{text-decoration:underline; text-underline-offset:4px}
 .blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:-2px}
 .blk-go:focus-visible{outline:none}
@@ -149,10 +164,12 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ed.past span{color:#B98AE8}
 .ed.next{border-style:dashed}
 .ed.next .mono{font-size:12px; color:var(--ink-muted); font-weight:400}
-/* highlight the edge to the next block */
-.blk::after{transition:background .2s ease, border-color .2s ease, box-shadow .2s ease}
-.blk:is(:hover,:focus-within)::after{background:var(--glow); border-color:var(--lilac); box-shadow:0 0 14px rgba(155,77,219,.9)}
-.blk:is(:hover,:focus-within) + .blk{border-left-color:var(--glow)}
+/* hover/focus: the block's edges glow and the edge to the next block lights */
+.blk:is(:hover,:focus-within) .frame .e{box-shadow:0 0 10px rgba(185,120,240,.85)}
+.blk:not(.building):is(:hover,:focus-within) .frame .e{background:var(--lilac)}
+.blk:is(:hover,:focus-within) .flink{background:var(--glow); box-shadow:0 0 10px rgba(155,77,219,.9)}
+.blk:is(:hover,:focus-within) .flink i{border-color:#fff; box-shadow:0 0 10px rgba(216,194,240,.9)}
+@media (min-width:861px){.blk:is(:hover,:focus-within) + .blk .frame .l{background:var(--glow)}}
 
 
 /* conference */
@@ -452,17 +469,11 @@ footer ul{flex-wrap:wrap}
 footer ul a{display:inline-flex; align-items:center; min-height:44px}
 footer ul{gap:0 22px}
 
-/* --- the chain on small screens: one column, connectors on a vertical line, no sideways scroll --- */
+/* --- the chain on small screens: one column, connectors on a vertical line (the .flink rules
+   under the Focus section), no sideways scroll --- */
 @media (max-width:860px){
-  .blocks{grid-template-columns:1fr; overflow:visible; scroll-snap-type:none; gap:38px}
-  .blk{border-right:1px solid var(--ink-line); min-height:0}
-  .blk.live{border-color:var(--violet)}
-  .blk::after{top:auto; right:auto; bottom:-26px; left:50%; margin-left:-7px}
-  .blk + .blk::before{content:""; position:absolute; top:-39px; left:50%; width:1px; height:38px; background:#5B3E78; transition:background .2s ease, box-shadow .2s ease}
-  .blk:is(:hover,:focus-within) + .blk{border-left-color:var(--ink-line)}
-  .blk.live:is(:hover,:focus-within) + .blk{border-left-color:var(--ink-line)}
-  .blk:is(:hover,:focus-within) + .blk::before{background:var(--glow); box-shadow:0 0 10px rgba(155,77,219,.9)}
-  .blk .top{flex-wrap:wrap; gap:4px 12px}
+  .blocks{--gap:40px; grid-template-columns:1fr}
+  .blk{min-height:0}
   .blk .st{white-space:nowrap}
   /* Block 00's edition chain stacks too */
   .editions{flex-direction:column; align-items:flex-start; gap:0}

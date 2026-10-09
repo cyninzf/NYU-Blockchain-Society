@@ -4,15 +4,20 @@ import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
 import { chainBlocks, type BlockStatus } from "@/content/events";
 import { chainIntro } from "@/content/site";
 import NextEditionLink from "./conference/NextEditionLink";
+import DrawIn from "./DrawIn";
 import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
-const STATUS: Record<BlockStatus, { label: string; dot: string; block: string }> = {
-  annual: { label: "Annual", dot: "st ok", block: "blk" },
-  done: { label: "Done", dot: "st ok", block: "blk" },
-  upcoming: { label: "Upcoming", dot: "st pend", block: "blk live" },
-  soon: { label: "Next date soon", dot: "st pend", block: "blk live" },
-  building: { label: "Building", dot: "st", block: "blk dim" },
+// Each block is drawn by its status: confirmed (done/annual) = solid edges, active (the
+// current block: next event) = glowing edges with a slow pulse, building = dashed edges, as
+// if still being mined. Change a block's status in content/ and its drawing follows.
+type Draw = "confirmed" | "active" | "building";
+const STATUS: Record<BlockStatus, { label: string; dot: string; draw: Draw }> = {
+  annual: { label: "Annual", dot: "st ok", draw: "confirmed" },
+  done: { label: "Done", dot: "st ok", draw: "confirmed" },
+  upcoming: { label: "Upcoming", dot: "st pend", draw: "active" },
+  soon: { label: "Next date soon", dot: "st pend", draw: "active" },
+  building: { label: "Building", dot: "st", draw: "building" },
 };
 
 /** Today in New York (YYYY-MM-DD). Cached hourly so the page stays static. */
@@ -32,15 +37,19 @@ export default async function Chain() {
           <p>{chainIntro}</p>
         </div>
         <ol className="blocks">
-          {blocks.map((ev) => {
+          {blocks.map((ev, i) => {
             const st = STATUS[ev.status];
-            const live = st.block.includes("live");
-            const cls = `blk-go ${live ? "btn btn-w" : "go"}`;
+            const cls = `blk-go ${st.draw === "active" ? "btn btn-w" : "go"}`;
             const a = ev.action;
             return (
-              <li className={st.block} key={ev.label} data-bg="dim">
-                <div className="top mono">
-                  <span>{ev.label}</span>
+              <li className={`blk ${st.draw}`} key={ev.label} data-bg="dim">
+                <span className="frame" aria-hidden="true">
+                  <i className="e t"></i><i className="e r"></i><i className="e b"></i><i className="e l"></i>
+                  <b className="c tl"></b><b className="c tr"></b><b className="c br"></b><b className="c bl"></b>
+                </span>
+                {i < blocks.length - 1 && <span className="flink" aria-hidden="true"><i></i><b></b></span>}
+                <div className="bhead mono">
+                  <span>{ev.label} · {ev.kind}</span>
                   <span className={st.dot}><i></i>{st.label}</span>
                 </div>
                 <h3>{ev.title}</h3>
@@ -84,6 +93,7 @@ export default async function Chain() {
             );
           })}
         </ol>
+        <DrawIn selector=".blocks > .blk" />
       </div>
     </section>
   );

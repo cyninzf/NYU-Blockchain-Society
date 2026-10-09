@@ -45,6 +45,8 @@ export type BlockAction =
 
 export type ChainBlock = {
   label: string;
+  /** Short name for the block's header, "BLOCK 00 · CONFERENCE". */
+  kind: string;
   status: BlockStatus;
   title: string;
   text: string;
@@ -65,7 +67,7 @@ export const nextNetworkingEvent = (today: string) =>
     .sort((a, b) => a.date.localeCompare(b.date))[0];
 
 function networkingBlock(today: string): ChainBlock {
-  const base = { label: "Block 01", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni in New York." };
+  const base = { label: "Block 01", kind: "Networking", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni in New York." };
   const e = nextNetworkingEvent(today);
   if (!e) return { ...base, status: "soon", action: { kind: "join", label: "Get notified", notify: "networking" } };
   return {
@@ -82,6 +84,7 @@ function networkingBlock(today: string): ChainBlock {
 export const chainBlocks = (today: string): ChainBlock[] => [
   {
     label: "Block 00",
+    kind: "Conference",
     status: "annual",
     title: series.name,
     text: `Annual · since ${series.since}`,
@@ -91,6 +94,7 @@ export const chainBlocks = (today: string): ChainBlock[] => [
   networkingBlock(today),
   {
     label: "Block 02",
+    kind: "Accelerator",
     status: "building",
     title: "Accelerator",
     text: "Support for NYU founders working across digital assets and AI.",
