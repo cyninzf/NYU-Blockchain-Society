@@ -33,6 +33,8 @@ export type FieldOptions = {
 
 export type Field = {
   setJoining: (on: boolean) => void;
+  /** The join flow (questions or the success/strengthen step) is open: the logo makes room for it. */
+  setFlow: (on: boolean) => void;
   setSelected: (blocks: number[]) => void;
   /** Join progress: `steps` completed steps draw that many nodes building toward the chain. */
   setProgress: (steps: number, blocks: number[]) => void;
@@ -51,6 +53,7 @@ const LBL_NODES = 110, LBL_EDGES = [70, 320], LBL_DOT = [220, 470], LBL_TEXT = 4
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
   const { surface: cv, cap, capTitle, capText, heroTxt, words, cards, focus, you, youName } = el;
+  const h1 = heroTxt.querySelector("h1");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const INFO = industries;
 
@@ -94,7 +97,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   }
   const kick = () => requestBackdropFrame();
 
-  let joining = false;
+  let joining = false, flow = false, flowK = 0;
   let sel = new Set<number>();
   // `from` is a screen point when the block snaps in from the end of the join trail.
   let member: { pos: V3; from: [number, number] | null; links: number[]; blocks: number[]; name: string; t0: number } | null = null;
@@ -152,8 +155,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const wide = W > 860, ht = heroTxt.offsetTop;
     // Small screens: the logo is ~57% of the width (it's about 2.7·S wide and 3.1·S tall) and
     // sits right above the headline, in the space the CSS reserves (min(66vw, 42svh); while
-    // joining on phones, min(50vw, 30svh) so each question sits right under the visual).
-    const flowSmall = joining && W <= 560;
+    // the flow is open on phones, min(50vw, 30svh) so each question sits right under the visual).
+    const flowSmall = flow && W <= 560;
     const sS = Math.max(30, flowSmall ? Math.min(W * .16, Math.min(W * .5, H * .3) / 3.15) : Math.min(W * .21, Math.min(W * .66, H * .42) / 3.15));
     hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: Math.max(68 + sS * 1.6, ht - 12 - sS * 1.58), S: sS };
     side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .26, S: Math.min(W * .16, H * .1) };
@@ -162,7 +165,14 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const avail = H - fin.offsetHeight - parseFloat(getComputedStyle(focus).paddingBottom) - 76;
     focusPose = { ox: W / 2, oy: 72 + Math.max(avail, 0) / 2, S: Math.max(12, Math.min(wide ? W * .085 : W * .11, H * .1, avail / 3.4)) };
     focusTop = focus.getBoundingClientRect().top + scrollY;
+    // While the join flow is open on wide screens the logo moves into the gutter beside the
+    // form (which is centred, max 560px), sized to fit it, so it never sits behind an input.
+    const formW = Math.min(560, W - 2 * Math.min(Math.max(W * .04, 20), 56));
+    flowL = (W + formW) / 2;
+    flowS = Math.max(24, Math.min((W - flowL - 56) / 3, H * .11));
   }
+  let flowL = 0, flowS = 1;
+  const flowPose = { ox: 0, oy: 0, S: 1 };
 
   function P(p: V3): P2 {
     const cyw = Math.cos(yaw), syw = Math.sin(yaw);
@@ -173,7 +183,6 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return [ox + x * S * persp + smx * z2 * 6, oy - y2 * S * persp + smy * z2 * 4, z2];
   }
 
-  // Drawn by the backdrop each frame, in viewport coordinates shifted by the pin's position.
   // The logo's vertices as the network sees them (viewport coordinates), refreshed each frame.
   let anchors: Anchors | null = null;
   const hullOf = (ps: P2[]) => {
@@ -184,6 +193,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return new Set([...half(ix), ...half([...ix].reverse())]);
   };
 
+  // Drawn by the backdrop each frame, in viewport coordinates shifted by the pin's position.
   function draw(ctx: CanvasRenderingContext2D, now: number) {
     pinTop = cv.getBoundingClientRect().top;
     anchors = null;
@@ -203,7 +213,25 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       // hero → side (mission) over the first 70% of a screen, then → above the Focus cards
       const sm = (t: number) => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x); };
       const e2 = sm(scrollY / (H * .7)), e3 = sm((H - (focusTop - scrollY)) / (H * .75));
-      const at = (k: "ox" | "oy" | "S") => { const b = hero0[k] + (side[k] - hero0[k]) * e2; return b + (focusPose[k] - b) * e3; };
+      // Join flow open: beside the form (wide; kept below the headline) or above it, scrolling
+      // away with it (small screens), instead of sliding over the form toward the side pose.
+      flowK = reduce ? (flow ? 1 : 0) : flowK + ((flow ? 1 : 0) - flowK) * .1;
+      let fp = hero0;
+      if (flowK > .001) {
+        if (W > 860) {
+          // above the headline while there's room for it there, else in the gutter beside the form
+          const hr = h1?.getBoundingClientRect(), top = (hr?.top ?? 0) - pinTop - 76, Sa = Math.min(hero0.S, (top - 16) / 3.3);
+          const target = Sa >= 48 ? { ox: W / 2, oy: 76 + top / 2 + Sa * .1, S: Sa }
+            : { ox: flowL + (W - flowL) / 2, oy: Math.min(H - flowS * 1.8 - 16, Math.max(H * .42, (hr?.bottom ?? 0) - pinTop + flowS * 1.8 + 16)), S: flowS };
+          const e = reduce || flowK < .05 ? 1 : .1;
+          for (const q of ["ox", "oy", "S"] as const) flowPose[q] += (target[q] - flowPose[q]) * e;
+          fp = flowPose;
+        } else fp = { ...hero0, oy: hero0.oy - scrollY };
+      }
+      const at = (k: "ox" | "oy" | "S") => {
+        const idle = hero0[k] + (side[k] - hero0[k]) * e2, b = idle + (fp[k] - idle) * flowK;
+        return b + (focusPose[k] - b) * e3;
+      };
       ox = at("ox"); oy = at("oy"); S = at("S");
     }
     logoA = clamp01((fin.getBoundingClientRect().top - pinTop - (oy + S * 1.7)) / 50);
@@ -212,7 +240,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     let auto = false;
     if (want < 0 && !joining && scrollY < H * .3 && !reduce && k >= 1 && (now - lastUser) > 4000 && (now - lastInput) > 4000) { const c = Math.floor((el - 2) / 3.2); want = c >= 0 && c % 4 < 3 ? c % 4 : -1; auto = true; }
     // Small screens have no room beside the logo: the idle cycle only lights blocks there.
-    setActive(want, direct || (want >= 0 && want !== cardHover && !(auto && W <= 860)));
+    // No label while the join flow is open: it would cover the form (the words and blocks still light).
+    setActive(want, !flow && (direct || (want >= 0 && want !== cardHover && !(auto && W <= 860))));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
@@ -242,7 +271,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       let dx = target[0] - c0[0], dy = target[1] - c0[1];
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
       const R = Math.min(W * .32, 220);
-      const start = [Math.max(16, Math.min(W - 16, target[0] + dx * R)), Math.max(80, Math.min(H - 16, target[1] + dy * R))];
+      const minX = flow && W > 860 ? flowL + 16 : 16; // stays out of the form
+      const start = [Math.max(minX, Math.min(W - 16, target[0] + dx * R)), Math.max(80, Math.min(H - 16, target[1] + dy * R))];
       const pts = TRAIL_F.slice(0, tr.k).map((f) => [start[0] + (target[0] - start[0]) * f, start[1] + (target[1] - start[1]) * f]);
       trailEnd = [pts[pts.length - 1][0], pts[pts.length - 1][1]];
       ctx.save(); ctx.lineWidth = 1.4; ctx.strokeStyle = "rgba(216,194,240,.7)";
@@ -382,6 +412,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
 
   return {
     setJoining(on) { joining = on; resize(); kick(); },
+    setFlow(on) { flow = on; resize(); kick(); },
     setSelected(blocks) { sel = new Set(blocks); lastUser = performance.now(); kick(); },
     setProgress(steps, blocks) {
       if (steps <= 0) { trail = null; trailEnd = null; kick(); return; }

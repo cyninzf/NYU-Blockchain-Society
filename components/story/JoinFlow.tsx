@@ -259,10 +259,11 @@ function WallDetail({ defaultName, onSave }: { defaultName: string; onSave: (sho
     <details className="detail">
       <summary>Network wall{status.kind === "saved" && !status.note && <span className="saved"> · Saved</span>}</summary>
       <form noValidate onSubmit={(e) => { e.preventDefault(); run(); }} onChange={reset}>
-        <label className="toggle">
-          <input type="checkbox" role="switch" checked={show} onChange={(e) => setShow(e.target.checked)} />
+        <button className="switch" type="button" role="switch" aria-checked={show} onClick={() => { setShow(!show); reset(); }}>
+          <span className="track" aria-hidden="true"><span className="knob"></span></span>
           <span>Show my name on the network wall</span>
-        </label>
+          <span className="state" aria-hidden="true">{show ? "On" : "Off"}</span>
+        </button>
         {show && (
           <label>Name to show<input value={wallName} maxLength={60} onChange={(e) => setWallName(e.target.value)} autoComplete="name" /></label>
         )}

@@ -88,7 +88,7 @@ export default function Story() {
     return () => { clearInterval(clock); window.removeEventListener("scroll", fadeHud); window.removeEventListener("resize", fadeHud); field.destroy(); fieldRef.current = null; };
   }, [toggle]);
 
-  useEffect(() => { fieldRef.current?.setJoining(mode === "joining"); }, [mode]);
+  useEffect(() => { fieldRef.current?.setJoining(mode === "joining"); fieldRef.current?.setFlow(mode !== "idle"); }, [mode]);
   useEffect(() => { fieldRef.current?.setSelected(sel); }, [sel]);
   useEffect(() => {
     if (mode === "idle" && focusOpenButton.current) { focusOpenButton.current = false; openJoinRef.current?.focus(); }
