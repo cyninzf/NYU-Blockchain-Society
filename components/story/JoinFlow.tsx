@@ -8,6 +8,7 @@ import { join, saveDetails, startJoin, type SaveResult } from "@/app/actions/joi
 import { NOTIFY, notifyMessages, type Notify } from "@/content/events";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
+import { joinSource } from "@/lib/join-source";
 import type { Affiliation } from "@/lib/db/schema";
 import Icon from "../Icon";
 
@@ -80,7 +81,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     if (!affiliation) { setErr("Pick the one that fits best."); return; }
 
     const params = new URLSearchParams(window.location.search);
-    const src = params.get("src") ?? undefined;
+    const src = joinSource();
     const urlNotify = params.get("notify");
     const n = notify ?? (NOTIFY.includes(urlNotify as Notify) ? (urlNotify as Notify) : undefined);
 
@@ -94,7 +95,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
         email: email.trim(),
         affiliation,
         notify: n,
-        src: src && /^[\w-]{1,40}$/.test(src) ? src : undefined,
+        src,
       });
       if (!res.ok) { setErr(res.error); return; }
       setDone({ n: res.n, token: res.token, devNotice: res.devNotice, notify: n });

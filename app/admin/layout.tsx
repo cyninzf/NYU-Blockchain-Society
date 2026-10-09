@@ -25,6 +25,7 @@ async function Counts() {
   return (
     <dl className={styles.counts}>
       <div><dt>Members</dt><dd>{c.members}</dd></div>
+      <div><dt>Joined via LinkedIn group</dt><dd>{c.viaLinkedin}</dd></div>
       <div><dt>Contacts</dt><dd>{c.contacts}</dd></div>
       <div><dt>Contacts converted</dt><dd>{c.converted}</dd></div>
       {c.checkedIn !== null && <div><dt>Checked-in contacts</dt><dd>{c.checkedIn}</dd></div>}

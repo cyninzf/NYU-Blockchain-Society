@@ -8,6 +8,8 @@ const TABS = [
   { href: "/admin", label: "Members" },
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/contacts/import", label: "Import contacts" },
+  { href: "/admin/linkedin", label: "LinkedIn group" },
+  { href: "/admin/linkedin/import", label: "Import LinkedIn group" },
 ] as const;
 
 export default function AdminNav() {
