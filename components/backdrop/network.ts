@@ -4,6 +4,8 @@
 // the nodes relax back into the network. Drawn by the backdrop engine (backdrop.ts) into the
 // one fixed canvas behind every page.
 
+import { batch, dot } from "./batch";
+
 export type V3 = [number, number, number];
 export type P2 = [number, number, number]; // screen x, screen y, depth
 
@@ -59,7 +61,7 @@ export type DrawOpts = {
   near?: { x: number; y: number; r: number } | null;
 };
 
-/** What the network drew last frame, for layers drawn on top of it (tether.ts). */
+/** What the network drew last frame, for layers drawn on top of it (core.ts, the logo intro). */
 export type Snapshot = {
   /** Screen position of every node. */
   sp: P2[];
@@ -163,23 +165,36 @@ export function createNetwork(rnd: () => number, density: Density) {
       nextAt = start(now, sp, o) ? now + 3000 + rnd() * 2000 : now + 700;
     }
 
+    // A block's nodes share one opacity (its faintest node's), so a block never shows bright,
+    // loose nodes next to faded edges; a block split by the wrap seam hides its nodes.
+    const blockDim = new Map<number, number>();
+    for (const { f } of live) {
+      const split = f.nodes.some((i) => Math.abs(sp[i][1] - sp[f.nodes[0]][1]) > H * .4);
+      const m = split ? 0 : Math.min(...f.nodes.map((i) => dim[i]));
+      for (const i of f.nodes) blockDim.set(i, m);
+    }
+
     // network edges (fade out while their nodes are part of a block)
     ctx.lineWidth = 1;
+    const eb = batch();
     for (const [a, b] of edges) {
       const A = sp[a], B = sp[b], k = 1 - Math.max(nodes[a].w, nodes[b].w);
       if (k <= 0 || !near(a, b)) continue;
-      ctx.strokeStyle = `rgba(185,138,232,${(.06 + .13 * depth((A[2] + B[2]) / 2)) * k * gk * Math.min(dim[a], dim[b])})`;
-      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      const p = eb.path((.06 + .13 * depth((A[2] + B[2]) / 2)) * k * gk * Math.min(dim[a], dim[b]));
+      if (p) { p.moveTo(A[0], A[1]); p.lineTo(B[0], B[1]); }
     }
+    eb.stroke(ctx, "185,138,232");
     // nodes
+    const nb = batch();
     for (let i = 0; i < sp.length; i++) {
       const q = sp[i], dz = depth(q[2]), w = nodes[i].w;
-      ctx.fillStyle = `rgba(216,194,240,${(.2 + .38 * dz + .3 * w) * gk * Math.max(dim[i], w)})`;
-      ctx.beginPath(); ctx.arc(q[0], q[1], 1 + 1.1 * dz + .6 * w, 0, Math.PI * 2); ctx.fill();
+      const p = nb.path((.2 + .38 * dz + .3 * w) * gk * (blockDim.get(i) ?? dim[i]));
+      if (p) dot(p, q[0], q[1], 1 + 1.1 * dz + .6 * w);
     }
+    nb.fill(ctx, "216,194,240");
     // dots travelling along network edges
     if (!reduce) {
-      ctx.fillStyle = `rgba(233,219,248,${.6 * gk})`;
+      const db = batch();
       for (const d of dots) {
         d.t += d.s / 60;
         let [a, b] = edges[d.e]; if (d.f) [a, b] = [b, a];
@@ -189,12 +204,11 @@ export function createNetwork(rnd: () => number, density: Density) {
           d.e = k; d.f = e[1] === b; d.t = 0; [a, b] = d.f ? [e[1], e[0]] : [e[0], e[1]];
         }
         if (Math.max(nodes[a].w, nodes[b].w) > 0 || !near(a, b)) continue;
-        const A = sp[a], B = sp[b];
-        ctx.globalAlpha = Math.min(dim[a], dim[b]);
-        ctx.beginPath(); ctx.arc(A[0] + (B[0] - A[0]) * d.t, A[1] + (B[1] - A[1]) * d.t, 1.5, 0, Math.PI * 2); ctx.fill();
+        const A = sp[a], B = sp[b], p = db.path(.6 * gk * Math.min(dim[a], dim[b]));
+        if (p) dot(p, A[0] + (B[0] - A[0]) * d.t, A[1] + (B[1] - A[1]) * d.t, 1.5);
       }
+      db.fill(ctx, "233,219,248");
     }
-    ctx.globalAlpha = 1;
     snap = { sp, w: nodes.map((n) => n.w), blocks: [] };
     // forming blocks
     for (const { f, t } of live) {
@@ -211,7 +225,15 @@ export function createNetwork(rnd: () => number, density: Density) {
         ctx.fillStyle = `rgba(155,77,219,${(.1 * built + .22 * glow) * life * gk})`;
         ctx.beginPath(); CUBE_TOP.forEach((n, j) => { const q = vs[n]; if (j) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill();
       }
-      ctx.lineWidth = 1.2; ctx.lineCap = "round";
+      ctx.lineWidth = 1; ctx.lineCap = "round";
+      // Faint edges hold the block's nodes together the whole time: while they gather (as the
+      // network edges they leave fade out), while its edges draw, and while it relaxes.
+      const w = nodes[f.nodes[0]].w;
+      ctx.strokeStyle = `rgba(200,164,238,${(.08 + .16 * w) * life * gk})`;
+      ctx.beginPath();
+      for (const [a, b] of CUBE_E) { ctx.moveTo(vs[a][0], vs[a][1]); ctx.lineTo(vs[b][0], vs[b][1]); }
+      ctx.stroke();
+      ctx.lineWidth = 1.2;
       if (glow > 0) { ctx.shadowColor = "rgba(185,120,240,.9)"; ctx.shadowBlur = 14 * glow; }
       CUBE_E.forEach(([a, b], k) => {
         const p = clamp01((t - GATHER - k * EDGE) / EDGE);

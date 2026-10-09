@@ -3,9 +3,9 @@
 // drives (headline words, Focus cards, label) is rendered by React; this module only reads it
 // and toggles classes. Pointer input comes from `surface`, a transparent layer in the pin.
 
-import { addPainter, requestBackdropFrame } from "@/components/backdrop/backdrop";
+import { addPainter, networkSnapshot, requestBackdropFrame } from "@/components/backdrop/backdrop";
 import type { P2, V3 } from "@/components/backdrop/network";
-import type { Anchors } from "@/components/backdrop/tether";
+import type { Anchors } from "@/components/backdrop/core";
 import { focusTags } from "@/content/focus";
 import { industries } from "@/content/industries";
 
@@ -74,7 +74,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const center = (p: V3): V3 => [p[0] - C[0], p[1] - C[1], p[2] - C[2]];
   const L0 = LV.map(center);
 
-  const Ls = L0.map((): V3 => [(rnd() - .5) * 9, (rnd() - .5) * 9, (rnd() - .5) * 9]);
+  // Assemble on load, once per session: nodes fly in from the network to the cubes' vertices,
+  // then the edges draw in (~1.2 s), then the logo settles. Skipped under reduced motion.
+  const INTRO_AT = .35, INTRO_FLY = .65, INTRO_EDGES = [.55, 1.2] as const, INTRO_END = 1.2;
+  const INTRO_KEY = "nyubs:assembled";
+  const skipIntro = reduce || (() => { try { return sessionStorage.getItem(INTRO_KEY) === "1"; } catch { return false; } })();
+  let introFrom: [number, number][] | null = null, introDone = skipIntro;
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
 
@@ -193,6 +198,21 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return new Set([...half(ix), ...half([...ix].reverse())]);
   };
 
+  /** Intro start points (pin coordinates): a distinct nearby network node for each vertex, or a scatter. */
+  function introStarts(lp: P2[]): [number, number][] {
+    const net = networkSnapshot();
+    const pool = (net?.sp ?? [])
+      .map((q, n) => ({ n, x: q[0], y: q[1] - pinTop }))
+      .filter((q) => q.x > 0 && q.x < W && q.y > 0 && q.y < H && Math.hypot(q.x - ox, q.y - oy) > S * 1.6);
+    const used = new Set<number>();
+    return lp.map((t) => {
+      let best = -1, bd = 1e9;
+      for (const q of pool) { if (used.has(q.n)) continue; const d = Math.hypot(q.x - t[0], q.y - t[1]); if (d < bd) { bd = d; best = q.n; } }
+      if (best >= 0 && bd < S * 6) { used.add(best); const q = pool.find((x) => x.n === best)!; return [q.x, q.y]; }
+      const a = rnd() * Math.PI * 2; return [t[0] + Math.cos(a) * S * 3, t[1] + Math.sin(a) * S * 3];
+    });
+  }
+
   // Drawn by the backdrop each frame, in viewport coordinates shifted by the pin's position.
   function draw(ctx: CanvasRenderingContext2D, now: number) {
     pinTop = cv.getBoundingClientRect().top;
@@ -204,7 +224,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   }
 
   function frame(ctx: CanvasRenderingContext2D, now: number) {
-    const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5);
+    const el = (now - t0) / 1000, it = skipIntro ? 1e9 : el - INTRO_AT, k = clamp01(it / INTRO_END);
     // Fade the logo out wherever the (transparent) Focus blocks would run into it.
     const fin = focus.querySelector<HTMLElement>(".focus-in") ?? focus;
     if (!dragging && !reduce && (now - lastInput) / 1000 > 2.5) { tYaw = ISO_YAW + Math.sin(el * .22) * .7; tPitch = ISO_PITCH + Math.sin(el * .17) * .1; }
@@ -244,12 +264,24 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     setActive(want, !flow && (direct || (want >= 0 && want !== cardHover && !(auto && W <= 860))));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     // logo
-    const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
-    if (k * logoA > .01) {
-      const hull = hullOf(lp);
-      anchors = { pts: lp.map((p, i) => ({ x: p[0], y: p[1] + pinTop, hull: hull.has(i) })), c: [ox, oy + pinTop], r: S * 1.7, a: k * logoA };
+    const lp = L0.map(P);
+    if (it < 0) return; // the intro hasn't started yet
+    if (it < INTRO_FLY + .1) {
+      // each vertex leaves a nearby node of the network and flies to its place in the cubes
+      introFrom ??= introStarts(lp);
+      lp.forEach((q, i) => { const f = ease((it - i * .008) / (INTRO_FLY - .15)), a = introFrom![i]; q[0] = a[0] + (q[0] - a[0]) * f; q[1] = a[1] + (q[1] - a[1]) * f; });
     }
-    ctx.save(); ctx.globalAlpha = k * logoA;
+    if (!introDone && it >= INTRO_END) { introDone = true; try { sessionStorage.setItem(INTRO_KEY, "1"); } catch {} }
+    // after it's assembled, the network's core (core.ts) connects into it
+    const coreA = ease((it - INTRO_END + .1) / .5) * logoA;
+    if (coreA > .01) {
+      const hull = hullOf(lp);
+      anchors = { pts: lp.map((p, i) => ({ x: p[0], y: p[1] + pinTop, hull: hull.has(i) })), c: [ox, oy + pinTop], r: S * 1.7, a: coreA };
+    }
+    // Same material as the network, only a little larger and brighter: lilac nodes, solid lilac edges.
+    const edgeP = (j: number) => it > INTRO_EDGES[1] + .2 ? 1 : clamp01((it - INTRO_EDGES[0] - j * ((INTRO_EDGES[1] - INTRO_EDGES[0] - .15) / LEdges.length)) / .15);
+    const faceA = clamp01((it - INTRO_END + .2) / .3);
+    ctx.save(); ctx.globalAlpha = logoA;
     centers = INFO.map((inf) => { let x = 0, y = 0, n = 0; for (const v of cubeV[inf.cube]) { x += lp[v][0]; y += lp[v][1]; n++; } return [x / n, y / n]; });
     INFO.forEach((inf, i) => {
       if (glow[i] < .01) return; const id = [...cubeV[inf.cube]];
@@ -257,13 +289,21 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       const faces = [[0, 1, 3, 2], [4, 5, 7, 6], [0, 1, 5, 4], [2, 3, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]];
       for (const fc of faces) { ctx.beginPath(); fc.forEach((q, j) => { const p = lp[id[q]]; if (j) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.fill(); }
     });
-    ctx.fillStyle = "rgba(155,77,219,0.28)";
+    ctx.fillStyle = `rgba(155,77,219,${.2 * faceA})`;
     for (const q of tops) { ctx.beginPath(); q.forEach((vi, j) => { const p = lp[vi]; if (j) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.fill(); }
-    ctx.shadowColor = "rgba(155,77,219,0.9)"; ctx.shadowBlur = 14; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+    ctx.lineCap = "round"; ctx.shadowColor = "rgba(185,120,240,.9)";
     const edgeGlow = (a: number, b: number) => { let g = 0; INFO.forEach((inf, i) => { if (cubeV[inf.cube].has(a) && cubeV[inf.cube].has(b)) g = Math.max(g, glow[i]); }); return g; };
-    for (const [a, b] of LEdges) { const d = (lp[a][2] + lp[b][2]) / 2, g = edgeGlow(a, b); ctx.lineWidth = 1.6 + 1.4 * g; ctx.strokeStyle = `rgba(242,236,248,${Math.min(1, .5 + .4 * (d + 1.6) / 3.2 + .3 * g)})`; ctx.beginPath(); ctx.moveTo(lp[a][0], lp[a][1]); ctx.lineTo(lp[b][0], lp[b][1]); ctx.stroke(); }
-    ctx.fillStyle = "#fff";
-    for (const p of lp) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.6 + 2 * (p[2] + 1.6) / 3.2, 0, Math.PI * 2); ctx.fill(); }
+    LEdges.forEach(([a, b], j) => {
+      const pe = edgeP(j);
+      if (pe <= 0) return;
+      const dn = ((lp[a][2] + lp[b][2]) / 2 + 1.6) / 3.2, g = edgeGlow(a, b);
+      ctx.lineWidth = 1.15 + 1.3 * g; ctx.shadowBlur = 10 * g; // a glow only on the highlighted block
+      ctx.strokeStyle = `rgba(226,204,248,${Math.min(1, .42 + .22 * dn + .4 * g)})`;
+      ctx.beginPath(); ctx.moveTo(lp[a][0], lp[a][1]); ctx.lineTo(lp[a][0] + (lp[b][0] - lp[a][0]) * pe, lp[a][1] + (lp[b][1] - lp[a][1]) * pe); ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = logoA * Math.min(1, Math.max(it, 0) * 6);
+    for (const p of lp) { const dn = (p[2] + 1.6) / 3.2; ctx.fillStyle = `rgba(233,219,248,${.72 + .26 * dn})`; ctx.beginPath(); ctx.arc(p[0], p[1], 1.6 + 1.5 * dn, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
     if (trail && trail.k > 0) {
       // Laid out on screen: from a point outward of the member's spot (kept inside the viewport) toward it.
@@ -279,13 +319,13 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       pts.forEach((pt, i) => {
         const a = reduce ? 1 : ease((now - tr.t[i]) / 500);
         const prev = i ? pts[i - 1] : pt, x = prev[0] + (pt[0] - prev[0]) * a, y = prev[1] + (pt[1] - prev[1]) * a;
-        if (i) { ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); }
+        if (i) { ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(x, y); ctx.stroke(); }
         ctx.globalAlpha = Math.min(1, a * 1.5); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#fff";
         ctx.beginPath(); ctx.arc(x, y, i === pts.length - 1 ? 5 : 3.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
       });
       // faint guide from the newest node to where the block will snap in
       const last = pts[pts.length - 1];
-      ctx.strokeStyle = "rgba(216,194,240,.22)"; ctx.setLineDash([2, 6]); ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(target[0], target[1]); ctx.stroke();
+      ctx.strokeStyle = "rgba(216,194,240,.2)"; ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(target[0], target[1]); ctx.stroke();
       ctx.restore();
     }
     if (member) {
@@ -293,9 +333,9 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       const mp = member.from
         ? [member.from[0] + (end[0] - member.from[0]) * mt, member.from[1] + (end[1] - member.from[1]) * mt]
         : P(lerp3([member.pos[0] * 3.4, member.pos[1] * 3.4, member.pos[2] * 3.4], member.pos, mt));
-      ctx.save(); ctx.globalAlpha = Math.min(1, mt * 1.4); ctx.strokeStyle = "rgba(216,194,240,.85)"; ctx.lineWidth = 1.4; ctx.setLineDash([4, 5]);
+      ctx.save(); ctx.globalAlpha = Math.min(1, mt * 1.4); ctx.strokeStyle = "rgba(216,194,240,.7)"; ctx.lineWidth = 1.2;
       for (const v of member.links) { const q = lp[v]; ctx.beginPath(); ctx.moveTo(mp[0], mp[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
-      ctx.setLineDash([]); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 18; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 18; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
       if (!reduce && mt >= 1) { const pt = ((now - member.t0) / 1000) % 2.4; ctx.strokeStyle = `rgba(216,194,240,${Math.max(0, 1 - pt / 1.3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5 + pt * 20, 0, Math.PI * 2); ctx.stroke(); }
       ctx.restore();
       // the label is DOM (it carries a Hide button): beside the node, flipped left near the edge
@@ -349,12 +389,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       if (capOn && t >= LBL_TEXT) cap.classList.add("show");
     }
     if (!reduce && k >= 1 && logoA > .01) {
-      ctx.save(); ctx.globalAlpha = logoA; ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#E9DBF8";
+      ctx.save(); ctx.globalAlpha = logoA; ctx.fillStyle = "rgba(233,219,248,.85)"; // the network's dots
       for (const pk of packets) {
         pk.t += pk.s / 60;
         let [a, b] = LEdges[pk.e]; if (pk.f) [a, b] = [b, a];
         if (pk.t >= 1) { const nx = LEdges.map((e, i) => [e, i] as const).filter(([e]) => e[0] === b || e[1] === b); const [e, i] = nx[(rnd() * nx.length) | 0]; pk.e = i; pk.f = e[1] === b; pk.t = 0; [a, b] = pk.f ? [e[1], e[0]] : e; }
-        const A = lp[a], B = lp[b]; ctx.beginPath(); ctx.arc(A[0] + (B[0] - A[0]) * pk.t, A[1] + (B[1] - A[1]) * pk.t, 2.4, 0, Math.PI * 2); ctx.fill();
+        const A = lp[a], B = lp[b]; ctx.beginPath(); ctx.arc(A[0] + (B[0] - A[0]) * pk.t, A[1] + (B[1] - A[1]) * pk.t, 1.7, 0, Math.PI * 2); ctx.fill();
       }
       ctx.restore();
     }
@@ -400,13 +440,15 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   addEventListener("resize", onResize);
   const heroRO = new ResizeObserver(() => { resize(); kick(); }); heroRO.observe(heroTxt);
   resize();
-  // The backdrop keeps the network clear of the logo and of an open label.
+  // The network fades only right behind the logo (it's the network's core, not an object on
+  // top of it); blocks don't form in a ring around it or under an open label.
   const removePainter = addPainter({
     draw,
     anchors: () => anchors,
     avoid: () => pinTop + H < 0 ? { circles: [], rects: [] } : {
-      circles: [{ x: ox, y: oy + pinTop, r: S * 2.4 }],
+      circles: [{ x: ox, y: oy + pinTop, r: S * 1.7 }],
       rects: capOn ? [cap.getBoundingClientRect()] : [],
+      block: [{ x: ox, y: oy + pinTop, r: S * 2.4 }],
     },
   });
 

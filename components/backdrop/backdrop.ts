@@ -1,21 +1,23 @@
 // One fixed, full-page canvas behind every public page, with one rAF loop. It draws the
-// background network (network.ts) and then any registered painters (the hero's 3D logo,
-// field.ts), so the whole site animates on a single canvas.
+// background network (network.ts), then any registered painters (the hero's 3D logo,
+// field.ts), then the network's core around that logo (core.ts), so the whole site animates
+// on a single canvas.
 //
 // Copy marks itself with data-bg: "clear" (the hero text) or "dim" (mission, Focus cards,
 // chain cards, join copy, sub-page text). The network fades softly behind those areas and
 // blocks never form there.
 
 import { BOX, createNetwork, densityFor, type P2, type V3 } from "./network";
-import { createTether, type Anchors } from "./tether";
+import { createCore, type Anchors } from "./core";
 
 type Circle = { x: number; y: number; r: number };
 type Rect = { left: number; top: number; right: number; bottom: number };
 
 export type Painter = {
   draw: (ctx: CanvasRenderingContext2D, now: number) => void;
-  /** Screen areas the network keeps clear of (e.g. the logo, an open label). */
-  avoid?: () => { circles: Circle[]; rects: Rect[] };
+  /** Screen areas the network fades behind (circles, e.g. the logo itself) and where blocks
+   *  never form (all of them, plus `block`, e.g. a ring around the logo and an open label). */
+  avoid?: () => { circles: Circle[]; rects: Rect[]; block?: Circle[] };
   /** The hero logo's vertices this frame (read after `draw`): the network reaches into them. */
   anchors?: () => Anchors | null;
 };
@@ -33,6 +35,9 @@ export function addPainter(p: Painter) {
   return () => { painters.delete(p); engine?.request(); };
 }
 
+/** The background network as drawn last frame (screen positions), e.g. for the logo to assemble from. */
+export const networkSnapshot = () => engine?.snapshot() ?? null;
+
 /** Ask for a frame (only needed under reduced motion; otherwise the loop runs anyway). */
 export const requestBackdropFrame = () => engine?.request();
 
@@ -47,7 +52,7 @@ function createEngine(cv: HTMLCanvasElement) {
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null;
   const t0 = performance.now();
-  const tether = createTether(rnd);
+  const core = createCore(rnd);
 
   function resize() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -77,7 +82,7 @@ function createEngine(cv: HTMLCanvasElement) {
     readZones();
     const el = (now - t0) / 1000, gk = reduce ? 1 : Math.min(1, Math.max(0, (el - .3) / 1.4));
     const extra = [...painters].map((p) => p.avoid?.() ?? { circles: [], rects: [] });
-    const circles = extra.flatMap((a) => a.circles), rects = extra.flatMap((a) => a.rects);
+    const circles = extra.flatMap((a) => a.circles), rects = extra.flatMap((a) => a.rects), holds = [...circles, ...extra.flatMap((a) => a.block ?? [])];
 
     // Projection: the node box fills the viewport; a slow yaw drift gives depth. The layer
     // scrolls at a fraction of the page speed and wraps vertically, so it never runs out.
@@ -98,13 +103,14 @@ function createEngine(cv: HTMLCanvasElement) {
       return f;
     };
     const blocked = (x: number, y: number) =>
-      zones.some((z) => outside(x, y, z.r) < 28) || rects.some((r) => outside(x, y, r) < 28) || circles.some((c) => Math.hypot(x - c.x, y - c.y) < c.r);
+      zones.some((z) => outside(x, y, z.r) < 28) || rects.some((r) => outside(x, y, r) < 28) || holds.some((c) => Math.hypot(x - c.x, y - c.y) < c.r);
 
     ctx.clearRect(0, 0, W, H);
     const logo = [...painters].find((p) => p.anchors);
-    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, near: tether.wantNear(now, logo?.anchors?.() ?? null) });
+    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, near: core.wantNear(now, logo?.anchors?.() ?? null) });
     for (const p of painters) p.draw(ctx, now);
-    tether.draw(ctx, now, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null);
+    // the core: ~30% of the page's node count, so it follows the same desktop/phone density rules
+    core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round(network!.density.nodes * .3), fade);
     if (!reduce && !document.hidden) raf = requestAnimationFrame(frame);
   }
 
@@ -118,6 +124,7 @@ function createEngine(cv: HTMLCanvasElement) {
 
   return {
     request,
+    snapshot: () => network?.snapshot() ?? null,
     destroy() {
       alive = false; cancelAnimationFrame(raf);
       removeEventListener("resize", onChange); removeEventListener("scroll", onChange);
