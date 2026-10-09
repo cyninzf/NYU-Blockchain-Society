@@ -1,7 +1,7 @@
 import Story from "@/components/story/Story";
 import Chain from "@/components/Chain";
 import JoinSection from "@/components/JoinSection";
-import NetworkWall from "@/components/NetworkWall";
+import ChainStats from "@/components/ChainStats";
 import { links, siteDescription, siteName, siteUrl } from "@/content/site";
 
 // Structured data for search engines. NYU is not claimed as parentOrganization.
@@ -21,7 +21,7 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, "\\u003c") }} />
       <Story />
       <Chain />
-      <NetworkWall />
+      <ChainStats />
       <JoinSection />
     </>
   );

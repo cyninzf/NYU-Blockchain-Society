@@ -33,7 +33,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .nav ul a:hover{color:var(--ink-fg)}
 .nav ul a.on{color:var(--ink-fg); text-decoration:underline; text-decoration-color:var(--glow); text-decoration-thickness:2px; text-underline-offset:8px}
 /* anchor targets clear the fixed nav */
-#chain,#focus,#top,#wall,#join{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 72px)}
+#chain,#focus,#top,#network,#join{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 72px)}
 .nav ul li.m{display:none}
 @media (max-width:700px){.nav ul li.l{display:none} .nav ul li.m{display:block} .nav ul{gap:8px}}
 .menu-btn{display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border-radius:10px; border:1px solid #6A4590; background:transparent; color:var(--ink-fg); cursor:pointer}
@@ -237,12 +237,18 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .join .also{list-style:none; display:flex; flex-wrap:wrap; gap:0 22px; margin:14px 0 0; padding:0; font-size:15px}
 .join .also a{display:inline-flex; align-items:center; gap:6px; min-height:44px; color:var(--ink-muted); text-decoration:underline; text-decoration-color:rgba(185,163,208,.45); text-underline-offset:4px}
 .join .also a:hover{color:var(--ink-fg); text-decoration-color:currentColor}
-/* network wall */
-.wall{color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(48px,5vw,80px); border-top:1px solid var(--ink-line)}
-.wall h2{margin:0; font-weight:580; font-size:clamp(30px,3.4vw,48px); letter-spacing:-.04em; line-height:1}
-.wall .wrap > p{margin:14px 0 0; color:var(--ink-muted)}
-.wall-list{list-style:none; margin:32px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px}
-.wall-list li{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--ink-line); border-radius:10px; background:var(--ink-2); font-size:15px; overflow-wrap:anywhere}
+/* "<n> blocks on the chain": aggregates only, shown from 50 members */
+.stats{color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(48px,5vw,80px); border-top:1px solid var(--ink-line)}
+.stats h2{margin:0; padding-bottom:.06em; font-weight:580; font-size:clamp(30px,3.4vw,48px); letter-spacing:-.04em; line-height:1.08}
+.stats .wrap > p{margin:14px 0 0; color:var(--ink-muted); max-width:52ch}
+.stats .fine{font-size:13px}
+.stats-list{list-style:none; margin:28px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; max-width:980px}
+.stats-list li{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:6px 10px; padding:14px 16px; border:1px solid rgba(216,194,240,.55); border-radius:4px}
+.stats-list li > .mono:first-child{grid-column:1 / 3}
+.stats-list .mono{letter-spacing:.08em; text-transform:uppercase; color:var(--ink-muted)}
+.stats-list b{font-size:24px; font-weight:580; letter-spacing:-.02em}
+.stats-list .bar{grid-column:1 / -1; height:2px; background:var(--ink-line)}
+.stats-list .bar i{display:block; height:100%; background:var(--lilac)}
 footer{background:rgba(28,5,51,.6); color:var(--ink-muted); border-top:1px solid var(--ink-line); font-size:14px}
 footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; padding-top:26px; padding-bottom:26px}
 footer .f{display:flex; align-items:center; gap:10px}
@@ -426,14 +432,6 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .detail label{display:grid; gap:6px; font-size:14px; color:var(--ink-muted)}
 .detail input:focus-visible{outline:2px solid var(--glow); outline-offset:1px}
 .detail .btn{min-height:40px; padding:0 16px}
-/* on/off switch: a real button (role="switch", aria-checked); the whole row is the 44px target */
-.switch{display:inline-flex; align-items:center; gap:12px; min-height:44px; padding:0; border:0; background:none; color:var(--ink-fg); font:inherit; font-size:15px; text-align:left; cursor:pointer; border-radius:8px}
-.switch .track{position:relative; flex-shrink:0; width:44px; height:26px; border-radius:13px; border:1px solid #7B5A9E; background:#2E0F50; transition:background .15s ease, border-color .15s ease}
-.switch .knob{position:absolute; top:50%; left:3px; width:18px; height:18px; margin-top:-9px; border-radius:50%; background:#9C86B4; transition:transform .15s ease, background .15s ease}
-.switch[aria-checked="true"] .track{background:var(--glow); border-color:var(--lilac)}
-.switch[aria-checked="true"] .knob{background:#fff; transform:translateX(18px)}
-.switch .state{margin-left:auto; padding-left:4px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted)}
-.switch:focus-visible{outline:2px solid var(--glow); outline-offset:3px}
 .st-msg{font-size:14px; color:var(--lilac)}
 .st-msg.err{color:#FFB4C8}
 .jf-done .actions p{margin:0; color:var(--ink-muted)}
@@ -444,7 +442,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 @media (max-width:560px){
   .jf .actions .btn-w{flex:1}
 }
-@media (prefers-reduced-motion: reduce){.jf-step i,.switch .track,.switch .knob{transition:none}}
+@media (prefers-reduced-motion: reduce){.jf-step i{transition:none}}
 footer ul{flex-wrap:wrap}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 
@@ -452,7 +450,7 @@ footer ul{flex-wrap:wrap}
 .hero2 h1{line-height:1; padding-bottom:.06em}
 .join h2{line-height:1; padding-bottom:.08em}
 .series h1{line-height:1.02; padding-bottom:.04em}
-.chain h2,.conf h1,.conf h2,.wall h2{line-height:1.08}
+.chain h2,.conf h1,.conf h2{line-height:1.08}
 .ed-blk h2,.blk h3{line-height:1.15}
 
 /* --- tap targets: at least 44px --- */

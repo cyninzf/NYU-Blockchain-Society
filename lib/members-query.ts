@@ -1,21 +1,30 @@
 import "server-only";
-import { and, arrayContains, count, desc, eq, isNull, type SQL } from "drizzle-orm";
+import { and, arrayContains, count, desc, eq, getTableColumns, isNull, type SQL } from "drizzle-orm";
 import { NOTIFY, type Notify } from "@/content/events";
 import { INDUSTRY_IDS, type IndustryId } from "@/content/industries";
 import type { Db } from "./db";
 import { AFFILIATIONS, members, type Affiliation } from "./db/schema";
 
 /** `country`: a country as counted in "Members by country", or "none" for members who left it blank. */
-export type MemberFilters = { affiliation?: Affiliation; block?: IndustryId; notify?: Notify; wall?: "pending" | "approved"; country?: string };
+export type MemberFilters = { affiliation?: Affiliation; block?: IndustryId; notify?: Notify; country?: string };
 
 const pick = <T extends string>(v: unknown, allowed: readonly T[]) => (typeof v === "string" && (allowed as readonly string[]).includes(v) ? (v as T) : undefined);
+
+/**
+ * Every member column except the retired network-wall ones (show_on_wall, wall_name,
+ * wall_approved): they stay in the database (no destructive migration) but are never read.
+ */
+const RETIRED = ["showOnWall", "wallName", "wallApproved"] as const;
+type Columns = ReturnType<typeof getTableColumns<typeof members>>;
+export const memberColumns = Object.fromEntries(
+  Object.entries(getTableColumns(members)).filter(([k]) => !(RETIRED as readonly string[]).includes(k)),
+) as Omit<Columns, (typeof RETIRED)[number]>;
 
 export function parseFilters(sp: Record<string, string | string[] | undefined>): MemberFilters {
   return {
     affiliation: pick(sp.affiliation, AFFILIATIONS),
     block: pick(sp.block, INDUSTRY_IDS),
     notify: pick(sp.notify, NOTIFY),
-    wall: pick(sp.wall, ["pending", "approved"] as const),
     country: typeof sp.country === "string" && sp.country.trim() ? sp.country.trim().slice(0, 120) : undefined,
   };
 }
@@ -25,9 +34,8 @@ export function listMembers(db: Db, f: MemberFilters) {
   if (f.affiliation) where.push(eq(members.affiliation, f.affiliation));
   if (f.block) where.push(arrayContains(members.blocks, [f.block]));
   if (f.notify) where.push(arrayContains(members.notify, [f.notify]));
-  if (f.wall) where.push(eq(members.showOnWall, true), eq(members.wallApproved, f.wall === "approved"));
   if (f.country) where.push(f.country === "none" ? isNull(members.country) : eq(members.country, f.country));
-  return db.select().from(members).where(where.length ? and(...where) : undefined).orderBy(desc(members.id));
+  return db.select(memberColumns).from(members).where(where.length ? and(...where) : undefined).orderBy(desc(members.id));
 }
 
 /** "Members by country": counts only, most members first, blanks last. */

@@ -46,21 +46,34 @@ export function startBackdrop(canvas: HTMLCanvasElement) {
   return () => { engine?.destroy(); engine = null; };
 }
 
+/** The member count for the background, from /api/chain (aggregates only), remembered per tab session. */
+const memberCount = {
+  KEY: "nyubs:chain-nodes",
+  cached(): number { try { return Number(sessionStorage.getItem(this.KEY)) || 0; } catch { return 0; } },
+  load(cb: (n: number) => void) {
+    fetch("/api/chain").then((r) => (r.ok ? r.json() : null)).then((j: { nodes?: number } | null) => {
+      const n = Math.max(0, Math.floor(Number(j?.nodes) || 0));
+      try { sessionStorage.setItem(this.KEY, String(n)); } catch {}
+      cb(n);
+    }).catch(() => {});
+  },
+};
+
 function createEngine(cv: HTMLCanvasElement) {
   const ctx = cv.getContext("2d")!;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null;
+  let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null, members = memberCount.cached();
   const t0 = performance.now();
   const core = createCore(rnd);
 
   function resize() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
     const w = cv.clientWidth, h = cv.clientHeight;
-    if (w === W && h === H && network) return;
-    W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const d = densityFor(W, H);
-    if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations) network = createNetwork(rnd, d);
+    if (w === W && h === H && network && network.density.members === densityFor(W, H, members).members) return;
+    if (w !== W || h !== H) { W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    const d = densityFor(W, H, members);
+    if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations || d.members !== network.density.members) network = createNetwork(rnd, d);
   }
 
   // Copy areas, read once per frame (cheap: a handful of rects) so the mask tracks scrolling.
@@ -110,7 +123,7 @@ function createEngine(cv: HTMLCanvasElement) {
     network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, near: core.wantNear(now, logo?.anchors?.() ?? null) });
     for (const p of painters) p.draw(ctx, now);
     // the core: ~30% of the page's node count, so it follows the same desktop/phone density rules
-    core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round(network!.density.nodes * .3), fade);
+    core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round((network!.density.nodes - network!.density.members) * .3), fade);
     if (!reduce && !document.hidden) raf = requestAnimationFrame(frame);
   }
 
@@ -121,6 +134,9 @@ function createEngine(cv: HTMLCanvasElement) {
   if (reduce) addEventListener("scroll", onChange, { passive: true });
   document.addEventListener("visibilitychange", onChange);
   request();
+  // Member nodes: a count only. The last known count (this tab session) applies at once; a
+  // changed count rebuilds the network once, usually before the fade-in has got far.
+  memberCount.load((n) => { if (alive && n !== members) { members = n; request(); } });
 
   return {
     request,

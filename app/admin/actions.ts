@@ -7,6 +7,7 @@ import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { audit, auditRow, requireAdmin } from "@/lib/admin";
 import { countryOf } from "@/lib/location";
+import { memberColumns } from "@/lib/members-query";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { adminAudit, AFFILIATIONS, contacts, members, type AuditChanges } from "@/lib/db/schema";
 
@@ -15,17 +16,6 @@ const idOf = (fd: FormData) => {
   if (!Number.isInteger(id) || id < 1) throw new Error("Bad id");
   return id;
 };
-
-export async function setWallApproved(fd: FormData) {
-  const { db, actor } = await requireAdmin();
-  const id = idOf(fd), on = fd.get("approved") === "1";
-  await db.batch([
-    db.update(members).set({ wallApproved: on }).where(eq(members.id, id)),
-    db.insert(adminAudit).values(auditRow(actor, on ? "wall.approve" : "wall.unapprove", `${on ? "Approved" : "Unapproved"} the wall entry of #${id}`, { memberId: id })),
-  ]);
-  updateTag("wall");
-  refresh();
-}
 
 /**
  * For removal requests; super admins only. Permanent: the member's audit rows go with it (they
@@ -37,7 +27,7 @@ export async function deleteMember(fd: FormData) {
   const id = idOf(fd);
   const [gone] = await db.delete(members).where(eq(members.id, id)).returning({ id: members.id });
   if (gone) await audit(db, actor, "member.delete", `Deleted member #${id}`);
-  updateTag("wall");
+  updateTag("chain");
   refresh();
 }
 
@@ -74,7 +64,7 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the fields." };
   const input = parsed.data;
 
-  const [m] = await db.select().from(members).where(eq(members.id, input.id));
+  const [m] = await db.select(memberColumns).from(members).where(eq(members.id, input.id));
   if (!m) return { ok: false, error: `Member #${input.id} no longer exists.` };
 
   // Stored values the form doesn't offer (e.g. an old "mentorship" notify) are kept.
@@ -131,7 +121,7 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
     console.error("member edit failed", e instanceof Error ? e.message : e);
     return { ok: false, error: "The database refused the change. Nothing was saved." };
   }
-  updateTag("wall");
+  updateTag("chain");
   refresh();
   return { ok: true, message: linkContact ? "Saved. The matching contact is now linked to this member." : "Saved." };
 }

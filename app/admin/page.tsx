@@ -7,7 +7,7 @@ import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { adminAudit, AFFILIATIONS, type AdminAudit, type Affiliation } from "@/lib/db/schema";
 import { AFFILIATION_LABELS, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
-import { deleteMember, setWallApproved } from "./actions";
+import { deleteMember } from "./actions";
 import EditMember from "./EditMember";
 import Guard from "./Guard";
 import styles from "./admin.module.css";
@@ -84,13 +84,6 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
             {NOTIFY.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <label>Wall
-          <select name="wall" defaultValue={f.wall ?? ""}>
-            <option value="">Any</option>
-            <option value="pending">Waiting for approval</option>
-            <option value="approved">Approved</option>
-          </select>
-        </label>
         <label>Country
           <select name="country" defaultValue={f.country ?? ""}>
             <option value="">Any</option>
@@ -111,7 +104,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
             <tr>
               <th scope="col">#</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Affiliation</th>
               <th scope="col">Blocks</th><th scope="col">Notify</th><th scope="col">Source</th><th scope="col">Details</th>
-              <th scope="col">Wall</th><th scope="col">Joined</th><th scope="col"><span className="sr">Actions</span></th>
+              <th scope="col">Joined</th><th scope="col"><span className="sr">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -129,16 +122,6 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
                   {m.school && <div>{m.school}{m.gradYear ? ` '${String(m.gradYear).slice(2)}` : ""}</div>}
                   {m.location && <div>{m.location}</div>}
                   {m.linkedinUrl && <div><a href={m.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>}
-                </td>
-                <td>
-                  {m.showOnWall ? (
-                    <form action={setWallApproved}>
-                      <input type="hidden" name="id" value={m.id} />
-                      <input type="hidden" name="approved" value={m.wallApproved ? "0" : "1"} />
-                      <div>“{m.wallName}”</div>
-                      <button type="submit">{m.wallApproved ? "Unapprove" : "Approve"}</button>
-                    </form>
-                  ) : "—"}
                 </td>
                 <td>{dateFmt.format(m.createdAt)}</td>
                 <td className={styles.actions}>

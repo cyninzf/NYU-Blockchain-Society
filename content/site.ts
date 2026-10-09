@@ -44,3 +44,9 @@ export const joinSection = {
 /** Under the final join button. No checkbox. */
 export const privacyLine =
   "By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.";
+
+/**
+ * The public "<n> blocks on the chain" counter and its breakdowns stay hidden until the network
+ * has at least this many members. Below it, nothing but the background's node count is public.
+ */
+export const chainStatsMinMembers = 50;

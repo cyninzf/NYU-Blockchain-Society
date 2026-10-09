@@ -21,17 +21,23 @@ const END = HOLD_END + RELAX;
 /** Node volume (world units). The engine scales it to fill the viewport. */
 export const BOX: V3 = [20, 13, 12];
 
+/** Each member adds one node to the constellation, up to this many (phones get half). */
+export const MAX_MEMBER_NODES = 120;
+
 /**
  * Density for a viewport. The base is ~140 nodes at 1440×900, scaled by area (phones half).
  * Screens ≥1280px wide get 30% more nodes; phones and tablets keep the base. Dots are 1.5× the
  * old ratio (base × .19 × 1.5, ~40 at 1440×900), so most of the extra density is motion. If
  * frame time ever needs trimming, cut nodes (the ≥1280 bonus first), not dots.
+ * `members` (from /api/chain, a count only) adds one node per member, capped; they're ordinary
+ * nodes, and the edge reach stays tied to the base density.
  */
-export function densityFor(W: number, H: number) {
+export function densityFor(W: number, H: number, members = 0) {
   const phone = W < 700;
   const base = Math.min(230, Math.max(26, 140 * (W * H) / (1440 * 900) * (phone ? .5 : 1)));
-  const nodes = Math.round(Math.min(300, base * (W >= 1280 ? 1.3 : 1)));
-  return { nodes, base: Math.round(base), dots: Math.round(base * .19 * 1.5), maxFormations: phone ? 1 : 3 };
+  const memberNodes = Math.round(Math.min(Math.max(members, 0), MAX_MEMBER_NODES) * (phone ? .5 : 1));
+  const nodes = Math.round(Math.min(300, base * (W >= 1280 ? 1.3 : 1))) + memberNodes;
+  return { nodes, base: Math.round(base), members: memberNodes, dots: Math.round(base * .19 * 1.5), maxFormations: phone ? 1 : 3 };
 }
 export type Density = ReturnType<typeof densityFor>;
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
@@ -74,6 +75,8 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
         updated_at = now()
       returning id, (xmax = 0) as inserted`);
     const row = res.rows[0];
+    // A new block: the public aggregates (lib/chain-stats.ts) refresh in the background.
+    if (row.inserted) revalidateTag("chain", "max");
     // Someone we already knew as a contact (e.g. a 2024 registrant) has now joined.
     await db.execute(sql`update contacts set member_id = ${row.id} where lower(email) = lower(${d.email}) and member_id is null`);
     // The edit token lets this browser add optional details right away. For an existing
@@ -103,7 +106,6 @@ const detailsSchema = z.discriminatedUnion("kind", [
     gradYear,
   }),
   z.object({ kind: z.literal("location"), location }),
-  z.object({ kind: z.literal("wall"), showOnWall: z.boolean(), wallName: opt(60) }),
 ]);
 
 /** "Strengthen your block": each group saves on its own. */
@@ -111,7 +113,6 @@ export async function saveDetails(token: string, input: z.input<typeof detailsSc
   const parsed = detailsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check this field and try again." };
   const d = parsed.data;
-  if (d.kind === "wall" && d.showOnWall && !d.wallName) return { ok: false, error: "Add the name to show on the wall." };
 
   const db = getDb();
   if (!db) return isLocal ? { ok: true, devNotice: NO_DB } : { ok: false, error: GENERIC };
@@ -128,12 +129,8 @@ export async function saveDetails(token: string, input: z.input<typeof detailsSc
     : d.kind === "work" ? [set("role", d.role), set("company", d.company)]
     : d.kind === "school" ? [set("school", d.school), sql`grad_year = ${fresh === "1" ? sql`${d.gradYear}` : sql`coalesce(grad_year, ${d.gradYear})`}`]
     // the country follows whichever location is kept
-    : d.kind === "location" ? (fresh === "1" ? [set("location", d.location), set("country", countryOf(d.location))]
-      : [sql`country = case when location is null then ${countryOf(d.location)} else country end`, set("location", d.location)])
-    : fresh === "1"
-      // Any change to the wall entry needs fresh approval.
-      ? [sql`show_on_wall = ${d.showOnWall}`, sql`wall_name = ${d.wallName}`, sql`wall_approved = false`]
-      : [sql`show_on_wall = case when wall_name is null then ${d.showOnWall} else show_on_wall end`, set("wall_name", d.wallName)];
+    : fresh === "1" ? [set("location", d.location), set("country", countryOf(d.location))]
+    : [sql`country = case when location is null then ${countryOf(d.location)} else country end`, set("location", d.location)];
 
   try {
     if (await rateLimited(db, "details", 30, 600)) return { ok: false, error: "Too many attempts. Please try again in a few minutes." };

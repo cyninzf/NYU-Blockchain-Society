@@ -18,7 +18,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Contacts</h1>
-      <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and never appear on the wall. When one joins, they&apos;re linked to their member row.</p>
+      <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins, they&apos;re linked to their member row.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Contacts searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>

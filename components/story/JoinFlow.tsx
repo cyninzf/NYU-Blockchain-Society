@@ -107,7 +107,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     }
   }
 
-  if (done) return <Success done={done} headingRef={doneRef} defaultWallName={name.trim()} onClose={onClose} />;
+  if (done) return <Success done={done} headingRef={doneRef} onClose={onClose} />;
 
   const id = STEPS[step];
   return (
@@ -173,7 +173,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   );
 }
 
-function Success({ done, headingRef, defaultWallName, onClose }: { done: Done; headingRef: React.RefObject<HTMLHeadingElement | null>; defaultWallName: string; onClose: () => void }) {
+function Success({ done, headingRef, onClose }: { done: Done; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void }) {
   const [open, setOpen] = useState(true);
   const save = (input: Parameters<typeof saveDetails>[1]) => saveDetails(done.token ?? "", input);
   return (
@@ -204,7 +204,6 @@ function Success({ done, headingRef, defaultWallName, onClose }: { done: Done; h
           <Detail label="City and country" onSave={(fd) => save({ kind: "location", location: String(fd.get("location") ?? "") })}>
             <label>City and country<input name="location" autoComplete="off" maxLength={120} placeholder="e.g. Lisbon, Portugal" /></label>
           </Detail>
-          <WallDetail defaultName={defaultWallName} onSave={(show, wallName) => save({ kind: "wall", showOnWall: show, wallName })} />
           <div className="actions"><button className="link" type="button" onClick={() => setOpen(false)}>Done</button></div>
         </div>
       ) : (
@@ -248,32 +247,6 @@ function Detail({ label, onSave, children }: { label: string; onSave: (fd: FormD
         {children}
         <div className="actions">
           <button className="btn btn-o" type="submit" disabled={status.kind === "saving"}>Save<span className="sr"> {label}</span></button>
-          <StatusLine status={status} />
-        </div>
-      </form>
-    </details>
-  );
-}
-
-function WallDetail({ defaultName, onSave }: { defaultName: string; onSave: (show: boolean, name: string) => Promise<SaveResult> }) {
-  const [show, setShow] = useState(false);
-  const [wallName, setWallName] = useState(defaultName);
-  const [status, run, reset] = useSave(() => onSave(show, show ? wallName.trim() : ""));
-  return (
-    <details className="detail">
-      <summary>Network wall{status.kind === "saved" && !status.note && <span className="saved"> · Saved</span>}</summary>
-      <form noValidate onSubmit={(e) => { e.preventDefault(); run(); }} onChange={reset}>
-        <button className="switch" type="button" role="switch" aria-checked={show} onClick={() => { setShow(!show); reset(); }}>
-          <span className="track" aria-hidden="true"><span className="knob"></span></span>
-          <span>Show my name on the network wall</span>
-          <span className="state" aria-hidden="true">{show ? "On" : "Off"}</span>
-        </button>
-        {show && (
-          <label>Name to show<input value={wallName} maxLength={60} onChange={(e) => setWallName(e.target.value)} autoComplete="name" /></label>
-        )}
-        <p className="fine">Names appear after an organizer approves them.</p>
-        <div className="actions">
-          <button className="btn btn-o" type="submit" disabled={status.kind === "saving"}>Save<span className="sr"> wall preference</span></button>
           <StatusLine status={status} />
         </div>
       </form>
