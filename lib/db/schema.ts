@@ -46,3 +46,27 @@ export const rateLimitHits = pgTable(
   },
   (t) => [index("rate_limit_hits_key_created_idx").on(t.key, t.createdAt)],
 );
+
+/**
+ * People we know from outside the join flow, e.g. 2024 conference registrants imported from a
+ * CSV. Contacts are NOT members: no block number, never counted as members, never on the wall.
+ * `memberId` is set when the same email later joins through the normal flow.
+ */
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: serial().primaryKey(),
+    name: text(),
+    email: text().notNull(),
+    /** Import label, e.g. "conference-2024". */
+    source: text().notNull(),
+    /** Null when the import had no check-in column. */
+    checkedIn: boolean("checked_in"),
+    importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+    invitedAt: timestamp("invited_at", { withTimezone: true }),
+    memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  },
+  (t) => [uniqueIndex("contacts_email_lower_idx").on(sql`lower(${t.email})`), index("contacts_source_idx").on(t.source)],
+);
+
+export type Contact = typeof contacts.$inferSelect;

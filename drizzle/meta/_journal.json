@@ -15,6 +15,13 @@
       "when": 1791545705334,
       "tag": "0001_affiliation_industry",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791546569467,
+      "tag": "0002_contacts",
+      "breakpoints": true
     }
   ]
 }

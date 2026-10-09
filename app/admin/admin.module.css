@@ -14,3 +14,23 @@
 .table td{max-width:260px; overflow-wrap:anywhere}
 .del summary{cursor:pointer; color:#B4234F}
 .del button{margin-top:6px; border-color:#B4234F; color:#B4234F}
+.head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--line)}
+.tabs{display:flex; flex-wrap:wrap; gap:6px}
+.tabs a{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border-radius:8px; text-decoration:none; color:var(--fg) !important}
+.tabs a[aria-current="page"]{background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); font-weight:600}
+.counts{display:flex; flex-wrap:wrap; gap:8px; margin:0}
+.counts div{padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface)}
+.counts dt{color:var(--muted); font-size:12px}
+.counts dd{margin:0; font-size:20px; font-weight:600}
+.lede{margin:-8px 0 20px; max-width:70ch; color:var(--muted)}
+.panel{display:grid; gap:14px; max-width:900px}
+.panel h2{margin:8px 0 0; font-size:20px}
+.panel h3{margin:4px 0 0; font-size:15px}
+.panel p{margin:0}
+.panel input{min-height:36px; padding:0 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); font:inherit}
+.row{display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+.primary{background:var(--accent) !important; color:#fff !important; border-color:var(--accent) !important; font-weight:600}
+.note{color:var(--muted)}
+.err{min-height:1.2em; color:#B4234F}
+.empty{padding:12px}
+.page button:disabled{opacity:.6; cursor:progress}

@@ -2,17 +2,8 @@
 
 import { eq } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
-import { headers } from "next/headers";
-import { isAdminAuthorized } from "@/lib/admin-auth";
-import { getDb } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin";
 import { members } from "@/lib/db/schema";
-
-async function requireAdmin() {
-  if (!isAdminAuthorized((await headers()).get("authorization"))) throw new Error("Unauthorized");
-  const db = getDb();
-  if (!db) throw new Error("DATABASE_URL is not set");
-  return db;
-}
 
 const idOf = (fd: FormData) => {
   const id = Number(fd.get("id"));

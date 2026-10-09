@@ -17,12 +17,12 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 
 export default function AdminPage({ searchParams }: { searchParams: SP }) {
   return (
-    <main className={styles.page}>
+    <>
       <h1>Members</h1>
       <Suspense fallback={<p>Loading…</p>}>
         <Members searchParams={searchParams} />
       </Suspense>
-    </main>
+    </>
   );
 }
 

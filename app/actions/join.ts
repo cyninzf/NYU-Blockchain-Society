@@ -72,6 +72,8 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
         updated_at = now()
       returning id, (xmax = 0) as inserted`);
     const row = res.rows[0];
+    // Someone we already knew as a contact (e.g. a 2024 registrant) has now joined.
+    await db.execute(sql`update contacts set member_id = ${row.id} where lower(email) = lower(${d.email}) and member_id is null`);
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
     const token = sign(`m.${row.id}.${row.inserted ? 1 : 0}.${Date.now() + EDIT_WINDOW_MS}`);
