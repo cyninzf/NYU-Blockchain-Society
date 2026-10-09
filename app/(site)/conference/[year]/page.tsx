@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import EditionDetail from "@/components/conference/EditionDetail";
 import { editionByYear, editionTitle, pastEditions, statsLine } from "@/content/conferences";
 import { siteName } from "@/content/site";
+import Icon from "@/components/Icon";
 
 export function generateStaticParams() {
   return pastEditions.map((e) => ({ year: String(e.year) }));
@@ -31,7 +32,7 @@ export default async function EditionPage({ params }: Props) {
   if (!e?.year) notFound();
   return (
     <section className="conf page-top" aria-labelledby="conf-h">
-      <div className="wrap crumbs mono"><Link href="/conference">← All editions</Link></div>
+      <div className="wrap crumbs mono"><Link href="/conference"><Icon name="arrow-left" /> All editions</Link></div>
       <EditionDetail edition={e} />
     </section>
   );

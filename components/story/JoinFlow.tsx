@@ -9,6 +9,7 @@ import { NOTIFY, notifyMessages, type Notify } from "@/content/events";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
 import type { Affiliation } from "@/lib/db/schema";
+import Icon from "../Icon";
 
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,6 +44,18 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   const honeypot = useRef<HTMLInputElement>(null);
 
   useEffect(() => { formToken.current = startJoin(); }, []);
+
+  // Phones: when the on-screen keyboard opens, keep the focused field in view above it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const el = document.activeElement;
+      if (el instanceof HTMLInputElement && el.closest(".jf, .jf-done")) el.scrollIntoView({ block: "center" });
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
   useEffect(() => { onProgress(done ? 0 : step); }, [step, done, onProgress]);
 
   // Focus the current question (or the success heading) whenever it changes.
@@ -99,7 +112,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   return (
     <form className="jf" noValidate onSubmit={submit} aria-labelledby="jf-q">
       <div className="jf-top">
-        <button className="link" type="button" onClick={back}>{step === 0 ? "Cancel" : "← Back"}</button>
+        <button className="link" type="button" onClick={back}>{step === 0 ? "Cancel" : <><Icon name="arrow-left" /> Back</>}</button>
         <span className="mono jf-step" aria-hidden="true">
           {STEPS.map((s, i) => <i key={s} className={i < step ? "past" : i === step ? "now" : ""} />)}
         </span>

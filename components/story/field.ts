@@ -151,8 +151,13 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const d = densityFor(W, H);
     if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations) network = createNetwork(rnd, d);
     const wide = W > 860, ht = heroTxt.offsetTop;
-    hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: H * .25, S: Math.min(W, H) * .15 };
-    side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .24, S: Math.min(W, H) * .15 };
+    // Small screens: the logo is ~57% of the width (it's about 2.7·S wide and 3.1·S tall) and
+    // sits right above the headline, in the space the CSS reserves (min(66vw, 42svh); while
+    // joining on phones, min(50vw, 30svh) so each question sits right under the visual).
+    const flowSmall = joining && W <= 560;
+    const sS = Math.max(30, flowSmall ? Math.min(W * .16, Math.min(W * .5, H * .3) / 3.15) : Math.min(W * .21, Math.min(W * .66, H * .42) / 3.15));
+    hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: Math.max(68 + sS * 1.6, ht - 12 - sS * 1.58), S: sS };
+    side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .26, S: Math.min(W * .16, H * .1) };
     // Above the Focus cards, smaller.
     focusPose = wide ? { ox: W / 2, oy: H * .26, S: Math.min(W * .085, H * .1) } : { ox: W / 2, oy: H * .2, S: Math.min(W, H) * .11 };
     focusTop = focus.getBoundingClientRect().top + scrollY;
@@ -342,7 +347,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   if (reduce) frame(performance.now()); else schedule();
 
   return {
-    setJoining(on) { joining = on; kick(); },
+    setJoining(on) { joining = on; resize(); kick(); },
     setSelected(blocks) { sel = new Set(blocks); lastUser = performance.now(); kick(); },
     setProgress(steps, blocks) {
       if (steps <= 0) { trail = null; trailEnd = null; kick(); return; }

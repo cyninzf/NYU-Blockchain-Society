@@ -3,6 +3,7 @@ import Link from "next/link";
 import NextEditionLink from "@/components/conference/NextEditionLink";
 import { editions, editionTitle, series, statsLine, statusLabel } from "@/content/conferences";
 import { siteName } from "@/content/site";
+import Icon from "@/components/Icon";
 
 const description = `The ${series.name}: an annual conference at NYU, since ${series.since}, with leaders from finance, crypto, and policy.`;
 
@@ -34,12 +35,12 @@ export default function ConferencePage() {
                 <>
                   <p>{[e.date, e.venue].filter(Boolean).join(" · ")}</p>
                   {e.stats && <p className="mono stats">{statsLine(e.stats)}</p>}
-                  <Link className="blk-go go" href={`/conference/${e.year}`}>Program and speakers <span aria-hidden="true">→</span></Link>
+                  <Link className="blk-go go" href={`/conference/${e.year}`}>Program and speakers <Icon name="arrow-right" /></Link>
                 </>
               ) : (
                 <>
                   <p>Date and venue to be announced.</p>
-                  <NextEditionLink className="blk-go go">Get notified <span aria-hidden="true">→</span></NextEditionLink>
+                  <NextEditionLink className="blk-go go">Get notified <Icon name="arrow-right" /></NextEditionLink>
                 </>
               )}
             </li>

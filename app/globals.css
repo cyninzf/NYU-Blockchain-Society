@@ -31,7 +31,30 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .nav ul a.on{color:var(--ink-fg); text-decoration:underline; text-decoration-color:var(--glow); text-decoration-thickness:2px; text-underline-offset:8px}
 /* anchor targets clear the fixed nav */
 #chain,#focus,#top,#wall,#join{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 72px)}
-@media (max-width:700px){.nav ul li.l{display:none}}
+.nav ul li.m{display:none}
+@media (max-width:700px){.nav ul li.l{display:none} .nav ul li.m{display:block} .nav ul{gap:8px}}
+.menu-btn{display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border-radius:10px; border:1px solid #6A4590; background:transparent; color:var(--ink-fg); cursor:pointer}
+.menu-btn:hover{border-color:var(--glow)}
+/* mobile menu sheet: links join the chain one by one, a node and an edge each */
+.sheet{position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); background:radial-gradient(120% 80% at 50% 0%, #3A0A63 0%, #1C0533 70%); color:var(--ink-fg)}
+.sheet-top{display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:68px}
+.sheet-links{list-style:none; margin:28px 0 0; display:grid; width:100%}
+.sheet-links li{position:relative; padding-left:34px}
+.sheet-links li::before{content:""; position:absolute; left:3px; top:50%; width:11px; height:11px; margin-top:-6px; border-radius:50%; border:1px solid var(--lilac); background:var(--ink); box-shadow:0 0 10px rgba(216,194,240,.6)}
+.sheet-links li:not(:last-child)::after{content:""; position:absolute; left:8px; top:calc(50% + 6px); width:1px; height:calc(100% - 12px); background:#7B5A9E; transform-origin:top}
+.sheet-links a{display:flex; align-items:center; min-height:64px; font-size:clamp(28px,8vw,36px); font-weight:600; letter-spacing:-.035em; text-decoration:none}
+.sheet-links a.on{color:var(--lilac)}
+.sheet-links .add{color:var(--lilac)}
+@media (prefers-reduced-motion: no-preference){
+  .sheet{animation:sheet-in .2s ease both}
+  .sheet-links li::before{animation:node-in .3s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 110ms + 80ms)}
+  .sheet-links li::after{animation:edge-in .25s ease-out both; animation-delay:calc(var(--i) * 110ms + 160ms)}
+  .sheet-links a{animation:link-in .35s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 110ms + 120ms)}
+  @keyframes sheet-in{from{opacity:0}}
+  @keyframes node-in{from{transform:scale(0); opacity:0}}
+  @keyframes edge-in{from{transform:scaleY(0)}}
+  @keyframes link-in{from{opacity:0; transform:translateX(-10px)}}
+}
 .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 20px; border-radius:10px; font-weight:550; font-size:15px; text-decoration:none; transition:transform .12s ease, background .15s ease, border-color .15s ease}
 .btn:active{transform:scale(.97)}
 .btn-w{background:#fff; color:#120A1C}
@@ -296,7 +319,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .hero2 .err{text-align:center}
 @media (max-width:860px){
   .pin .readout{display:none}
-  .hero2{padding-top:50svh}
+  .hero2{justify-content:center; padding-top:calc(env(safe-area-inset-top,0px) + 68px + min(66vw,42svh) + 12px); padding-bottom:24px}
   .mission{align-items:flex-end; padding-bottom:10svh; min-height:92svh}
   .mission .txt{max-width:560px; background:rgba(28,5,51,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid #3E1D5E; border-radius:16px; padding:22px}
 }
@@ -356,3 +379,55 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 @media (prefers-reduced-motion: reduce){.jf-step i,.toggle input,.toggle input::after{transition:none}}
 footer ul{flex-wrap:wrap}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+/* --- large headings: room for descenders and periods at every width --- */
+.hero2 h1{line-height:1; padding-bottom:.06em}
+.join h2{line-height:1; padding-bottom:.08em}
+.series h1{line-height:1.02; padding-bottom:.04em}
+.chain h2,.conf h1,.conf h2,.wall h2{line-height:1.08}
+.card h3,.ed-blk h2,.blk h3{line-height:1.15}
+
+/* --- tap targets: at least 44px --- */
+.link{display:inline-flex; align-items:center; gap:6px; min-height:44px}
+.jf-top .link{padding:0}
+.affil a{display:inline-flex; align-items:center; gap:4px; min-height:44px}
+.affil{margin-top:4px}
+.blk .go,.ed-blk .go,.proof-go,.crumbs a{display:inline-flex; align-items:center; gap:6px; min-height:44px}
+.ed{min-height:44px}
+.nav .btn{min-height:44px}
+.detail .btn{min-height:44px}
+footer ul a{display:inline-flex; align-items:center; min-height:44px}
+footer ul{gap:0 22px}
+
+/* --- the chain on small screens: one column, connectors on a vertical line, no sideways scroll --- */
+@media (max-width:860px){
+  .blocks{grid-template-columns:1fr; overflow:visible; scroll-snap-type:none; gap:38px}
+  .blk{border-right:1px solid var(--ink-line); min-height:0}
+  .blk.live{border-color:var(--violet)}
+  .blk::after{top:auto; right:auto; bottom:-26px; left:50%; margin-left:-7px}
+  .blk + .blk::before{content:""; position:absolute; top:-39px; left:50%; width:1px; height:38px; background:#5B3E78; transition:background .2s ease, box-shadow .2s ease}
+  .blk:is(:hover,:focus-within) + .blk{border-left-color:var(--ink-line)}
+  .blk.live:is(:hover,:focus-within) + .blk{border-left-color:var(--ink-line)}
+  .blk:is(:hover,:focus-within) + .blk::before{background:var(--glow); box-shadow:0 0 10px rgba(155,77,219,.9)}
+  .blk .top{flex-wrap:wrap; gap:4px 12px}
+  .blk .st{white-space:nowrap}
+  /* Block 00's edition chain stacks too */
+  .editions{flex-direction:column; align-items:flex-start; gap:0}
+  .editions li{flex-direction:column; align-items:flex-start}
+  .editions li + li::before{width:1px; height:12px; margin:0 0 0 20px}
+}
+
+/* --- join flow on phones --- */
+@media (max-width:560px){
+  .hero2.flow{padding-top:calc(env(safe-area-inset-top,0px) + 68px + min(50vw,30svh))}
+}
+.nav ul a:not(.btn){display:inline-flex; align-items:center; min-height:44px}
+.brand span{white-space:nowrap}
+@media (max-width:430px){
+  .brand{gap:8px; font-size:15px}
+  .nav .btn{padding:0 14px}
+}
+@media (max-width:374px){.brand{font-size:14px}}
+.brand{min-height:44px}
+/* inline padding grows the headline words' tap area without moving the text */
+.hero2 h1 .w{padding:5px 0}

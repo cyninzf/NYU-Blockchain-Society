@@ -1,5 +1,5 @@
 .page{background:var(--ink); color:var(--ink-fg); padding-bottom:clamp(80px,10vw,140px); min-height:100svh}
-.head h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,88px); line-height:.95; letter-spacing:-.05em}
+.head h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,88px); line-height:1.02; padding-bottom:.04em; letter-spacing:-.05em}
 .lede{margin:18px 0 26px; max-width:48ch; font-size:clamp(17px,1.5vw,20px); color:var(--ink-muted)}
 .section{margin-top:clamp(56px,7vw,96px); padding-top:28px; border-top:1px solid var(--ink-line)}
 .section h2{margin:0; font-weight:580; font-size:clamp(26px,2.8vw,38px); letter-spacing:-.035em; line-height:1.05; display:flex; flex-wrap:wrap; align-items:center; gap:12px}
@@ -17,7 +17,7 @@
 .light .best{color:#57068C}
 .use{margin:4px 0 0; color:var(--ink-muted); font-size:15px}
 .dl{margin:10px 0 0; display:flex; flex-wrap:wrap; gap:6px}
-.dl a{display:inline-flex; align-items:center; min-height:32px; padding:0 10px; border:1px solid #6A4590; border-radius:8px; text-decoration:none; font-size:12px}
+.dl a{display:inline-flex; align-items:center; min-height:44px; padding:0 10px; border:1px solid #6A4590; border-radius:8px; text-decoration:none; font-size:12px}
 .dl a:hover{border-color:var(--glow); background:rgba(155,77,219,.15)}
 
 .rules{margin:22px 0 0; padding-left:1.1em; display:grid; gap:10px; max-width:70ch; color:var(--ink-muted)}
@@ -45,7 +45,7 @@
 .bhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px}
 .bhead h3{margin:0; font-size:16px; font-weight:600}
 .bhead h3 span{margin-left:8px; font-size:12px; font-weight:400; color:var(--ink-muted)}
-.bhead :global(.btn){min-height:36px; padding:0 14px; font-size:14px}
+.bhead :global(.btn){min-height:44px; padding:0 14px; font-size:14px}
 .boiler p{margin:12px 0 0; color:var(--ink-muted)}
 
 .facts{list-style:none; margin:22px 0 0; padding:0; border-top:1px solid var(--ink-line); max-width:80ch}

@@ -1,5 +1,6 @@
 import { editionTitle, type Edition } from "@/content/conferences";
 import { formatPerson } from "@/content/program";
+import Icon from "../Icon";
 
 /** A full conference edition: heading, date and venue, stats, speaker firms, expandable program. */
 export default function EditionDetail({ edition: e }: { edition: Edition }) {
@@ -23,7 +24,7 @@ export default function EditionDetail({ edition: e }: { edition: Edition }) {
           </>
         )}
         {e.lumaUrl && e.status === "announced" && (
-          <p><a className="btn btn-w" href={e.lumaUrl} target="_blank" rel="noopener">Register on Luma <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span></a></p>
+          <p><a className="btn btn-w" href={e.lumaUrl} target="_blank" rel="noopener">Register on Luma <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></p>
         )}
       </div>
       {e.program && (
