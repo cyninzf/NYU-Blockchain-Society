@@ -3,7 +3,7 @@
 // until then they're hidden on the public media kit and shown, tagged as a draft, only to
 // admins at /admin/media-kit-preview.
 
-export const boilerplateStatus: "draft" | "approved" = "draft";
+export const boilerplateStatus: "draft" | "approved" = "approved";
 
 export const boilerplate = [
   {
