@@ -12,9 +12,9 @@ export type Industry = {
   headlineWord: string;
   /** Which cube of the 3D logo this industry lights (0 = AI, 1 = Finance, 2 = Blockchain). */
   cube: number;
-  /** One line for the hero annotation when the block or its headline word is hovered. */
-  tagline: string;
-  /** Pinned-story step copy. */
+  /** Topic tags on the hero label ("FOCUS 01 · BLOCKCHAIN") when the block or its word is hovered. */
+  topics: string[];
+  /** Focus card copy. */
   description: string;
   seenLead: string;
   seen: string;
@@ -26,7 +26,7 @@ export const industries: Industry[] = [
     name: "Blockchain",
     headlineWord: "Blockchain,",
     cube: 2,
-    tagline: "Stablecoins, tokenization, payments.",
+    topics: ["Stablecoins", "Tokenization", "Payments", "Digital-asset markets"],
     description: "Stablecoins, tokenization, payments, and the digital-asset markets built on top.",
     seenLead: "At our conference:",
     seen: "stablecoins and cross-border payments, consumer adoption, and a fireside with EigenLayer.",
@@ -36,7 +36,7 @@ export const industries: Industry[] = [
     name: "Finance",
     headlineWord: "Finance",
     cube: 1,
-    tagline: "Banks, asset managers, regulators.",
+    topics: ["Banks", "Asset managers", "Regulators", "Adoption"],
     description: "How banks, asset managers, and regulators adopt and govern new technology.",
     seenLead: "At our conference:",
     seen: "investment funds, institutional adoption with BlackRock and J.P. Morgan, TradFi meets blockchain, and two legal and regulatory panels.",
@@ -46,7 +46,7 @@ export const industries: Industry[] = [
     name: "AI",
     headlineWord: "& AI.",
     cube: 0,
-    tagline: "Agents, compute, payment rails.",
+    topics: ["Agents", "Compute", "Payment rails"],
     description: "Agents and compute, and the rails that let software pay, settle, and transact on its own.",
     seenLead: "Our newest focus,",
     seen: "as AI agents start to hold and move digital assets.",

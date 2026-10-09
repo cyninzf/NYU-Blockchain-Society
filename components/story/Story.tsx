@@ -129,7 +129,7 @@ export default function Story() {
           role="img"
           aria-label="The society's logo: three connected blocks for blockchain, finance and AI, floating inside a larger network. Use the words in the headline to highlight each block."
         ></canvas>
-        <div className="cap" ref={capRef} aria-live="polite"><b ref={capTitleRef}></b><span ref={capTextRef}></span></div>
+        <div className="cap" ref={capRef} aria-live="polite"><b className="mono" ref={capTitleRef}></b><span ref={capTextRef}></span></div>
         <div className="readout mono" ref={hudRef} aria-hidden="true">
           <span>New York</span>
           <span ref={clockRef}>--:--:-- ET</span>

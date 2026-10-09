@@ -36,7 +36,12 @@ export type Field = {
 };
 
 const key = (p: number[]) => p.join(",");
-const ease = (t: number) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
+const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
+const ease = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
+
+// The hover label is "mined" like a background block (ms from activation): its four corner
+// nodes appear, its edges draw, a dot runs down the connector from the cube, then the text fades in.
+const LBL_NODES = 110, LBL_EDGES = [70, 320], LBL_DOT = [220, 470], LBL_TEXT = 440;
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
   const { canvas: cv, cap, capTitle, capText, heroTxt, words, cards, focus, avoid } = el;
@@ -76,17 +81,21 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
 
-  let capOn = false, capA = 0, capW = 0, capH = 0, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 }, focusPose = { ox: 0, oy: 0, S: 1 }, focusTop = 0;
+  let capOn = false, capA = 0, capW = 0, capH = 0, capT0 = -1e9, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 }, focusPose = { ox: 0, oy: 0, S: 1 }, focusTop = 0;
 
   let active = -1, hover = -1, pinned = -1, wordHover = -1, cardHover = -1, lastUser = -1e9, centers: [number, number][] = [];
   const glow = [0, 0, 0];
   function setActive(i: number, showCap: boolean) {
-    const c = i >= 0 && showCap; if (i === active && c === capOn) return; active = i; capOn = c;
+    const c = i >= 0 && showCap; if (i === active && c === capOn) return;
+    const fresh = c && (i !== active || !capOn); active = i; capOn = c;
     words.forEach((w, j) => w.classList.toggle("on", j === i));
-    if (c) {
-      capTitle.textContent = INFO[i].name; capText.textContent = INFO[i].tagline; cap.classList.add("show");
+    cap.classList.remove("show");
+    if (fresh) {
+      capTitle.textContent = `Focus ${String(i + 1).padStart(2, "0")} · ${INFO[i].name}`;
+      capText.replaceChildren(...INFO[i].topics.map((t) => { const s = document.createElement("i"); s.textContent = t; return s; }));
       capW = cap.offsetWidth; capH = cap.offsetHeight; // measured once per change, not per frame
-    } else cap.classList.remove("show");
+      capT0 = reduce ? -1e9 : performance.now();
+    }
   }
   const kick = () => { if (reduce) frame(performance.now()); };
 
@@ -230,24 +239,44 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       if (!reduce && mt >= 1) { const pt = ((now - member.t0) / 1000) % 2.4; ctx.strokeStyle = `rgba(216,194,240,${Math.max(0, 1 - pt / 1.3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(mp[0], mp[1], 6.5 + pt * 20, 0, Math.PI * 2); ctx.stroke(); }
       ctx.fillStyle = "#F5EEFB"; ctx.font = `500 13px ${fontFamily}`; ctx.fillText(member.name ? "You · " + member.name.split(/\s+/)[0] : "You", mp[0] + 13, mp[1] + 4); ctx.restore();
     }
-    // Annotation: a thin lilac line from the active block's nearest corner node to its label.
-    capA += ((capOn ? 1 : 0) - capA) * (reduce ? 1 : .2);
+    // Label: a block-explorer card joined to the active cube by a connector from its nearest corner node.
+    capA += ((capOn ? 1 : 0) - capA) * (reduce ? 1 : .25);
     if (active >= 0 && centers[active] && capA > .01) {
-      const [cx, cy] = centers[active], small = W <= 860, right = cx < W * .62;
+      const [cx, cy] = centers[active], small = W <= 860;
       let lx: number, ly: number;
       if (small) { lx = W / 2 - capW / 2; ly = Math.max(oy + S * 1.7, cy + S * 1.1); }
-      else { lx = right ? cx + S * 1.4 : cx - S * 1.4 - capW; ly = cy - S * .9; }
-      lx = Math.max(8, Math.min(W - capW - 8, lx)); ly = Math.max(76, Math.min(H - capH - 8, ly));
-      // where the line meets the label: top centre below the logo, else the near side
-      const ax = small ? lx + capW / 2 : right ? lx : lx + capW, ay = small ? ly : ly + Math.min(22, capH / 2);
+      else {
+        // beside the whole logo (never over the other cubes), on the side of the active cube
+        let minX = 1e9, maxX = -1e9; for (const q of lp) { minX = Math.min(minX, q[0]); maxX = Math.max(maxX, q[0]); }
+        const left = cx < ox - S * .3 && minX - S * .5 - capW > 8;
+        lx = left ? minX - S * .5 - capW : maxX + S * .5; ly = cy - capH / 2 - S * .2;
+      }
+      lx = Math.round(Math.max(8, Math.min(W - capW - 8, lx))) + .5; ly = Math.round(Math.max(76, Math.min(H - capH - 8, ly))) + .5;
+      const box: [number, number][] = [[lx, ly], [lx + capW, ly], [lx + capW, ly + capH], [lx, ly + capH]];
+      // the label corner nearest the cube, and the cube's corner node nearest that
+      let anchor = box[0], ad = 1e9;
+      for (const q of box) { const d = Math.hypot(q[0] - cx, q[1] - cy); if (d < ad) { ad = d; anchor = q; } }
       let corner = lp[0], cd = 1e9;
-      for (const v of cubeV[INFO[active].cube]) { const q = lp[v], d = Math.hypot(q[0] - ax, q[1] - ay); if (d < cd) { cd = d; corner = q; } }
-      ctx.save(); ctx.globalAlpha = capA; ctx.strokeStyle = "rgba(216,194,240,.8)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(corner[0], corner[1]); ctx.lineTo(ax, ay); ctx.stroke();
+      for (const v of cubeV[INFO[active].cube]) { const q = lp[v], d = Math.hypot(q[0] - anchor[0], q[1] - anchor[1]); if (d < cd) { cd = d; corner = q; } }
+      const t = now - capT0;
+      const pn = clamp01(t / LBL_NODES), pe = ease((t - LBL_EDGES[0]) / (LBL_EDGES[1] - LBL_EDGES[0])), pd = ease((t - LBL_DOT[0]) / (LBL_DOT[1] - LBL_DOT[0]));
+      ctx.save(); ctx.globalAlpha = capA; ctx.lineWidth = 1; ctx.strokeStyle = "rgba(216,194,240,.85)";
+      // connector, drawn behind the travelling dot
+      const dx = corner[0] + (anchor[0] - corner[0]) * pd, dy = corner[1] + (anchor[1] - corner[1]) * pd;
+      if (pd > 0) { ctx.beginPath(); ctx.moveTo(corner[0], corner[1]); ctx.lineTo(dx, dy); ctx.stroke(); }
       ctx.beginPath(); ctx.arc(corner[0], corner[1], 4.5, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = "#D8C2F0"; ctx.beginPath(); ctx.arc(ax, ay, 2, 0, Math.PI * 2); ctx.fill();
+      // edges grow out of each corner node toward the next
+      if (pe > 0) {
+        ctx.beginPath();
+        box.forEach((A, j) => { const B = box[(j + 1) % 4]; ctx.moveTo(A[0], A[1]); ctx.lineTo(A[0] + (B[0] - A[0]) * pe, A[1] + (B[1] - A[1]) * pe); });
+        ctx.stroke();
+      }
+      ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 10; ctx.fillStyle = "#F5EEFB";
+      for (const q of box) { ctx.beginPath(); ctx.arc(q[0], q[1], 2.6 * pn, 0, Math.PI * 2); ctx.fill(); }
+      if (pd > 0 && pd < 1) { ctx.beginPath(); ctx.arc(dx, dy, 2.4, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
-      cap.style.transform = `translate(${lx}px, ${ly}px)`;
+      cap.style.transform = `translate(${lx - .5}px, ${ly - .5}px)`;
+      if (capOn && t >= LBL_TEXT) cap.classList.add("show");
     }
     if (!reduce && k >= 1) {
       ctx.save(); ctx.shadowColor = "rgba(216,194,240,1)"; ctx.shadowBlur = 12; ctx.fillStyle = "#E9DBF8";

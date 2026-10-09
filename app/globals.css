@@ -45,11 +45,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 .hero2 h1 .w{all:unset; pointer-events:auto; cursor:pointer; color:inherit; transition:color .2s ease, text-shadow .2s ease; border-radius:8px}
 .hero2 h1 .w:focus-visible{outline:2px solid var(--glow); outline-offset:4px}
 .hero2 h1 .w.on{color:#E2CCF8; text-shadow:0 0 28px rgba(185,120,240,.65)}
-/* hero annotation label: translucent violet glass, joined to its block by a line drawn on the canvas */
-.cap{position:absolute; left:0; top:0; z-index:1; pointer-events:none; max-width:240px; padding:9px 12px 10px; border-radius:10px; background:rgba(87,6,140,.32); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border:1px solid rgba(216,194,240,.55); color:var(--ink-fg); opacity:0; transform:translate(-9999px,0); transition:opacity .2s ease}
+/* hero label, block-explorer style: its edges, corner nodes and connector are drawn on the
+   canvas ("mined" like a background block); this box only holds the text, which fades in last */
+.cap{position:absolute; left:0; top:0; z-index:1; pointer-events:none; width:max-content; max-width:272px; padding:12px 14px 13px; color:var(--ink-fg); opacity:0; transform:translate(-9999px,0); transition:opacity .18s ease}
 .cap.show{opacity:1}
-.cap b{display:block; font-weight:600; font-size:15px; letter-spacing:-.01em; line-height:1.25}
-.cap span{display:block; margin-top:2px; font-size:13px; line-height:1.35; color:#E2CCF8; white-space:nowrap}
+.cap b{display:block; font-weight:500; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; line-height:1.3; color:var(--ink-fg)}
+.cap span{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.cap i{font-style:normal; padding:2px 7px 3px; border:1px solid rgba(216,194,240,.7); border-radius:4px; font-size:12.5px; line-height:1.3; color:var(--lilac); white-space:nowrap}
+@media (prefers-reduced-motion: reduce){.cap{transition:none}}
 @media (max-width:860px){.hint-d{display:none}}
 .hero2 h1{margin:0; font-weight:620; font-size:clamp(52px,9.2vw,148px); line-height:.9; letter-spacing:-.055em; max-width:9.5ch}
 .hero2 .lede{margin:28px 0 0; max-width:40ch; font-size:clamp(17px,1.5vw,20px); color:var(--ink-muted)}
