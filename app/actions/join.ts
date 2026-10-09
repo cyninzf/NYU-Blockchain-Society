@@ -6,7 +6,8 @@ import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
-import { cleanLocation, countryOf } from "@/lib/location";
+import { countryOf } from "@/lib/location";
+import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { rateLimited, sign, verify } from "@/lib/security";
 
 const MIN_FILL_MS = 3000;
@@ -91,25 +92,17 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
  */
 const pgArray = (values: string[]) => `{${values.join(",")}}`;
 
-const opt = (max: number) => z.string().trim().max(max).transform((v) => v || null);
-const linkedin = z
-  .string()
-  .trim()
-  .max(300)
-  .transform((v) => (v && !/^https?:\/\//i.test(v) ? `https://${v}` : v))
-  .refine((v) => !v || /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/.+/i.test(v), "Use a linkedin.com profile URL.")
-  .transform((v) => v || null);
+const opt = optText;
 
 const detailsSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("linkedin"), linkedinUrl: linkedin }),
+  z.object({ kind: z.literal("linkedin"), linkedinUrl }),
   z.object({ kind: z.literal("work"), role: opt(120), company: opt(120) }),
   z.object({
     kind: z.literal("school"),
     school: opt(120),
-    gradYear: z.union([z.literal(""), z.coerce.number().int().min(1940).max(new Date().getFullYear() + 8)])
-      .transform((v) => (v === "" ? null : v)),
+    gradYear,
   }),
-  z.object({ kind: z.literal("location"), location: z.string().max(200).transform((v) => cleanLocation(v) || null) }),
+  z.object({ kind: z.literal("location"), location }),
   z.object({ kind: z.literal("wall"), showOnWall: z.boolean(), wallName: opt(60) }),
 ]);
 

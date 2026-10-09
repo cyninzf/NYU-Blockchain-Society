@@ -144,7 +144,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
                 <td className={styles.actions}>
                   <details className={styles.editd}>
                     <summary>Edit</summary>
-                    <EditMember id={m.id} name={m.name} email={m.email} affiliation={m.affiliation} options={AFFILIATION_OPTIONS} />
+                    <EditMember m={{ id: m.id, name: m.name, email: m.email, affiliation: m.affiliation, blocks: m.blocks, notify: m.notify, linkedinUrl: m.linkedinUrl, role: m.role, company: m.company, school: m.school, gradYear: m.gradYear, location: m.location }} options={AFFILIATION_OPTIONS} />
                   </details>
                   {audit.has(m.id) && (
                     <ul className={styles.audit} aria-label={`Last edits to #${m.id}`}>
