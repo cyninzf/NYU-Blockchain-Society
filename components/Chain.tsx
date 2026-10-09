@@ -27,7 +27,7 @@ export default async function Chain() {
   return (
     <section className="chain" id="chain" aria-labelledby="chain-h">
       <div className="wrap">
-        <div className="chain-head">
+        <div className="chain-head" data-bg="dim">
           <h2 id="chain-h">The chain so far</h2>
           <p>{chainIntro}</p>
         </div>
@@ -38,7 +38,7 @@ export default async function Chain() {
             const cls = `blk-go ${live ? "btn btn-w" : "go"}`;
             const a = ev.action;
             return (
-              <li className={st.block} key={ev.label}>
+              <li className={st.block} key={ev.label} data-bg="dim">
                 <div className="top mono">
                   <span>{ev.label}</span>
                   <span className={st.dot}><i></i>{st.label}</span>

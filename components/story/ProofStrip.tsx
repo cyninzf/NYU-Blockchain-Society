@@ -21,7 +21,7 @@ export default function ProofStrip() {
 
   return (
     <section className="proof" aria-labelledby="proof-h">
-      <div className="wrap proof-in">
+      <div className="wrap proof-in" data-bg="dim">
         <div className="proof-head">
           <h2 id="proof-h" className="mono">{editionTitle(edition)}</h2>
           {edition.stats && <p className="proof-stats">{statsLine(edition.stats)}</p>}

@@ -5,7 +5,7 @@ import OpenJoin from "./OpenJoin";
 export default function JoinSection() {
   return (
     <section className="join" id="join" aria-labelledby="join-h">
-      <div className="wrap">
+      <div className="wrap" data-bg="dim">
         <h2 id="join-h">{joinSection.title}</h2>
         <p>{joinSection.text}</p>
         <div className="ctas">

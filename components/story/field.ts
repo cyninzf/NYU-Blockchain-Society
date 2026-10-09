@@ -1,12 +1,15 @@
-// The hero's 3D field: the three-block logo inside a drifting network, drawn on a 2D canvas.
-// Ported from the inline script in docs/prototype.html. The DOM it drives (headline words,
-// Focus cards, caption) is rendered by React; this module only reads it and toggles classes.
+// The hero's 3D logo: three blocks drawn into the site's one background canvas as a painter
+// (components/backdrop). Ported from the inline script in docs/prototype.html. The DOM it
+// drives (headline words, Focus cards, label) is rendered by React; this module only reads it
+// and toggles classes. Pointer input comes from `surface`, a transparent layer in the pin.
 
+import { addPainter, requestBackdropFrame } from "@/components/backdrop/backdrop";
+import type { P2, V3 } from "@/components/backdrop/network";
 import { industries } from "@/content/industries";
-import { createNetwork, densityFor, type P2, type V3 } from "./network";
 
 export type FieldElements = {
-  canvas: HTMLCanvasElement;
+  /** Fills the pinned area: receives pointer input; its position offsets the drawing. */
+  surface: HTMLElement;
   cap: HTMLElement;
   capTitle: HTMLElement;
   capText: HTMLElement;
@@ -16,8 +19,6 @@ export type FieldElements = {
   cards: HTMLElement[];
   /** The Focus section: the logo moves above its cards while it's in view. */
   focus: HTMLElement;
-  /** Copy that background blocks must not form behind. */
-  avoid: HTMLElement[];
 };
 
 export type FieldOptions = {
@@ -44,8 +45,7 @@ const ease = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 const LBL_NODES = 110, LBL_EDGES = [70, 320], LBL_DOT = [220, 470], LBL_TEXT = 440;
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
-  const { canvas: cv, cap, capTitle, capText, heroTxt, words, cards, focus, avoid } = el;
-  const ctx = cv.getContext("2d")!;
+  const { surface: cv, cap, capTitle, capText, heroTxt, words, cards, focus } = el;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const fontFamily = getComputedStyle(cv).fontFamily || "sans-serif";
   const INFO = industries;
@@ -67,17 +67,6 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const center = (p: V3): V3 => [p[0] - C[0], p[1] - C[1], p[2] - C[2]];
   const L0 = LV.map(center);
 
-  // --- background: drifting constellation that periodically forms blocks (network.ts) ---
-  // Density scales with the viewport; rebuilt in resize() when the size class changes.
-  let network: ReturnType<typeof createNetwork> | null = null;
-  // Text the blocks must not form behind: the hero copy, proof strip, mission and Focus cards.
-  const copyRects = () => {
-    const c = cv.getBoundingClientRect();
-    return (capOn ? [...avoid, cap] : avoid).map((el) => {
-      const r = el.getBoundingClientRect();
-      return { left: r.left - c.left, top: r.top - c.top, right: r.right - c.left, bottom: r.bottom - c.top };
-    });
-  };
   const Ls = L0.map((): V3 => [(rnd() - .5) * 9, (rnd() - .5) * 9, (rnd() - .5) * 9]);
   const ISO_YAW = Math.PI / 4, ISO_PITCH = Math.atan(1 / Math.SQRT2);
   let yaw = ISO_YAW, pitch = ISO_PITCH, tYaw = ISO_YAW, tPitch = ISO_PITCH, mx = 0, my = 0, smx = 0, smy = 0;
@@ -98,7 +87,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       capT0 = reduce ? -1e9 : performance.now();
     }
   }
-  const kick = () => { if (reduce) frame(performance.now()); };
+  const kick = () => requestBackdropFrame();
 
   let joining = false;
   let sel = new Set<number>();
@@ -141,15 +130,13 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     kick();
   }
 
-  let dragging = false, moved = 0, lx = 0, ly = 0, lastInput = -1e9, W = 0, H = 0, ox = 0, oy = 0, S = 1, visible = true, raf = 0, alive = true;
+  let dragging = false, moved = 0, lx = 0, ly = 0, lastInput = -1e9, W = 0, H = 0, ox = 0, oy = 0, S = 1, pinTop = 0;
   const t0 = performance.now();
   const packets = Array.from({ length: 9 }, () => ({ e: (rnd() * LEdges.length) | 0, t: rnd(), s: .35 + rnd() * .4, f: rnd() < .5 }));
 
   function resize() {
-    const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
-    W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const d = densityFor(W, H);
-    if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations) network = createNetwork(rnd, d);
+    const r = cv.getBoundingClientRect();
+    W = r.width; H = r.height;
     const wide = W > 860, ht = heroTxt.offsetTop;
     // Small screens: the logo is ~57% of the width (it's about 2.7·S wide and 3.1·S tall) and
     // sits right above the headline, in the space the CSS reserves (min(66vw, 42svh); while
@@ -172,13 +159,17 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     return [ox + x * S * persp + smx * z2 * 6, oy - y2 * S * persp + smy * z2 * 4, z2];
   }
 
-  const shouldRun = () => alive && visible && !reduce && !document.hidden;
-  const schedule = () => { if (!raf && shouldRun()) raf = requestAnimationFrame(frame); };
+  // Drawn by the backdrop each frame, in viewport coordinates shifted by the pin's position.
+  function draw(ctx: CanvasRenderingContext2D, now: number) {
+    pinTop = cv.getBoundingClientRect().top;
+    if (pinTop + H < 0) return; // the pinned section has scrolled away
+    ctx.save(); ctx.translate(0, pinTop);
+    frame(ctx, now);
+    ctx.restore();
+  }
 
-  function frame(now: number) {
-    raf = 0;
-    if (!alive) return;
-    const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5), gk = reduce ? 1 : ease((el - .5) / 1.6);
+  function frame(ctx: CanvasRenderingContext2D, now: number) {
+    const el = (now - t0) / 1000, k = reduce ? 1 : ease((el - .1) / 1.5);
     if (!dragging && !reduce && (now - lastInput) / 1000 > 2.5) { tYaw = ISO_YAW + Math.sin(el * .22) * .7; tPitch = ISO_PITCH + Math.sin(el * .17) * .1; }
     yaw += (tYaw - yaw) * .06; pitch += (tPitch - pitch) * .06; smx += (mx - smx) * .05; smy += (my - smy) * .05;
     {
@@ -190,12 +181,11 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     }
     const direct = wordHover >= 0 || hover >= 0;
     let want = wordHover >= 0 ? wordHover : hover >= 0 ? hover : cardHover >= 0 ? cardHover : pinned;
-    if (want < 0 && !joining && scrollY < H * .3 && !reduce && k >= 1 && (now - lastUser) > 4000 && (now - lastInput) > 4000) { const c = Math.floor((el - 2) / 3.2); want = c >= 0 && c % 4 < 3 ? c % 4 : -1; }
-    setActive(want, direct || (want >= 0 && want !== cardHover));
+    let auto = false;
+    if (want < 0 && !joining && scrollY < H * .3 && !reduce && k >= 1 && (now - lastUser) > 4000 && (now - lastInput) > 4000) { const c = Math.floor((el - 2) / 3.2); want = c >= 0 && c % 4 < 3 ? c % 4 : -1; auto = true; }
+    // Small screens have no room beside the logo: the idle cycle only lights blocks there.
+    setActive(want, direct || (want >= 0 && want !== cardHover && !(auto && W <= 860)));
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
-    ctx.clearRect(0, 0, W, H);
-    // background: nearer nodes shift more with scroll (parallax); blocks form away from the logo
-    network!.draw(ctx, { now, el, reduce, gk, P, W, H, par: Math.min(scrollY, H * 1.5) * .05, avoid: { x: ox, y: oy, r: S * 3.2 }, avoidRects: copyRects });
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
     ctx.save(); ctx.globalAlpha = k;
@@ -252,7 +242,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     if (active >= 0 && centers[active] && capA > .01) {
       const [cx, cy] = centers[active], small = W <= 860;
       let lx: number, ly: number;
-      if (small) { lx = W / 2 - capW / 2; ly = Math.max(oy + S * 1.7, cy + S * 1.1); }
+      if (small) { lx = W / 2 - capW / 2; ly = 76; } // just under the nav, over the logo (filled, below)
       else {
         // beside the whole logo (never over the other cubes), on the side of the active cube
         let minX = 1e9, maxX = -1e9; for (const q of lp) { minX = Math.min(minX, q[0]); maxX = Math.max(maxX, q[0]); }
@@ -269,6 +259,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       const t = now - capT0;
       const pn = clamp01(t / LBL_NODES), pe = ease((t - LBL_EDGES[0]) / (LBL_EDGES[1] - LBL_EDGES[0])), pd = ease((t - LBL_DOT[0]) / (LBL_DOT[1] - LBL_DOT[0]));
       ctx.save(); ctx.globalAlpha = capA; ctx.lineWidth = 1; ctx.strokeStyle = "rgba(216,194,240,.85)";
+      if (small && pe > 0) { ctx.fillStyle = `rgba(28,5,51,${.88 * pe})`; ctx.fillRect(lx, ly, capW, capH); }
       // connector, drawn behind the travelling dot
       const dx = corner[0] + (anchor[0] - corner[0]) * pd, dy = corner[1] + (anchor[1] - corner[1]) * pd;
       if (pd > 0) { ctx.beginPath(); ctx.moveTo(corner[0], corner[1]); ctx.lineTo(dx, dy); ctx.stroke(); }
@@ -296,7 +287,6 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       }
       ctx.restore();
     }
-    schedule();
   }
 
   const hitAt = (e: PointerEvent) => {
@@ -317,7 +307,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     }
     moved += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
     tYaw += (e.clientX - lx) * .008; tPitch = Math.max(-.3, Math.min(1.2, tPitch + (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; lastInput = performance.now();
-    if (reduce) { yaw = tYaw; pitch = tPitch; frame(performance.now()); }
+    if (reduce) { yaw = tYaw; pitch = tPitch; kick(); }
   };
   const onUp = () => {
     if (dragging && moved < 6) { if (joining) { if (hover >= 0) opts.onToggle(hover); } else { pinned = hover >= 0 && pinned !== hover ? hover : -1; } lastUser = performance.now(); }
@@ -331,20 +321,22 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     if (pinned >= 0) { pinned = -1; kick(); }
   };
   document.addEventListener("pointerdown", onDocDown);
-  const onResize = () => { resize(); if (reduce) frame(performance.now()); };
-  const onScrollReduced = () => frame(performance.now());
+  const onResize = () => { resize(); kick(); };
   cv.addEventListener("pointerdown", onDown);
   cv.addEventListener("pointermove", onMove);
   cv.addEventListener("pointerleave", onLeave);
   cv.addEventListener("pointerup", onUp); cv.addEventListener("pointercancel", onUp);
   addEventListener("resize", onResize);
-  if (reduce) addEventListener("scroll", onScrollReduced, { passive: true });
-  const heroRO = new ResizeObserver(() => resize()); heroRO.observe(heroTxt);
-  const visIO = new IntersectionObserver(([en]) => { visible = en.isIntersecting; schedule(); });
-  visIO.observe(cv);
-  document.addEventListener("visibilitychange", schedule);
+  const heroRO = new ResizeObserver(() => { resize(); kick(); }); heroRO.observe(heroTxt);
   resize();
-  if (reduce) frame(performance.now()); else schedule();
+  // The backdrop keeps the network clear of the logo and of an open label.
+  const removePainter = addPainter({
+    draw,
+    avoid: () => pinTop + H < 0 ? { circles: [], rects: [] } : {
+      circles: [{ x: ox, y: oy + pinTop, r: S * 2.4 }],
+      rects: capOn ? [cap.getBoundingClientRect()] : [],
+    },
+  });
 
   return {
     setJoining(on) { joining = on; resize(); kick(); },
@@ -361,13 +353,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     addMember,
     clearMember() { member = null; trail = null; trailEnd = null; kick(); },
     destroy() {
-      alive = false; cancelAnimationFrame(raf);
-      visIO.disconnect(); heroRO.disconnect();
+      removePainter();
+      heroRO.disconnect();
       wordCleanups.forEach((f) => f()); cardCleanups.forEach((f) => f());
       cv.removeEventListener("pointerdown", onDown); cv.removeEventListener("pointermove", onMove); cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onUp);
-      removeEventListener("resize", onResize); removeEventListener("scroll", onScrollReduced);
-      document.removeEventListener("visibilitychange", schedule);
+      removeEventListener("resize", onResize);
       document.removeEventListener("pointerdown", onDocDown);
     },
   };

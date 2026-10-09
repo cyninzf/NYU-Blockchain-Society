@@ -6,7 +6,7 @@ import Icon from "../Icon";
 export default function EditionDetail({ edition: e }: { edition: Edition }) {
   return (
     <div className="wrap conf-grid">
-      <div>
+      <div data-bg="dim">
         <h1 id="conf-h">{editionTitle(e)}</h1>
         {(e.date || e.address) && <p className="when mono">{[e.date, e.address].filter(Boolean).join(" · ")}</p>}
         {e.stats && (
@@ -28,7 +28,7 @@ export default function EditionDetail({ edition: e }: { edition: Edition }) {
         )}
       </div>
       {e.program && (
-        <ol className="prog" aria-label="Program">
+        <ol className="prog" aria-label="Program" data-bg="dim">
           {e.program.map((s) => (
             <li key={s.time}>
               <details>

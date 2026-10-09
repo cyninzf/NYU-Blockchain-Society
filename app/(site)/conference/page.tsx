@@ -20,12 +20,14 @@ export default function ConferencePage() {
   return (
     <section className="series page-top" aria-labelledby="series-h">
       <div className="wrap">
+        <div data-bg="dim">
         <p className="kicker mono">Conference</p>
         <h1 id="series-h">{series.name}</h1>
         <p className="series-sub">Annual, since {series.since}</p>
+        </div>
         <ol className="ed-chain">
           {newestFirst.map((e, i) => (
-            <li key={e.year ?? "next"} className={e.status === "done" ? "ed-blk" : "ed-blk next"}>
+            <li key={e.year ?? "next"} className={e.status === "done" ? "ed-blk" : "ed-blk next"} data-bg="dim">
               <div className="top mono">
                 <span>Edition {String(newestFirst.length - i).padStart(2, "0")}</span>
                 <span className={e.status === "done" ? "st ok" : "st pend"}><i></i>{statusLabel[e.status]}</span>

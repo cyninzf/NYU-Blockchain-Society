@@ -33,7 +33,7 @@ export default async function NetworkWall() {
   if (rows.length < MIN_ENTRIES) return null;
   return (
     <section className="wall" id="wall" aria-labelledby="wall-h">
-      <div className="wrap">
+      <div className="wrap" data-bg="dim">
         <h2 id="wall-h">On the chain</h2>
         <p>Members who chose to add their name to the network.</p>
         <ul className="wall-list">

@@ -25,7 +25,7 @@ export default function Story() {
   const [flowKey, setFlowKey] = useState(0);
 
   const fieldRef = useRef<Field | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const capRef = useRef<HTMLDivElement>(null);
   const capTitleRef = useRef<HTMLElement>(null);
   const capTextRef = useRef<HTMLSpanElement>(null);
@@ -35,7 +35,6 @@ export default function Story() {
   const wordRefs = useRef<HTMLButtonElement[]>([]);
   const cardRefs = useRef<HTMLLIElement[]>([]);
   const focusRef = useRef<HTMLElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
   const openJoinRef = useRef<HTMLButtonElement>(null);
   const focusOpenButton = useRef(false);
 
@@ -43,11 +42,11 @@ export default function Story() {
     setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
   }, []);
 
-  // Canvas field, NY clock and the hero HUD.
+  // The 3D logo (drawn into the site background canvas), NY clock and the hero HUD.
   useEffect(() => {
     const field = createField(
       {
-        canvas: canvasRef.current!,
+        surface: surfaceRef.current!,
         cap: capRef.current!,
         capTitle: capTitleRef.current!,
         capText: capTextRef.current!,
@@ -55,8 +54,6 @@ export default function Story() {
         words: wordRefs.current,
         cards: cardRefs.current,
         focus: focusRef.current!,
-        // Background blocks never form behind any of the copy.
-        avoid: [...layerRef.current!.querySelectorAll<HTMLElement>(".hero2 .txt, .proof-in, .mission .txt, .focus-in")],
       },
       { onToggle: toggle },
     );
@@ -123,12 +120,12 @@ export default function Story() {
   return (
     <section className="story" id="top" aria-label="Blockchain, Finance & AI">
       <div className="pin">
-        <canvas
-          id="field"
-          ref={canvasRef}
+        <div
+          className="hit"
+          ref={surfaceRef}
           role="img"
           aria-label="The society's logo: three connected blocks for blockchain, finance and AI, floating inside a larger network. Use the words in the headline to highlight each block."
-        ></canvas>
+        ></div>
         <div className="cap" ref={capRef} aria-live="polite"><b className="mono" ref={capTitleRef}></b><span ref={capTextRef}></span></div>
         <div className="readout mono" ref={hudRef} aria-hidden="true">
           <span>New York</span>
@@ -136,9 +133,9 @@ export default function Story() {
           <span className="hint-d">Hover a block · drag to rotate</span>
         </div>
       </div>
-      <div className="layer" ref={layerRef}>
+      <div className="layer">
         <div className={mode === "idle" ? "hero2 wrap" : "hero2 wrap flow"}>
-          <div className="txt" ref={heroTxtRef}>
+          <div className="txt" ref={heroTxtRef} data-bg="clear">
             <h1>
               {industries.map((ind, i) => (
                 <Fragment key={ind.name}>
@@ -163,14 +160,14 @@ export default function Story() {
         </div>
         <ProofStrip />
         <div className="mission wrap">
-          <div className="txt"><p>{mission.text} <span>{mission.muted}</span></p></div>
+          <div className="txt" data-bg="dim"><p>{mission.text} <span>{mission.muted}</span></p></div>
         </div>
         <section className="focus" id="focus" aria-labelledby="focus-h" ref={focusRef}>
           <div className="wrap focus-in">
             <h2 id="focus-h" className="mono">Focus</h2>
             <ul className="cards">
               {industries.map((ind, i) => (
-                <li key={ind.id} className="card" ref={(el) => { if (el) cardRefs.current[i] = el; }}>
+                <li key={ind.id} className="card" data-bg="dim" ref={(el) => { if (el) cardRefs.current[i] = el; }}>
                   <h3 id={`focus-${ind.id}`}>{ind.name}</h3>
                   <p>{ind.description}</p>
                   <p className="seen"><b>{ind.seenLead}</b> {ind.seen}</p>

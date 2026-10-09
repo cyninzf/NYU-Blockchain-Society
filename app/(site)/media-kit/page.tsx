@@ -23,14 +23,14 @@ export default function MediaKitPage() {
   return (
     <div className={`${s.page} page-top`}>
       <div className="wrap">
-        <header className={s.head}>
+        <header className={s.head} data-bg="dim">
           <p className="kicker mono">Media kit</p>
           <h1>Logos, colors and facts</h1>
           <p className={s.lede}>Everything you need to write about or feature NYU Blockchain Society. Please follow the usage rules below.</p>
           <a className="btn btn-w" href={ZIP_FILE} download>Download all (ZIP)</a>
         </header>
 
-        <section className={s.section} aria-labelledby="mk-logos">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-logos">
           <h2 id="mk-logos">Logo marks</h2>
           <p className={s.note}>Three isometric blocks drawn as a network: Blockchain (top), Finance and AI. SVG is preferred; PNGs are transparent.</p>
           <ul className={s.marks}>
@@ -57,7 +57,7 @@ export default function MediaKitPage() {
           </ul>
         </section>
 
-        <section className={s.section} aria-labelledby="mk-usage">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-usage">
           <h2 id="mk-usage">Usage rules</h2>
           <ul className={s.rules}>
             <li><b>Clear space.</b> Keep empty space around the mark of at least a quarter of its height on every side.</li>
@@ -68,7 +68,7 @@ export default function MediaKitPage() {
           </ul>
         </section>
 
-        <section className={s.section} aria-labelledby="mk-colors">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-colors">
           <h2 id="mk-colors">Colors</h2>
           <p className={s.note}>Click a swatch to copy its hex value.</p>
           {colors.map((g) => (
@@ -90,7 +90,7 @@ export default function MediaKitPage() {
           ))}
         </section>
 
-        <section className={s.section} aria-labelledby="mk-type">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-type">
           <h2 id="mk-type">Typography</h2>
           <div className={s.type}>
             <div>
@@ -104,7 +104,7 @@ export default function MediaKitPage() {
           </div>
         </section>
 
-        <section className={s.section} aria-labelledby="mk-boiler">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-boiler">
           <h2 id="mk-boiler">
             Boilerplate {boilerplateStatus === "draft" && <span className={`${s.draft} mono`}>Draft, pending review</span>}
           </h2>
@@ -121,7 +121,7 @@ export default function MediaKitPage() {
           </ul>
         </section>
 
-        <section className={s.section} aria-labelledby="mk-facts">
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-facts">
           <h2 id="mk-facts">Approved facts</h2>
           <p className={s.note}>Use these exactly. Say &ldquo;registrations&rdquo;, never &ldquo;attendees&rdquo;.</p>
           <ul className={s.facts}>
