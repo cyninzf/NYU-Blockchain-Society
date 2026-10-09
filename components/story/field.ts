@@ -5,6 +5,7 @@
 
 import { addPainter, requestBackdropFrame } from "@/components/backdrop/backdrop";
 import type { P2, V3 } from "@/components/backdrop/network";
+import type { Anchors } from "@/components/backdrop/tether";
 import { focusTags } from "@/content/focus";
 import { industries } from "@/content/industries";
 
@@ -164,8 +165,19 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   }
 
   // Drawn by the backdrop each frame, in viewport coordinates shifted by the pin's position.
+  // The logo's vertices as the network sees them (viewport coordinates), refreshed each frame.
+  let anchors: Anchors | null = null;
+  const hullOf = (ps: P2[]) => {
+    // monotone chain: which projected vertices are on the outline
+    const ix = ps.map((_, i) => i).sort((a, b) => ps[a][0] - ps[b][0] || ps[a][1] - ps[b][1]);
+    const cross = (o: number, a: number, b: number) => (ps[a][0] - ps[o][0]) * (ps[b][1] - ps[o][1]) - (ps[a][1] - ps[o][1]) * (ps[b][0] - ps[o][0]);
+    const half = (order: number[]) => { const h: number[] = []; for (const i of order) { while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], i) <= 0) h.pop(); h.push(i); } h.pop(); return h; };
+    return new Set([...half(ix), ...half([...ix].reverse())]);
+  };
+
   function draw(ctx: CanvasRenderingContext2D, now: number) {
     pinTop = cv.getBoundingClientRect().top;
+    anchors = null;
     if (pinTop + H < 0) return; // the pinned section has scrolled away
     ctx.save(); ctx.translate(0, pinTop);
     frame(ctx, now);
@@ -195,6 +207,10 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
+    if (k * logoA > .01) {
+      const hull = hullOf(lp);
+      anchors = { pts: lp.map((p, i) => ({ x: p[0], y: p[1] + pinTop, hull: hull.has(i) })), c: [ox, oy + pinTop], r: S * 1.7, a: k * logoA };
+    }
     ctx.save(); ctx.globalAlpha = k * logoA;
     centers = INFO.map((inf) => { let x = 0, y = 0, n = 0; for (const v of cubeV[inf.cube]) { x += lp[v][0]; y += lp[v][1]; n++; } return [x / n, y / n]; });
     INFO.forEach((inf, i) => {
@@ -339,6 +355,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   // The backdrop keeps the network clear of the logo and of an open label.
   const removePainter = addPainter({
     draw,
+    anchors: () => anchors,
     avoid: () => pinTop + H < 0 ? { circles: [], rects: [] } : {
       circles: [{ x: ox, y: oy + pinTop, r: S * 2.4 }],
       rects: capOn ? [cap.getBoundingClientRect()] : [],

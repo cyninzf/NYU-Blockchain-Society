@@ -49,6 +49,18 @@ export type DrawOpts = {
   fade: (x: number, y: number) => number;
   /** True where a block may not form (copy, the hero logo, an open label). */
   blocked: (x: number, y: number) => boolean;
+  /** When set, the next block prefers to form within this screen circle (e.g. near the hero logo). */
+  near?: { x: number; y: number; r: number } | null;
+};
+
+/** What the network drew last frame, for layers drawn on top of it (tether.ts). */
+export type Snapshot = {
+  /** Screen position of every node. */
+  sp: P2[];
+  /** Formation weight per node (0 = drifting freely). */
+  w: number[];
+  /** Live blocks: their 8 screen vertices, and whether they're fully built and holding. */
+  blocks: { id: object; pts: P2[]; holding: boolean; life: number }[];
 };
 
 export function createNetwork(rnd: () => number, density: Density) {
@@ -77,12 +89,15 @@ export function createNetwork(rnd: () => number, density: Density) {
   let formations: Formation[] = [];
   let nextAt = -1;
   let lastNow = 0;
+  let snap: Snapshot = { sp: [], w: [], blocks: [] };
 
   function start(now: number, sp: P2[], o: DrawOpts) {
     const { W, H } = o;
     const ok = (i: number) => { const q = sp[i]; return !nodes[i].busy && q[0] > 40 && q[0] < W - 40 && q[1] > 90 && q[1] < H - 60 && !o.blocked(q[0], q[1]); };
     // The block forms where an eligible seed node is; its 7 nearest free neighbours gather to it.
-    const seeds = nodes.map((_, i) => i).filter(ok);
+    let seeds = nodes.map((_, i) => i).filter(ok);
+    const nr = o.near;
+    if (nr) { const close = seeds.filter((i) => Math.hypot(sp[i][0] - nr.x, sp[i][1] - nr.y) < nr.r); if (close.length) seeds = close; }
     if (!seeds.length) return false;
     const seed = seeds[(rnd() * seeds.length) | 0];
     const group = nodes.map((_, i) => i).filter((i) => !nodes[i].busy)
@@ -173,12 +188,14 @@ export function createNetwork(rnd: () => number, density: Density) {
       }
     }
     ctx.globalAlpha = 1;
+    snap = { sp, w: nodes.map((n) => n.w), blocks: [] };
     // forming blocks
     for (const { f, t } of live) {
       const vs = f.nodes.map((i) => sp[i]);
       if (vs.some((q) => Math.abs(q[1] - vs[0][1]) > H * .4)) continue; // split by the wrap seam
       // fades like the rest of the network when the page scrolls copy over it
       const life = (t < HOLD_END ? 1 : 1 - ease((t - HOLD_END) / RELAX)) * Math.min(...f.nodes.map((i) => dim[i]));
+      snap.blocks.push({ id: f, pts: vs, holding: t > EDGES_END + GLOW && t < HOLD_END - 900, life });
       const glow = t > EDGES_END && t < EDGES_END + GLOW ? Math.sin(Math.PI * (t - EDGES_END) / GLOW) : 0;
       const built = clamp01((t - EDGES_END) / 200);
       ctx.save();
@@ -204,5 +221,5 @@ export function createNetwork(rnd: () => number, density: Density) {
     }
   }
 
-  return { draw, density };
+  return { draw, density, snapshot: () => snap };
 }

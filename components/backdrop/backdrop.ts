@@ -7,6 +7,7 @@
 // blocks never form there.
 
 import { BOX, createNetwork, densityFor, type P2, type V3 } from "./network";
+import { createTether, type Anchors } from "./tether";
 
 type Circle = { x: number; y: number; r: number };
 type Rect = { left: number; top: number; right: number; bottom: number };
@@ -15,6 +16,8 @@ export type Painter = {
   draw: (ctx: CanvasRenderingContext2D, now: number) => void;
   /** Screen areas the network keeps clear of (e.g. the logo, an open label). */
   avoid?: () => { circles: Circle[]; rects: Rect[] };
+  /** The hero logo's vertices this frame (read after `draw`): the network reaches into them. */
+  anchors?: () => Anchors | null;
 };
 
 const FADE = { clear: .3, dim: .6 } as const; // remaining opacity behind copy
@@ -44,6 +47,7 @@ function createEngine(cv: HTMLCanvasElement) {
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null;
   const t0 = performance.now();
+  const tether = createTether(rnd);
 
   function resize() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -97,8 +101,10 @@ function createEngine(cv: HTMLCanvasElement) {
       zones.some((z) => outside(x, y, z.r) < 28) || rects.some((r) => outside(x, y, r) < 28) || circles.some((c) => Math.hypot(x - c.x, y - c.y) < c.r);
 
     ctx.clearRect(0, 0, W, H);
-    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked });
+    const logo = [...painters].find((p) => p.anchors);
+    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, near: tether.wantNear(now, logo?.anchors?.() ?? null) });
     for (const p of painters) p.draw(ctx, now);
+    tether.draw(ctx, now, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null);
     if (!reduce && !document.hidden) raf = requestAnimationFrame(frame);
   }
 
