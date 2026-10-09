@@ -2,12 +2,14 @@
 
 import { sql } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
 import { countryOf } from "@/lib/location";
+import { sendWelcome } from "@/lib/member-email";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { rateLimited, sign, verify } from "@/lib/security";
 
@@ -75,8 +77,13 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
         updated_at = now()
       returning id, (xmax = 0) as inserted`);
     const row = res.rows[0];
-    // A new block: the public aggregates (lib/chain-stats.ts) refresh in the background.
-    if (row.inserted) revalidateTag("chain", "max");
+    if (row.inserted) {
+      // A new block: the public aggregates (lib/chain-stats.ts) refresh in the background, and
+      // the one welcome email goes out after the response (a failure never affects the join).
+      // Re-submits update a row (inserted = false): no email, so nothing reveals an existing email.
+      revalidateTag("chain", "max");
+      after(() => sendWelcome(db, row.id, d.notify ?? null).catch((e) => console.error("welcome failed", e instanceof Error ? e.message : e)));
+    }
     // Someone we already knew as a contact (e.g. a 2024 registrant) has now joined.
     await db.execute(sql`update contacts set member_id = ${row.id} where lower(email) = lower(${d.email}) and member_id is null`);
     // The edit token lets this browser add optional details right away. For an existing

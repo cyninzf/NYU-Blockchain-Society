@@ -57,6 +57,13 @@
       "when": 1791589075142,
       "tag": "0007_admin_logins",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791589812617,
+      "tag": "0008_unsubscribe",
+      "breakpoints": true
     }
   ]
 }

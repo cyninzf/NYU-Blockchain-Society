@@ -32,6 +32,8 @@ export const members = pgTable(
     showOnWall: boolean("show_on_wall").notNull().default(false),
     wallName: text("wall_name"),
     wallApproved: boolean("wall_approved").notNull().default(false),
+    /** Set by the unsubscribe link: no email of any kind goes to this member while it's set. */
+    unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -55,7 +55,8 @@ All editable content lives in `/content` as typed TS data: `events.ts`, `confere
 
 ## Phase 1 app: "Add your block" (join in the hero)
 Built. See "Decided" below for the flow, data model and admin.
-- Not built yet: welcome email and magic link for editing later (Resend). Until then, a member edits by re-joining with the same email, which can only fill empty fields.
+- Welcome email (round 9, `sendWelcome` in `lib/member-email.ts`): exactly one, on a new join only (the insert, not a re-submit; never retroactively to existing members), sent with `after()` so it never slows or breaks the join. Subject and heading "Block #<n> added. You're on the chain.", the short boilerplate, the notify line when they came from a notify block, an "Update your block" button (→ `/update`) and an unsubscribe link.
+- Unsubscribe (round 9): `members.unsubscribed_at`; unsubscribed members never receive any email (welcome, announcements, magic links). Every member email has a signed, never-expiring unsubscribe link (`/unsubscribe?t=…`, no login) and RFC 8058 headers (`List-Unsubscribe` → `POST /api/unsubscribe`, `List-Unsubscribe-Post: One-Click`), so mail apps unsubscribe in one click. The page itself unsubscribes on one button press, not on load (link scanners open pages; they don't press buttons), and offers "Resubscribe".
 
 ## Email (round 9)
 - Sent through Resend's HTTP API (`lib/email.ts`, no SDK) from "NYU Blockchain Society <hello@nyublockchainsociety.com>", reply-to `REPLY_TO_EMAIL`. DNS (DKIM, SPF on `send.`, DMARC) is in Wix DNS.

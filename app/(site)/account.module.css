@@ -1,0 +1,19 @@
+/* Small member-facing pages: unsubscribe and "Update your block". */
+.page{color:var(--ink-fg); padding-bottom:clamp(80px,10vw,140px); min-height:100svh}
+.page h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,72px); line-height:1.02; padding-bottom:.04em; letter-spacing:-.05em}
+.lede{margin:18px 0 28px; max-width:48ch; font-size:clamp(17px,1.5vw,20px); color:var(--ink-muted)}
+.form{display:grid; gap:16px; max-width:560px}
+.form label{display:grid; gap:6px; font-size:15px; color:var(--ink-muted)}
+.form input[type="email"],.form input[type="text"],.form input[type="url"],.form input:not([type]){min-height:48px; padding:0 14px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.7); color:var(--ink-fg); font:inherit; font-size:16px}
+.form input:focus-visible{outline:2px solid var(--glow); outline-offset:2px}
+.form fieldset{margin:0; padding:12px 14px 14px; border:1px solid var(--ink-line); border-radius:10px; display:flex; flex-wrap:wrap; gap:4px 18px}
+.form legend{padding:0 6px; color:var(--ink-muted); font-size:15px}
+.form fieldset label{display:inline-flex; align-items:center; gap:10px; min-height:44px; color:var(--ink-fg); grid-template-columns:none}
+.form fieldset input{width:20px; height:20px; accent-color:var(--glow)}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+@media (max-width:640px){.two{grid-template-columns:1fr}}
+.actions{display:flex; flex-wrap:wrap; align-items:center; gap:14px}
+.ok{margin:0; padding:14px 16px; border:1px solid rgba(216,194,240,.55); border-radius:4px; color:var(--ink-fg)}
+.err{margin:0; color:#FFC2D4}
+.small{margin:0; font-size:15px; color:var(--ink-muted)}
+.link{display:inline-flex; align-items:center; min-height:44px; padding:0; border:0; background:none; color:var(--ink-fg); font:inherit; text-decoration:underline; text-underline-offset:4px; cursor:pointer}
