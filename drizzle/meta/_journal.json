@@ -36,6 +36,13 @@
       "when": 1791571116362,
       "tag": "0004_linkedin_group",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791583913657,
+      "tag": "0005_member_location",
+      "breakpoints": true
     }
   ]
 }

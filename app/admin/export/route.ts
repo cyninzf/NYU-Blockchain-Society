@@ -8,6 +8,6 @@ export async function GET(request: Request) {
   const db = getDb();
   if (!db) return new Response("DATABASE_URL is not set for this environment.", { status: 503 });
   const rows = await listMembers(db, parseFilters(Object.fromEntries(new URL(request.url).searchParams)));
-  const cols = ["id", "name", "email", "affiliation", "blocks", "notify", "source", "linkedinUrl", "role", "company", "school", "gradYear", "showOnWall", "wallName", "wallApproved", "createdAt", "updatedAt"] as const;
+  const cols = ["id", "name", "email", "affiliation", "blocks", "notify", "source", "linkedinUrl", "role", "company", "school", "gradYear", "location", "country", "showOnWall", "wallName", "wallApproved", "createdAt", "updatedAt"] as const;
   return csvResponse("members", cols, rows);
 }

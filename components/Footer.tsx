@@ -9,7 +9,7 @@ export default function Footer() {
       <div className="wrap">
         <div className="f">
           <Image className="mk" src="/brand/mark-solid-white.svg" width={24} height={24} alt="NYU Blockchain Society logo" />
-          <span>NYU Blockchain Society, New York</span>
+          <span>NYU Blockchain Society · Based in New York</span>
         </div>
         <ul>
           <li><OpenJoin>Add your block</OpenJoin></li>

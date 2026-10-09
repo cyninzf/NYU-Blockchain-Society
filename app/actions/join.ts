@@ -6,6 +6,7 @@ import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
+import { cleanLocation, countryOf } from "@/lib/location";
 import { rateLimited, sign, verify } from "@/lib/security";
 
 const MIN_FILL_MS = 3000;
@@ -108,6 +109,7 @@ const detailsSchema = z.discriminatedUnion("kind", [
     gradYear: z.union([z.literal(""), z.coerce.number().int().min(1940).max(new Date().getFullYear() + 8)])
       .transform((v) => (v === "" ? null : v)),
   }),
+  z.object({ kind: z.literal("location"), location: z.string().max(200).transform((v) => cleanLocation(v) || null) }),
   z.object({ kind: z.literal("wall"), showOnWall: z.boolean(), wallName: opt(60) }),
 ]);
 
@@ -132,6 +134,9 @@ export async function saveDetails(token: string, input: z.input<typeof detailsSc
     d.kind === "linkedin" ? [set("linkedin_url", d.linkedinUrl)]
     : d.kind === "work" ? [set("role", d.role), set("company", d.company)]
     : d.kind === "school" ? [set("school", d.school), sql`grad_year = ${fresh === "1" ? sql`${d.gradYear}` : sql`coalesce(grad_year, ${d.gradYear})`}`]
+    // the country follows whichever location is kept
+    : d.kind === "location" ? (fresh === "1" ? [set("location", d.location), set("country", countryOf(d.location))]
+      : [sql`country = case when location is null then ${countryOf(d.location)} else country end`, set("location", d.location)])
     : fresh === "1"
       // Any change to the wall entry needs fresh approval.
       ? [sql`show_on_wall = ${d.showOnWall}`, sql`wall_name = ${d.wallName}`, sql`wall_approved = false`]

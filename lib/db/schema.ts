@@ -25,6 +25,10 @@ export const members = pgTable(
     company: text(),
     school: text(),
     gradYear: integer("grad_year"),
+    /** "City and country", free text as entered. */
+    location: text(),
+    /** Read from `location` on save (lib/location.ts) for the admin's per-country counts and filter. */
+    country: text(),
     showOnWall: boolean("show_on_wall").notNull().default(false),
     wallName: text("wall_name"),
     wallApproved: boolean("wall_approved").notNull().default(false),

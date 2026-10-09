@@ -5,7 +5,7 @@ import { NOTIFY } from "@/content/events";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { adminAudit, AFFILIATIONS, type AdminAudit, type Affiliation } from "@/lib/db/schema";
-import { AFFILIATION_LABELS, listMembers, parseFilters } from "@/lib/members-query";
+import { AFFILIATION_LABELS, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
 import { deleteMember, setWallApproved } from "./actions";
 import EditMember from "./EditMember";
 import styles from "./admin.module.css";
@@ -43,7 +43,7 @@ async function Members({ searchParams }: { searchParams: SP }) {
   const f = parseFilters(sp);
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
-  const rows = await listMembers(db, f);
+  const [rows, countries] = await Promise.all([listMembers(db, f), membersByCountry(db)]);
   // The last 3 admin edits per member shown, newest first.
   const audit = new Map<number, AdminAudit[]>();
   if (rows.length) {
@@ -54,6 +54,15 @@ async function Members({ searchParams }: { searchParams: SP }) {
 
   return (
     <>
+      {countries.length > 0 && (
+        <section className={styles.mix} aria-labelledby="country-h">
+          <h2 id="country-h">Members by country <span>From the optional &ldquo;City and country&rdquo; field, read from the part after the last comma. Counts only.</span></h2>
+          <dl className={styles.counts}>
+            {countries.map((c) => <div key={c.country ?? ""}><dt>{c.country ?? "Not given"}</dt><dd>{c.n}</dd></div>)}
+          </dl>
+        </section>
+      )}
+
       <form className={styles.filters} method="get">
         <label>Affiliation
           <select name="affiliation" defaultValue={f.affiliation ?? ""}>
@@ -78,6 +87,14 @@ async function Members({ searchParams }: { searchParams: SP }) {
             <option value="">Any</option>
             <option value="pending">Waiting for approval</option>
             <option value="approved">Approved</option>
+          </select>
+        </label>
+        <label>Country
+          <select name="country" defaultValue={f.country ?? ""}>
+            <option value="">Any</option>
+            {countries.filter((c) => c.country).map((c) => <option key={c.country} value={c.country!}>{c.country} ({c.n})</option>)}
+            {f.country && f.country !== "none" && !countries.some((c) => c.country === f.country) && <option value={f.country}>{f.country} (0)</option>}
+            <option value="none">Not given</option>
           </select>
         </label>
         <button type="submit">Filter</button>
@@ -108,6 +125,7 @@ async function Members({ searchParams }: { searchParams: SP }) {
                 <td>
                   {[m.role, m.company].filter(Boolean).join(", ")}
                   {m.school && <div>{m.school}{m.gradYear ? ` '${String(m.gradYear).slice(2)}` : ""}</div>}
+                  {m.location && <div>{m.location}</div>}
                   {m.linkedinUrl && <div><a href={m.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>}
                 </td>
                 <td>

@@ -67,7 +67,7 @@ export const nextNetworkingEvent = (today: string) =>
     .sort((a, b) => a.date.localeCompare(b.date))[0];
 
 function networkingBlock(today: string): ChainBlock {
-  const base = { label: "Block 01", kind: "Networking", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni in New York." };
+  const base = { label: "Block 01", kind: "Networking", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni wherever they are." };
   const e = nextNetworkingEvent(today);
   if (!e) return { ...base, status: "soon", action: { kind: "join", label: "Get notified", notify: "networking" } };
   return {

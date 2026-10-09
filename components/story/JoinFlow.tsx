@@ -201,6 +201,9 @@ function Success({ done, headingRef, defaultWallName, onClose }: { done: Done; h
               <label>Grad year<input name="gradYear" inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="YYYY" /></label>
             </div>
           </Detail>
+          <Detail label="City and country" onSave={(fd) => save({ kind: "location", location: String(fd.get("location") ?? "") })}>
+            <label>City and country<input name="location" autoComplete="off" maxLength={120} placeholder="e.g. Lisbon, Portugal" /></label>
+          </Detail>
           <WallDetail defaultName={defaultWallName} onSave={(show, wallName) => save({ kind: "wall", showOnWall: show, wallName })} />
           <div className="actions"><button className="link" type="button" onClick={() => setOpen(false)}>Done</button></div>
         </div>
