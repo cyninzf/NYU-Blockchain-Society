@@ -77,12 +77,10 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .hero2 h1 .w.on{color:#E2CCF8; text-shadow:0 0 28px rgba(185,120,240,.65)}
 /* hero label, block-explorer style: its edges, corner nodes and connector are drawn on the
    canvas ("mined" like a background block); this box only holds the text, which fades in last */
-.cap{position:absolute; left:0; top:0; z-index:1; pointer-events:none; width:max-content; max-width:272px; padding:12px 14px 13px; color:var(--ink-fg); opacity:0; transform:translate(-9999px,0); transition:opacity .18s ease}
-.cap.show{opacity:1}
+.cap{position:absolute; left:0; top:0; z-index:1; pointer-events:none; width:max-content; max-width:272px; padding:12px 14px 13px; color:var(--ink-fg); opacity:0; transform:translate(-9999px,0)}
 .cap b{display:block; font-weight:500; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; line-height:1.3; color:var(--ink-fg)}
 .cap span{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
 .cap i{font-style:normal; padding:2px 7px 3px; border:1px solid rgba(216,194,240,.7); border-radius:4px; font-size:12.5px; line-height:1.3; color:var(--lilac); white-space:nowrap}
-@media (prefers-reduced-motion: reduce){.cap{transition:none}}
 /* "You · <first name>" beside your block (this browser only), always dismissible */
 .you-mark{position:absolute; left:0; top:0; z-index:1; display:flex; align-items:center; gap:8px; white-space:nowrap; font-size:13px; font-weight:500; color:#F5EEFB; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .2s ease, visibility 0s .2s}
 .you-mark.show{opacity:1; visibility:visible; transition:opacity .2s ease}

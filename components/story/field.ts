@@ -48,8 +48,14 @@ const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 const ease = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 
 // The hover label is "mined" like a background block (ms from activation): its four corner
-// nodes appear, its edges draw, a dot runs down the connector from the cube, then the text fades in.
-const LBL_NODES = 110, LBL_EDGES = [70, 320], LBL_DOT = [220, 470], LBL_TEXT = 440;
+// nodes appear, its edges draw while a dot runs down the connector from the cube, and the text
+// fades in the moment the frame closes. The text runs on the frame's clock and fades out with
+// it, and a label that has started drawing finishes (text included) before it closes, so a
+// finished frame is never empty.
+const LBL_NODES = 110, LBL_EDGES = [70, 300], LBL_DOT = [130, 300], LBL_TEXT = [250, 370];
+const smooth = (t: number) => { const x = clamp01(t); return x * x * (3 - 2 * x); };
+// Brief gaps while the pointer crosses between cubes (or the logo turns under it) keep the label.
+const HOVER_HOLD = 220;
 
 export function createField(el: FieldElements, opts: FieldOptions): Field {
   const { surface: cv, cap, capTitle, capText, heroTxt, words, cards, focus, you, youName } = el;
@@ -86,19 +92,23 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   let capOn = false, capA = 0, capW = 0, capH = 0, capT0 = -1e9, hero0 = { ox: 0, oy: 0, S: 1 }, side = { ox: 0, oy: 0, S: 1 }, focusPose = { ox: 0, oy: 0, S: 1 }, focusTop = 0;
 
   let active = -1, hover = -1, pinned = -1, wordHover = -1, cardHover = -1, lastUser = -1e9, centers: [number, number][] = [];
+  // The block the label belongs to: it only changes when a label opens, so a fading label stays on its cube.
+  let capI = -1, capTextA = 0, lastDirect = -1, lastDirectT = -1e9;
   const glow = [0, 0, 0];
   function setActive(i: number, showCap: boolean) {
     const c = i >= 0 && showCap; if (i === active && c === capOn) return;
-    const fresh = c && (i !== active || !capOn); active = i; capOn = c;
+    active = i;
     words.forEach((w, j) => w.classList.toggle("on", j === i));
-    cap.classList.remove("show");
-    if (fresh) {
+    if (c && i !== capI) {
       capTitle.textContent = `Focus ${String(i + 1).padStart(2, "0")} · ${INFO[i].name}`;
       // Single source of truth: the first three tags of that Focus block.
       capText.replaceChildren(...focusTags(INFO[i].id).map((t) => { const s = document.createElement("i"); s.textContent = t; return s; }));
-      capW = cap.offsetWidth; capH = cap.offsetHeight; // measured once per change, not per frame
-      capT0 = reduce ? -1e9 : performance.now();
+      capW = cap.offsetWidth; capH = cap.offsetHeight; // re-measured by capRO when fonts swap in
     }
+    // Mine a new frame unless this block's label is still (mostly) on screen: then it just stays.
+    if (c && (i !== capI || capA < .3)) { capT0 = reduce ? -1e9 : performance.now(); capTextA = 0; }
+    if (c) capI = i;
+    capOn = c;
   }
   const kick = () => requestBackdropFrame();
 
@@ -255,8 +265,13 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       ox = at("ox"); oy = at("oy"); S = at("S");
     }
     logoA = clamp01((fin.getBoundingClientRect().top - pinTop - (oy + S * 1.7)) / 50);
-    const direct = wordHover >= 0 || hover >= 0;
-    let want = wordHover >= 0 ? wordHover : hover >= 0 ? hover : cardHover >= 0 ? cardHover : pinned;
+    const pointed = wordHover >= 0 ? wordHover : hover;
+    if (pointed >= 0) { lastDirect = pointed; lastDirectT = now; }
+    // (reduced motion: the label appears whole, and no frame would come to end a hold)
+    const held = pointed < 0 && !dragging && !reduce && lastDirect >= 0
+      && (now - lastDirectT < HOVER_HOLD || (capOn && capI === lastDirect && capTextA < 1)) ? lastDirect : -1;
+    const direct = pointed >= 0 || held >= 0;
+    let want = pointed >= 0 ? pointed : held >= 0 ? held : cardHover >= 0 ? cardHover : pinned;
     let auto = false;
     if (want < 0 && !joining && scrollY < H * .3 && !reduce && k >= 1 && (now - lastUser) > 4000 && (now - lastInput) > 4000) { const c = Math.floor((el - 2) / 3.2); want = c >= 0 && c % 4 < 3 ? c % 4 : -1; auto = true; }
     // Small screens have no room beside the logo: the idle cycle only lights blocks there.
@@ -350,8 +365,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     } else showYou(false);
     // Label: a block-explorer card joined to the active cube by a connector from its nearest corner node.
     capA += ((capOn ? 1 : 0) - capA) * (reduce ? 1 : .25);
-    if (active >= 0 && centers[active] && capA > .01) {
-      const [cx, cy] = centers[active], small = W <= 860;
+    if (capI >= 0 && centers[capI] && capA > .01) {
+      const [cx, cy] = centers[capI], small = W <= 860;
       let lx: number, ly: number;
       if (small) { lx = W / 2 - capW / 2; ly = 76; } // just under the nav, over the logo (filled, below)
       else {
@@ -366,9 +381,9 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       let anchor = box[0], ad = 1e9;
       for (const q of box) { const d = Math.hypot(q[0] - cx, q[1] - cy); if (d < ad) { ad = d; anchor = q; } }
       let corner = lp[0], cd = 1e9;
-      for (const v of cubeV[INFO[active].cube]) { const q = lp[v], d = Math.hypot(q[0] - anchor[0], q[1] - anchor[1]); if (d < cd) { cd = d; corner = q; } }
+      for (const v of cubeV[INFO[capI].cube]) { const q = lp[v], d = Math.hypot(q[0] - anchor[0], q[1] - anchor[1]); if (d < cd) { cd = d; corner = q; } }
       const t = now - capT0;
-      const pn = clamp01(t / LBL_NODES), pe = ease((t - LBL_EDGES[0]) / (LBL_EDGES[1] - LBL_EDGES[0])), pd = ease((t - LBL_DOT[0]) / (LBL_DOT[1] - LBL_DOT[0]));
+      const pn = clamp01(t / LBL_NODES), pe = smooth((t - LBL_EDGES[0]) / (LBL_EDGES[1] - LBL_EDGES[0])), pd = ease((t - LBL_DOT[0]) / (LBL_DOT[1] - LBL_DOT[0]));
       ctx.save(); ctx.globalAlpha = capA; ctx.lineWidth = 1; ctx.strokeStyle = "rgba(216,194,240,.85)";
       if (small && pe > 0) { ctx.fillStyle = `rgba(28,5,51,${.88 * pe})`; ctx.fillRect(lx, ly, capW, capH); }
       // connector, drawn behind the travelling dot
@@ -386,8 +401,10 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
       if (pd > 0 && pd < 1) { ctx.beginPath(); ctx.arc(dx, dy, 2.4, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
       cap.style.transform = `translate(${lx - .5}px, ${ly - .5}px)`;
-      if (capOn && t >= LBL_TEXT) cap.classList.add("show");
-    }
+      // While open the text follows the frame's clock; closing, it keeps its level and fades with the frame.
+      if (capOn) capTextA = Math.max(capTextA, clamp01((t - LBL_TEXT[0]) / (LBL_TEXT[1] - LBL_TEXT[0])));
+      cap.style.opacity = String(Math.round(capA * capTextA * 1000) / 1000);
+    } else if (cap.style.opacity !== "0") cap.style.opacity = "0";
     if (!reduce && k >= 1 && logoA > .01) {
       ctx.save(); ctx.globalAlpha = logoA; ctx.fillStyle = "rgba(233,219,248,.85)"; // the network's dots
       for (const pk of packets) {
@@ -404,6 +421,11 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
     let best = -1, bd = logoA > .3 ? S * .75 : 0;
     centers.forEach((c, i) => { const d = Math.hypot(c[0] - px, c[1] - py); if (d < bd) { bd = d; best = i; } });
+    // a little hysteresis: the hovered cube keeps the pointer near its edge, so it doesn't flicker
+    if (hover >= 0 && best !== hover && logoA > .3 && centers[hover]) {
+      const d = Math.hypot(centers[hover][0] - px, centers[hover][1] - py);
+      if (d < S * .9 && (best < 0 || d < bd + S * .12)) best = hover;
+    }
     return best;
   };
   // Touch has no hover: hit-test on press so a tap shows (or toggles) the label.
@@ -439,6 +461,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   cv.addEventListener("pointerup", onUp); cv.addEventListener("pointercancel", onUp);
   addEventListener("resize", onResize);
   const heroRO = new ResizeObserver(() => { resize(); kick(); }); heroRO.observe(heroTxt);
+  // The label's size, kept current (e.g. when the web fonts swap in while the logo assembles).
+  const capRO = new ResizeObserver(() => { capW = cap.offsetWidth; capH = cap.offsetHeight; kick(); }); capRO.observe(cap);
   resize();
   // The network fades only right behind the logo (it's the network's core, not an object on
   // top of it); blocks don't form in a ring around it or under an open label.
@@ -469,7 +493,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     clearMember() { member = null; trail = null; trailEnd = null; showYou(false); kick(); },
     destroy() {
       removePainter();
-      heroRO.disconnect();
+      heroRO.disconnect(); capRO.disconnect();
       wordCleanups.forEach((f) => f()); cardCleanups.forEach((f) => f());
       cv.removeEventListener("pointerdown", onDown); cv.removeEventListener("pointermove", onMove); cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("pointerup", onUp); cv.removeEventListener("pointercancel", onUp);
