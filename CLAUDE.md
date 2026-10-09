@@ -135,3 +135,4 @@ Network wall and admin
 - Accessibility: real buttons and links, visible focus, AA contrast, respect `prefers-reduced-motion` (the prototype already handles this).
 - Mobile-first. Check at 390px width.
 - Small commits with clear messages. Update this file when a decision changes.
+- Round 7: no co-author or "Generated with" attribution lines in commits or PRs (`.claude/settings.json` sets `attribution` to empty strings and `sessionUrl: false`). Don't mention the AI assistant or its vendor in code comments, README, docs or config; the only exceptions are this file's name and the `.claude/` settings directory, which the tool requires. Existing history is not rewritten.
