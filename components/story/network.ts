@@ -1,5 +1,5 @@
 // Background for the hero canvas: a drifting constellation (nodes, faint edges between near
-// neighbours, small dots travelling along edges) that every few seconds pulls 8 nearby nodes
+// neighbours, small dots travelling along edges) that every 3–5 seconds pulls 8 nearby nodes
 // into an isometric cube, draws its 12 edges one by one, glows ("block confirmed"), holds,
 // then lets the nodes relax back into the network. Drawn into the field's canvas each frame.
 
@@ -14,7 +14,16 @@ const CUBE_TOP = [2, 3, 7, 6];
 // Formation timeline (ms).
 const GATHER = 1400, EDGE = 170, EDGES_END = GATHER + EDGE * 12, GLOW = 650, HOLD_END = EDGES_END + GLOW + 2000, RELAX = 1400;
 const END = HOLD_END + RELAX;
-const MAX_FORMATIONS = 2;
+
+/** Density for a viewport: ~128 nodes at 1440×900, scaled by area, about half on phones. */
+export function densityFor(W: number, H: number) {
+  const f = Math.min(1.5, Math.max(.5, (W * H) / (1440 * 900)));
+  return { nodes: Math.round(128 * f), dots: Math.round(18 * f), maxFormations: W < 700 ? 1 : 3 };
+}
+export type Density = ReturnType<typeof densityFor>;
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+const inRect = (x: number, y: number, r: Rect) => x > r.left && x < r.right && y > r.top && y < r.bottom;
 
 const ease = (t: number) => { const x = Math.min(Math.max(t, 0), 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
@@ -37,13 +46,13 @@ export type DrawOpts = {
   par: number;
   /** keep formations away from the hero logo */
   avoid: { x: number; y: number; r: number };
-  /** Screen rects (e.g. the hero copy) blocks must not form over. Read only when a block starts. */
-  avoidRects: () => { left: number; top: number; right: number; bottom: number }[];
+  /** Screen rects (the copy) blocks must not form over, and where the network is dimmed. Read a few times a second. */
+  avoidRects: () => Rect[];
 };
 
-export function createNetwork(rnd: () => number) {
+export function createNetwork(rnd: () => number, density: Density) {
   const nodes: Node[] = [];
-  for (let tries = 0; nodes.length < 64 && tries < 5000; tries++) {
+  for (let tries = 0; nodes.length < density.nodes && tries < 20000; tries++) {
     const p: V3 = [(rnd() - .5) * 17, (rnd() - .5) * 11, (rnd() - .5) * 17];
     const r = Math.hypot(p[0], p[1], p[2]);
     if (r < 3.2 || r > 8.4 || nodes.some((n) => dist(n.home, p) < 1.15)) continue;
@@ -61,15 +70,16 @@ export function createNetwork(rnd: () => number) {
   pairs.sort((a, b) => a[2] - b[2]);
   for (const [i, j] of pairs) if (deg[i] < 3 && deg[j] < 3) { edges.push([i, j]); deg[i]++; deg[j]++; }
   const adj = nodes.map((_, i) => edges.map((e, k) => [e, k] as const).filter(([e]) => e[0] === i || e[1] === i));
-  const dots = Array.from({ length: 8 }, () => ({ e: (rnd() * edges.length) | 0, t: rnd(), s: .18 + rnd() * .22, f: rnd() < .5 }));
+  const dots = Array.from({ length: density.dots }, () => ({ e: (rnd() * edges.length) | 0, t: rnd(), s: .18 + rnd() * .22, f: rnd() < .5 }));
 
   let formations: Formation[] = [];
   let nextAt = -1;
   let lastNow = 0;
+  // Clear zones, refreshed a few times a second rather than every frame.
+  let rects: Rect[] = [], rectsAt = -1e9;
 
   function start(now: number, sp: P2[], o: DrawOpts) {
     const { W, H, avoid } = o;
-    const rects = o.avoidRects();
     const pad = 28;
     const ok = (i: number) => {
       const q = sp[i];
@@ -102,7 +112,11 @@ export function createNetwork(rnd: () => number) {
     // A long pause (hidden tab) shouldn't fast-forward formations.
     if (now - lastNow > 500) for (const f of formations) f.t0 += now - lastNow;
     lastNow = now;
-    if (nextAt < 0) nextAt = now + 2500 + rnd() * 2500;
+    if (nextAt < 0) nextAt = now + 1500 + rnd() * 1500;
+    if (now - rectsAt > 300 || o.reduce) { rects = o.avoidRects(); rectsAt = now; }
+    const { avoid } = o, logoR = avoid.r * .7;
+    // Dim the network behind the logo and the copy so the text stays easy to read.
+    const clear = (x: number, y: number) => Math.hypot(x - avoid.x, y - avoid.y) < logoR || rects.some((r) => inRect(x, y, r)) ? .35 : 1;
 
     // Formation weight per node: 0 drifting, 1 sitting on a cube vertex.
     for (const n of nodes) n.w = 0;
@@ -130,27 +144,28 @@ export function createNetwork(rnd: () => number) {
     const sp = pos.map(proj);
     const depth = (z: number) => clamp01((z + 8) / 16);
 
-    if (!reduce && formations.length < MAX_FORMATIONS && now >= nextAt) {
-      nextAt = start(now, sp, o) ? now + 6000 + rnd() * 4000 : now + 1000;
+    if (!reduce && formations.length < density.maxFormations && now >= nextAt) {
+      nextAt = start(now, sp, o) ? now + 3000 + rnd() * 2000 : now + 800;
     }
+    const dim = sp.map((q) => clear(q[0], q[1]));
 
     // network edges (fade out while their nodes are part of a block)
     ctx.lineWidth = 1;
     for (const [a, b] of edges) {
       const A = sp[a], B = sp[b], k = 1 - Math.max(nodes[a].w, nodes[b].w);
       if (k <= 0) continue;
-      ctx.strokeStyle = `rgba(185,138,232,${(.04 + .09 * depth((A[2] + B[2]) / 2)) * k * gk})`;
+      ctx.strokeStyle = `rgba(185,138,232,${(.055 + .12 * depth((A[2] + B[2]) / 2)) * k * gk * Math.min(dim[a], dim[b])})`;
       ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
     }
     // nodes
     for (let i = 0; i < sp.length; i++) {
       const q = sp[i], dz = depth(q[2]), w = nodes[i].w;
-      ctx.fillStyle = `rgba(216,194,240,${(.14 + .3 * dz + .3 * w) * gk})`;
+      ctx.fillStyle = `rgba(216,194,240,${(.18 + .36 * dz + .3 * w) * gk * Math.max(dim[i], w)})`;
       ctx.beginPath(); ctx.arc(q[0], q[1], 1 + 1.1 * dz + .6 * w, 0, Math.PI * 2); ctx.fill();
     }
     // dots travelling along network edges
     if (!reduce) {
-      ctx.fillStyle = `rgba(233,219,248,${.45 * gk})`;
+      ctx.fillStyle = `rgba(233,219,248,${.55 * gk})`;
       for (const d of dots) {
         d.t += d.s / 60;
         let [a, b] = edges[d.e]; if (d.f) [a, b] = [b, a];
@@ -161,9 +176,11 @@ export function createNetwork(rnd: () => number) {
         }
         if (Math.max(nodes[a].w, nodes[b].w) > 0) continue;
         const A = sp[a], B = sp[b];
+        ctx.globalAlpha = Math.min(dim[a], dim[b]);
         ctx.beginPath(); ctx.arc(A[0] + (B[0] - A[0]) * d.t, A[1] + (B[1] - A[1]) * d.t, 1.5, 0, Math.PI * 2); ctx.fill();
       }
     }
+    ctx.globalAlpha = 1;
     // forming blocks
     for (const { f, t } of live) {
       const vs = f.nodes.map((i) => sp[i]);
@@ -193,5 +210,5 @@ export function createNetwork(rnd: () => number) {
     }
   }
 
-  return { draw };
+  return { draw, density };
 }

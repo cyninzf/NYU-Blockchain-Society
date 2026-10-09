@@ -3,7 +3,7 @@
 // Focus cards, caption) is rendered by React; this module only reads it and toggles classes.
 
 import { industries } from "@/content/industries";
-import { createNetwork, type P2, type V3 } from "./network";
+import { createNetwork, densityFor, type P2, type V3 } from "./network";
 
 export type FieldElements = {
   canvas: HTMLCanvasElement;
@@ -68,11 +68,12 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   const L0 = LV.map(center);
 
   // --- background: drifting constellation that periodically forms blocks (network.ts) ---
-  const network = createNetwork(rnd);
+  // Density scales with the viewport; rebuilt in resize() when the size class changes.
+  let network: ReturnType<typeof createNetwork> | null = null;
   // Text the blocks must not form behind: the hero copy, proof strip, mission and Focus cards.
   const copyRects = () => {
     const c = cv.getBoundingClientRect();
-    return avoid.map((el) => {
+    return (capOn ? [...avoid, cap] : avoid).map((el) => {
       const r = el.getBoundingClientRect();
       return { left: r.left - c.left, top: r.top - c.top, right: r.right - c.left, bottom: r.bottom - c.top };
     });
@@ -147,6 +148,8 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
   function resize() {
     const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
     W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const d = densityFor(W, H);
+    if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations) network = createNetwork(rnd, d);
     const wide = W > 860, ht = heroTxt.offsetTop;
     hero0 = wide ? { ox: W / 2, oy: Math.max(H * .22, Math.min(H * .4, (ht + 64) / 2)), S: Math.max(40, Math.min(W * .2, (ht - 110) / 3.4)) } : { ox: W / 2, oy: H * .25, S: Math.min(W, H) * .15 };
     side = wide ? { ox: W * .7, oy: H * .5, S: Math.min(W, H) * .18 } : { ox: W / 2, oy: H * .24, S: Math.min(W, H) * .15 };
@@ -187,7 +190,7 @@ export function createField(el: FieldElements, opts: FieldOptions): Field {
     for (let i = 0; i < 3; i++) { const tg = active === i || (joining && sel.has(i)) ? 1 : member && member.blocks.includes(i) ? .4 : 0; glow[i] += (tg - glow[i]) * (reduce ? 1 : .12); }
     ctx.clearRect(0, 0, W, H);
     // background: nearer nodes shift more with scroll (parallax); blocks form away from the logo
-    network.draw(ctx, { now, el, reduce, gk, P, W, H, par: Math.min(scrollY, H * 1.5) * .05, avoid: { x: ox, y: oy, r: S * 3.2 }, avoidRects: copyRects });
+    network!.draw(ctx, { now, el, reduce, gk, P, W, H, par: Math.min(scrollY, H * 1.5) * .05, avoid: { x: ox, y: oy, r: S * 3.2 }, avoidRects: copyRects });
     // logo
     const lp = L0.map((h, i) => P(reduce ? h : [Ls[i][0] + (h[0] - Ls[i][0]) * k, Ls[i][1] + (h[1] - Ls[i][1]) * k, Ls[i][2] + (h[2] - Ls[i][2]) * k]));
     ctx.save(); ctx.globalAlpha = k;
