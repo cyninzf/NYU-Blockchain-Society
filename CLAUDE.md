@@ -56,6 +56,7 @@ All editable content lives in `/content` as typed TS data: `events.ts`, `confere
 ## Phase 1 app: "Add your block" (join in the hero)
 Built. See "Decided" below for the flow, data model and admin.
 - Welcome email (round 9, `sendWelcome` in `lib/member-email.ts`): exactly one, on a new join only (the insert, not a re-submit; never retroactively to existing members), sent with `after()` so it never slows or breaks the join. Subject and heading "Block #<n> added. You're on the chain.", the short boilerplate, the notify line when they came from a notify block, an "Update your block" button (→ `/update`) and an unsubscribe link.
+- "Update your block" (round 9, `/update`; footer link and the welcome email): enter an email → the same answer whether or not it's a member → a magic link (purpose `member` in `auth_tokens`, single-use, 15 minutes; never sent to unsubscribed members) → `/update/verify` (a "Continue" click) → a 24-hour signed `nyubs_member` cookie → `/update/edit`, where the member edits their own blocks, notify preferences and optional fields (LinkedIn, role, company, NYU school, grad year, city and country), never name or email. Validation is shared (`lib/member-fields.ts`).
 - Unsubscribe (round 9): `members.unsubscribed_at`; unsubscribed members never receive any email (welcome, announcements, magic links). Every member email has a signed, never-expiring unsubscribe link (`/unsubscribe?t=…`, no login) and RFC 8058 headers (`List-Unsubscribe` → `POST /api/unsubscribe`, `List-Unsubscribe-Post: One-Click`), so mail apps unsubscribe in one click. The page itself unsubscribes on one button press, not on load (link scanners open pages; they don't press buttons), and offers "Resubscribe".
 
 ## Email (round 9)
@@ -115,7 +116,7 @@ Data and security
 
 Navigation
 - Nav (desktop): "The chain" → /#chain, "Conference" → /conference, "Join" → join flow. No "Events", no "Focus" (the #focus anchor stays). Below 700px: a menu button next to "Join" opens a full-screen sheet (The chain, Conference, Media kit, "Add your block") whose links draw in with a small node-and-edge animation; focus trapped, Esc and close button, body scroll locked. Anchors use next/link so they work from any page; targets have scroll-margin-top for the fixed nav; smooth scroll (not under reduced motion); active state via aria-current (page for Conference, location for the home section in view). The nav is solid on sub-pages.
-- Footer: Add your block, Conference, Media kit, X, LinkedIn, NYU Alumni.
+- Footer: Add your block, Update your block, Conference, Media kit, X, LinkedIn, NYU Alumni.
 - Join section: "Add yourself to the network." / "Pick your blocks, add your name, and you're in. Members hear about events first." "Add your block" is the only button; LinkedIn and X are small text links beneath it.
 - Mobile: no horizontal page overflow anywhere, tap targets ≥ 44px; admin tables scroll horizontally inside the table only.
 
