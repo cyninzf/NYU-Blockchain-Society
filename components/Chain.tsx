@@ -1,8 +1,10 @@
+import { cacheLife } from "next/cache";
 import Link from "next/link";
 import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
-import { events, type BlockStatus } from "@/content/events";
+import { chainBlocks, type BlockStatus } from "@/content/events";
 import { chainIntro } from "@/content/site";
 import NextEditionLink from "./conference/NextEditionLink";
+import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
 const STATUS: Record<BlockStatus, { label: string; dot: string; block: string }> = {
@@ -13,7 +15,15 @@ const STATUS: Record<BlockStatus, { label: string; dot: string; block: string }>
   building: { label: "Building", dot: "st", block: "blk dim" },
 };
 
-export default function Chain() {
+/** Today in New York (YYYY-MM-DD). Cached hourly so the page stays static. */
+async function todayNY() {
+  "use cache";
+  cacheLife("hours");
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+}
+
+export default async function Chain() {
+  const blocks = chainBlocks(await todayNY());
   return (
     <section className="chain" id="chain" aria-labelledby="chain-h">
       <div className="wrap">
@@ -22,7 +32,7 @@ export default function Chain() {
           <p>{chainIntro}</p>
         </div>
         <ol className="blocks">
-          {events.map((ev) => {
+          {blocks.map((ev) => {
             const st = STATUS[ev.status];
             const live = st.block.includes("live");
             const cls = `blk-go ${live ? "btn btn-w" : "go"}`;
@@ -35,11 +45,17 @@ export default function Chain() {
                 </div>
                 <h3>{ev.title}</h3>
                 <p>{ev.text}</p>
+                {ev.next && (
+                  <p className="next">
+                    <span className="tag mono">{ev.next.format}</span>
+                    <span>Next: <b>{ev.next.title}</b> · {ev.next.date}{ev.next.venue && <> · {ev.next.venue}</>}</span>
+                  </p>
+                )}
                 {ev.editions && (
                   <ol className="editions" aria-label="Editions">
                     {pastEditions.map((e) => (
                       <li key={e.year}>
-                        <Link className="ed past" href={`/conference/${e.year}`}>{e.year} <span aria-hidden="true">✓</span><span className="sr"> (done)</span></Link>
+                        <Link className="ed past" href={`/conference/${e.year}`}>{e.year} <Icon name="check" /><span className="sr"> (done)</span></Link>
                       </li>
                     ))}
                     {nextEdition && (
@@ -51,29 +67,18 @@ export default function Chain() {
                     )}
                   </ol>
                 )}
-                {ev.stats && (
-                  <div className="foot mono">
-                    {ev.stats.map((s) => (
-                      <span key={s.label}><b>{s.value}</b> {s.label}</span>
-                    ))}
-                  </div>
-                )}
                 {a.kind === "join" ? (
                   <OpenJoin className={cls} notify={a.notify}>
                     {a.label}<span className="sr">: {ev.title}</span>
                   </OpenJoin>
-                ) : a.href.startsWith("/") && !a.href.startsWith("/#") ? (
-                  <Link className={cls} href={a.href}>
-                    {a.label} <span aria-hidden="true">→</span>
-                  </Link>
                 ) : a.external ? (
                   <a className={cls} href={a.href} target="_blank" rel="noopener">
-                    {a.label} <span aria-hidden="true">↗</span><span className="sr"> (opens in a new tab)</span>
+                    {a.label} <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span>
                   </a>
                 ) : (
-                  <a className={cls} href={a.href}>
-                    {a.label} <span aria-hidden="true">↓</span>
-                  </a>
+                  <Link className={cls} href={a.href}>
+                    {a.label} <Icon name="arrow-right" />
+                  </Link>
                 )}
               </li>
             );

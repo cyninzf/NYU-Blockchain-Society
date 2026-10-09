@@ -16,7 +16,7 @@ export const members = pgTable(
     affiliation: affiliation().notNull(),
     /** Industry ids: blockchain, finance, ai. */
     blocks: text().array().notNull().default(sql`'{}'::text[]`),
-    /** Programs to hear about: networking, mentorship, accelerator. */
+    /** Programs to hear about: networking, accelerator, conference (older rows may hold "mentorship"). */
     notify: text().array().notNull().default(sql`'{}'::text[]`),
     /** Where they joined from, e.g. ?src=mixer on an event QR code. */
     source: text(),

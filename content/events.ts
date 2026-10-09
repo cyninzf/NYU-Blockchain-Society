@@ -1,26 +1,41 @@
 // "The chain so far": events and programs, one block each. Every block is clickable.
-// Mentorship and the accelerator are "building": never present them as live.
+// The accelerator is "building": never present it as live. New programs get a block only
+// once someone owns them.
 
 import { series } from "./conferences";
 
-/** Programs people can ask to hear about from the join flow (`notify`). */
-export type Notify = "networking" | "mentorship" | "accelerator" | "conference";
-export const NOTIFY: Notify[] = ["networking", "mentorship", "accelerator", "conference"];
+/** Programs people can ask to hear about from the join flow (`notify`). Old rows may also hold "mentorship". */
+export type Notify = "networking" | "accelerator" | "conference";
+export const NOTIFY: Notify[] = ["networking", "accelerator", "conference"];
 
 /** Line added to the join success screen when someone came from a block's "Get notified". */
 export const notifyMessages: Record<Notify, string> = {
-  networking: "We'll tell you when the next Networking Night is set.",
-  mentorship: "We'll tell you when Mentorship launches.",
+  networking: "We'll tell you about upcoming networking events.",
   accelerator: "We'll tell you when the Accelerator launches.",
   conference: "We'll tell you when the next conference is announced.",
 };
 
+export type EventFormat = "mixer" | "workshop" | "roundtable" | "dinner" | "fireside" | "office-hours" | "other";
+
+export const formatLabels: Record<EventFormat, string> = {
+  mixer: "Mixer",
+  workshop: "Workshop",
+  roundtable: "Roundtable",
+  dinner: "Dinner",
+  fireside: "Fireside",
+  "office-hours": "Office hours",
+  other: "Event",
+};
+
 /**
- * Networking Nights, the recurring alumni networking series. All fields optional.
- * Set nextDate (YYYY-MM-DD) and lumaUrl together to show the next one as "Upcoming";
- * clear them after the event so the block goes back to "Next date soon".
+ * Networking: mixers, workshops, roundtables and more. Only `format` and `title` are required.
+ * Block 01 shows the soonest event dated today or later (New York time), and opens its Luma
+ * page. Past events can stay here; they're ignored.
+ * Example: { format: "mixer", title: "Fall mixer", date: "2026-11-12", venue: "…", lumaUrl: "https://lu.ma/…" }
  */
-export const networkingNights: { nextDate?: string; venue?: string; lumaUrl?: string } = {};
+export type NetworkingEvent = { format: EventFormat; title: string; date?: string; venue?: string; lumaUrl?: string };
+
+export const networkingEvents: NetworkingEvent[] = [];
 
 export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "building";
 
@@ -33,7 +48,8 @@ export type ChainBlock = {
   status: BlockStatus;
   title: string;
   text: string;
-  stats?: { value: number; label: string }[];
+  /** The next networking event, shown as "Next: <title> · <date>" with a format tag. */
+  next?: { format: string; title: string; date: string; venue?: string };
   /** Show the conference's mini edition chain (from conferences.ts) inside the card. */
   editions?: boolean;
   action: BlockAction;
@@ -42,22 +58,28 @@ export type ChainBlock = {
 const formatDate = (iso: string) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-function networkingBlock(): ChainBlock {
-  const { nextDate, venue, lumaUrl } = networkingNights;
-  const base = { label: "Block 01", title: "Networking Nights" };
-  const about = "Our recurring networking series for NYU alumni in New York.";
-  if (nextDate && lumaUrl) {
-    return {
-      ...base,
-      status: "upcoming",
-      text: `${[formatDate(nextDate), venue].filter(Boolean).join(" · ")}. ${about}`,
-      action: { kind: "link", label: "Register on Luma", href: lumaUrl, external: true },
-    };
-  }
-  return { ...base, status: "soon", text: about, action: { kind: "join", label: "Get notified", notify: "networking" } };
+/** The soonest event on or after `today` (YYYY-MM-DD). */
+export const nextNetworkingEvent = (today: string) =>
+  networkingEvents
+    .filter((e): e is NetworkingEvent & { date: string } => !!e.date && e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+
+function networkingBlock(today: string): ChainBlock {
+  const base = { label: "Block 01", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni in New York." };
+  const e = nextNetworkingEvent(today);
+  if (!e) return { ...base, status: "soon", action: { kind: "join", label: "Get notified", notify: "networking" } };
+  return {
+    ...base,
+    status: "upcoming",
+    next: { format: formatLabels[e.format], title: e.title, date: formatDate(e.date), venue: e.venue },
+    action: e.lumaUrl
+      ? { kind: "link", label: "Register on Luma", href: e.lumaUrl, external: true }
+      : { kind: "join", label: "Get notified", notify: "networking" },
+  };
 }
 
-export const events: ChainBlock[] = [
+/** The chain as of `today` (YYYY-MM-DD, New York). */
+export const chainBlocks = (today: string): ChainBlock[] => [
   {
     label: "Block 00",
     status: "annual",
@@ -66,16 +88,9 @@ export const events: ChainBlock[] = [
     editions: true,
     action: { kind: "link", label: "The conference series", href: "/conference" },
   },
-  networkingBlock(),
+  networkingBlock(today),
   {
     label: "Block 02",
-    status: "building",
-    title: "Mentorship",
-    text: "Alumni paired with NYU students entering the industry.",
-    action: { kind: "join", label: "Get notified", notify: "mentorship" },
-  },
-  {
-    label: "Block 03",
     status: "building",
     title: "Accelerator",
     text: "Support for NYU founders working across digital assets and AI.",
