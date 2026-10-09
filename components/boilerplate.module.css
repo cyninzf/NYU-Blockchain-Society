@@ -1,0 +1,10 @@
+/* The boilerplate list: public on /media-kit once approved, and on /admin/media-kit-preview. */
+.h2{margin:0; font-weight:580; font-size:clamp(26px,2.8vw,38px); letter-spacing:-.035em; line-height:1.05; display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+.draft{display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:999px; border:1px dashed #FFB4C8; color:#FFD5E1; font-size:12px; font-weight:400; letter-spacing:0}
+.boiler{list-style:none; margin:22px 0 0; padding:0; display:grid; gap:18px; max-width:76ch}
+.boiler li{padding:18px 20px; border:1px solid var(--ink-line); border-radius:12px; background:var(--ink-2)}
+.bhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px}
+.bhead h3{margin:0; font-size:16px; font-weight:600}
+.bhead h3 span{margin-left:8px; font-size:12px; font-weight:400; color:var(--ink-muted)}
+.bhead :global(.btn){min-height:44px; padding:0 14px; font-size:14px}
+.boiler p{margin:12px 0 0; color:var(--ink-muted)}

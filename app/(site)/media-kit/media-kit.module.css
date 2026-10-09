@@ -39,20 +39,6 @@
 .specimen{margin:0; font-size:clamp(40px,5vw,72px); font-weight:600; letter-spacing:-.045em; line-height:1}
 .specimen:global(.mono){font-size:clamp(32px,4vw,56px); letter-spacing:0; font-weight:500}
 
-.draft{display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:999px; border:1px dashed #FFB4C8; color:#FFD5E1; font-size:12px; font-weight:400; letter-spacing:0}
-.boiler{list-style:none; margin:22px 0 0; padding:0; display:grid; gap:18px; max-width:76ch}
-.boiler li{padding:18px 20px; border:1px solid var(--ink-line); border-radius:12px; background:var(--ink-2)}
-.bhead{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px}
-.bhead h3{margin:0; font-size:16px; font-weight:600}
-.bhead h3 span{margin-left:8px; font-size:12px; font-weight:400; color:var(--ink-muted)}
-.bhead :global(.btn){min-height:44px; padding:0 14px; font-size:14px}
-.boiler p{margin:12px 0 0; color:var(--ink-muted)}
-
-.facts{list-style:none; margin:22px 0 0; padding:0; border-top:1px solid var(--ink-line); max-width:80ch}
-.facts li{display:grid; grid-template-columns:120px minmax(0,1fr); gap:4px 20px; padding:14px 0; border-bottom:1px solid var(--ink-line)}
-.facts li span{color:var(--ink-muted); padding-top:3px}
-
 @media (max-width:640px){
   .type{grid-template-columns:1fr}
-  .facts li{grid-template-columns:1fr}
 }

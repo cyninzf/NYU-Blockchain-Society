@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/contacts/import", label: "Import contacts" },
   { href: "/admin/linkedin", label: "LinkedIn group" },
   { href: "/admin/linkedin/import", label: "Import LinkedIn group" },
+  { href: "/admin/media-kit-preview", label: "Media kit preview" },
 ] as const;
 
 export default function AdminNav() {

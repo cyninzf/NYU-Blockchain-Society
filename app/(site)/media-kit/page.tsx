@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Boilerplate from "@/components/Boilerplate";
 import CopyButton from "@/components/CopyButton";
-import { boilerplate, boilerplateStatus, wordCount } from "@/content/boilerplate";
+import { boilerplateStatus } from "@/content/boilerplate";
 import { colors, marks, PNG_SIZES, ZIP_FILE } from "@/content/brand";
-import { editions, statsLine } from "@/content/conferences";
 import { siteName } from "@/content/site";
 import s from "./media-kit.module.css";
 
-const description = "Logos, colors, type, approved facts and boilerplate for writing about NYU Blockchain Society.";
+// The boilerplate is public only once approved (review drafts at /admin/media-kit-preview).
+const showBoilerplate = boilerplateStatus === "approved";
+const description = `Logos, colors${showBoilerplate ? ", type and boilerplate" : " and type"} for writing about NYU Blockchain Society.`;
 
 export const metadata: Metadata = {
   title: "Media kit",
@@ -17,15 +19,13 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: `Media kit · ${siteName}`, description },
 };
 
-const first = editions[0];
-
 export default function MediaKitPage() {
   return (
     <div className={`${s.page} page-top`}>
       <div className="wrap">
         <header className={s.head} data-bg="dim">
           <p className="kicker mono">Media kit</p>
-          <h1>Logos, colors and facts</h1>
+          <h1>Logos, colors and type</h1>
           <p className={s.lede}>Everything you need to write about or feature NYU Blockchain Society. Please follow the usage rules below.</p>
           <a className="btn btn-w" href={ZIP_FILE} download>Download all (ZIP)</a>
         </header>
@@ -104,33 +104,7 @@ export default function MediaKitPage() {
           </div>
         </section>
 
-        <section className={s.section} data-bg="dim" aria-labelledby="mk-boiler">
-          <h2 id="mk-boiler">
-            Boilerplate {boilerplateStatus === "draft" && <span className={`${s.draft} mono`}>Draft, pending review</span>}
-          </h2>
-          <ul className={s.boiler}>
-            {boilerplate.map((b) => (
-              <li key={b.id}>
-                <div className={s.bhead}>
-                  <h3>{b.label} <span className="mono">{wordCount(b.text)} words</span></h3>
-                  <CopyButton className="btn btn-o" text={b.text} label={`Copy the ${b.label.toLowerCase()} description`} />
-                </div>
-                <p>{b.text}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={s.section} data-bg="dim" aria-labelledby="mk-facts">
-          <h2 id="mk-facts">Approved facts</h2>
-          <p className={s.note}>Use these exactly. Say &ldquo;registrations&rdquo;, never &ldquo;attendees&rdquo;.</p>
-          <ul className={s.facts}>
-            <li><span className="mono">Conference</span>NYU Blockchain Conference {first.year}, {first.date}, {first.address}</li>
-            {first.stats && <li><span className="mono">Figures</span>{statsLine(first.stats).replace(" + ", " plus ")}</li>}
-            <li><span className="mono">Series</span>Annual, since {first.year}</li>
-            <li><span className="mono">Affiliation</span>Official NYU Alumni Club</li>
-          </ul>
-        </section>
+        {showBoilerplate && <Boilerplate className={s.section} />}
       </div>
     </div>
   );
