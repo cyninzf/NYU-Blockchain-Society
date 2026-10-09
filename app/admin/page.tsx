@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { desc, inArray } from "drizzle-orm";
 import { Suspense } from "react";
 import { NOTIFY } from "@/content/events";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
-import { AFFILIATIONS } from "@/lib/db/schema";
+import { adminAudit, AFFILIATIONS, type AdminAudit, type Affiliation } from "@/lib/db/schema";
 import { AFFILIATION_LABELS, listMembers, parseFilters } from "@/lib/members-query";
 import { deleteMember, setWallApproved } from "./actions";
+import EditMember from "./EditMember";
 import styles from "./admin.module.css";
 
 export const metadata: Metadata = {
@@ -27,6 +29,14 @@ export default function AdminPage({ searchParams }: { searchParams: SP }) {
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
+const timeFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" });
+const AFFILIATION_OPTIONS = AFFILIATIONS.map((a): [Affiliation, string] => [a, AFFILIATION_LABELS[a]]);
+
+/** "email a@example.com → b@example.com · affiliation Alumni → Student" */
+function describe(c: AdminAudit["changes"]) {
+  const label = (k: string, v: string | null) => (k === "affiliation" && v ? AFFILIATION_LABELS[v as Affiliation] ?? v : v ?? "none");
+  return Object.entries(c).map(([k, [from, to]]) => k === "contact" ? `linked contact ${to}` : `${k} ${label(k, from)} → ${label(k, to)}`).join(" · ");
+}
 
 async function Members({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
@@ -34,6 +44,12 @@ async function Members({ searchParams }: { searchParams: SP }) {
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const rows = await listMembers(db, f);
+  // The last 3 admin edits per member shown, newest first.
+  const audit = new Map<number, AdminAudit[]>();
+  if (rows.length) {
+    const log = await db.select().from(adminAudit).where(inArray(adminAudit.memberId, rows.map((m) => m.id))).orderBy(desc(adminAudit.createdAt));
+    for (const a of log) { const l = audit.get(a.memberId) ?? []; if (l.length < 3) audit.set(a.memberId, [...l, a]); }
+  }
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
@@ -105,7 +121,18 @@ async function Members({ searchParams }: { searchParams: SP }) {
                   ) : "—"}
                 </td>
                 <td>{dateFmt.format(m.createdAt)}</td>
-                <td>
+                <td className={styles.actions}>
+                  <details className={styles.editd}>
+                    <summary>Edit</summary>
+                    <EditMember id={m.id} name={m.name} email={m.email} affiliation={m.affiliation} options={AFFILIATION_OPTIONS} />
+                  </details>
+                  {audit.has(m.id) && (
+                    <ul className={styles.audit} aria-label={`Last edits to #${m.id}`}>
+                      {audit.get(m.id)!.map((a) => (
+                        <li key={a.id}><time dateTime={a.createdAt.toISOString()}>{timeFmt.format(a.createdAt)}</time> · {a.actor}: {describe(a.changes)}</li>
+                      ))}
+                    </ul>
+                  )}
                   <details className={styles.del}>
                     <summary>Delete</summary>
                     <form action={deleteMember}>

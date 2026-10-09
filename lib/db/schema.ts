@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigserial, boolean, index, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigserial, boolean, index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // "friend" is no longer offered in the join flow but stays valid for existing rows.
 export const AFFILIATIONS = ["alumni", "industry", "student", "faculty_staff", "friend"] as const;
@@ -70,3 +70,25 @@ export const contacts = pgTable(
 );
 
 export type Contact = typeof contacts.$inferSelect;
+
+/** Field changes as { field: [old, new] }, e.g. { email: ["a@example.com", "b@example.com"] }. */
+export type AuditChanges = Partial<Record<"name" | "email" | "affiliation" | "contact", [string | null, string | null]>>;
+
+/**
+ * Admin edits to members, so changes are traceable: who (the basic-auth user), when, and old →
+ * new values. Rows go with the member when a member is deleted (removal requests).
+ */
+export const adminAudit = pgTable(
+  "admin_audit",
+  {
+    id: serial().primaryKey(),
+    memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+    actor: text().notNull(),
+    action: text().notNull(),
+    changes: jsonb().$type<AuditChanges>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("admin_audit_member_idx").on(t.memberId, t.createdAt)],
+);
+
+export type AdminAudit = typeof adminAudit.$inferSelect;
