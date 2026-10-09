@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { siteDescription, siteName, siteUrl } from "@/content/site";
+import { homeTitle, siteDescription, siteName, siteUrl } from "@/content/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: { default: siteName, template: `%s · ${siteName}` },
+  title: { default: homeTitle, template: `%s · ${siteName}` },
   description: siteDescription,
   alternates: { canonical: "/" },
   // Images come from app/opengraph-image.tsx and app/twitter-image.tsx,
@@ -25,14 +25,14 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName,
-    title: siteName,
+    title: homeTitle,
     description: siteDescription,
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     site: "@NYU_Blockchain",
-    title: siteName,
+    title: homeTitle,
     description: siteDescription,
   },
   icons: { icon: "/brand/favicon.svg", apple: "/brand/favicon.svg" },

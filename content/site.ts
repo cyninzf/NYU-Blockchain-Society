@@ -4,8 +4,11 @@
 export const siteUrl = "https://www.nyublockchainsociety.com";
 
 export const siteName = "NYU Blockchain Society";
+/** The home page <title>; other pages are "<Page> · NYU Blockchain Society". */
+export const homeTitle = `${siteName} · Official NYU Alumni Club`;
+/** Meta, og: and twitter: description, and the JSON-LD description. Keep it under 160 characters. */
 export const siteDescription =
-  "The professional network for NYU alumni at the intersection of blockchain, finance, and AI.";
+  "The official NYU Alumni Club for professionals in blockchain, finance and AI. Conferences, networking and an accelerator for NYU founders in New York.";
 
 export const links = {
   x: "https://x.com/NYU_Blockchain",
