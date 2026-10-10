@@ -16,7 +16,8 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
   return (
     <section className="conf page-top" aria-labelledby="ev-h">
       <div className="wrap crumbs mono"><Link href="/events"><Icon name="arrow-left" /> All events</Link></div>
-      <div className="wrap ev-detail" data-bg="dim">
+      <div className="wrap">
+      <div className="ev-detail" data-bg="dim">
         {banner}
         <p className="kicker mono">{cancelled ? "Cancelled" : over ? "Past event" : "Event"}</p>
         <h1 id="ev-h">{e.title}</h1>
@@ -29,6 +30,7 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
         ) : !over && e.registrationUrl ? (
           <p><a className="btn btn-w" href={e.registrationUrl} target="_blank" rel="noopener">Register <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></p>
         ) : null}
+      </div>
       </div>
     </section>
   );

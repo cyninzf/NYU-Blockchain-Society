@@ -15,6 +15,7 @@ export default function Footer() {
           <li><OpenJoin>Add your block</OpenJoin></li>
           <li><Link href="/update">Update your block</Link></li>
           <li><Link href="/conference">Conference</Link></li>
+          <li><Link href="/events">Events</Link></li>
           <li><Link href="/media-kit">Media kit</Link></li>
           <li><a href={links.x} target="_blank" rel="noopener">X</a></li>
           <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn</a></li>
