@@ -51,6 +51,12 @@ const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 type Node = { home: V3; ph: V3; sp: number; w: number; busy: boolean };
+/** A screen rectangle. */
+export type Box = { left: number; top: number; right: number; bottom: number };
+const boxOf = (pts: P2[]): Box => ({
+  left: Math.min(...pts.map((q) => q[0])), right: Math.max(...pts.map((q) => q[0])),
+  top: Math.min(...pts.map((q) => q[1])), bottom: Math.max(...pts.map((q) => q[1])),
+});
 type Formation = { nodes: number[]; verts: V3[]; t0: number };
 
 export type DrawOpts = {
@@ -68,6 +74,12 @@ export type DrawOpts = {
   fade: (x: number, y: number) => number;
   /** True where a block may not form (copy, the hero logo, an open label). */
   blocked: (x: number, y: number) => boolean;
+  /** True when a block's whole footprint would come near copy or an open label: it doesn't form there. */
+  boxBlocked: (b: Box) => boolean;
+  /** True when the segment A→B passes through "solid" copy (event pages): that edge isn't drawn. */
+  crossesSolid: (A: P2, B: P2) => boolean;
+  /** 1 when a block's footprint is clear of copy, easing to 0 as it reaches it (copy scrolled over it). */
+  boxFade: (b: Box) => number;
   /** When set, the next block prefers to form within this screen circle (e.g. near the hero logo). */
   near?: { x: number; y: number; r: number } | null;
 };
@@ -118,23 +130,28 @@ export function createNetwork(rnd: () => number, density: Density) {
     let seeds = nodes.map((_, i) => i).filter(ok);
     const nr = o.near;
     if (nr) { const close = seeds.filter((i) => Math.hypot(sp[i][0] - nr.x, sp[i][1] - nr.y) < nr.r); if (close.length) seeds = close; }
-    if (!seeds.length) return false;
-    const seed = seeds[(rnd() * seeds.length) | 0];
-    const group = nodes.map((_, i) => i).filter((i) => !nodes[i].busy)
-      .sort((a, b) => dist(nodes[a].home, nodes[seed].home) - dist(nodes[b].home, nodes[seed].home)).slice(0, 8);
-    if (group.length < 8) return false;
-    const c = nodes[seed].home;
-    const s = .9;
-    const verts = CUBE_V.map((v): V3 => [c[0] + (v[0] - .5) * s, c[1] + (v[1] - .5) * s, c[2] + (v[2] - .5) * s]);
-    // Each vertex takes the nearest node still free.
-    const free = new Set(group), assigned: number[] = [];
-    for (const v of verts) {
-      let best = -1, bd = 1e9;
-      for (const i of free) { const d = dist(nodes[i].home, v); if (d < bd) { bd = d; best = i; } }
-      free.delete(best); assigned.push(best); nodes[best].busy = true;
+    // A few tries: the whole block (where its nodes are now and the cube they'll form) must stay
+    // clear of copy, not just its seed, so no edge ever crosses text.
+    for (let tries = 0; tries < 8 && seeds.length; tries++) {
+      const seed = seeds[(rnd() * seeds.length) | 0];
+      const group = nodes.map((_, i) => i).filter((i) => !nodes[i].busy)
+        .sort((a, b) => dist(nodes[a].home, nodes[seed].home) - dist(nodes[b].home, nodes[seed].home)).slice(0, 8);
+      if (group.length < 8) return false;
+      const c = nodes[seed].home;
+      const s = .9;
+      const verts = CUBE_V.map((v): V3 => [c[0] + (v[0] - .5) * s, c[1] + (v[1] - .5) * s, c[2] + (v[2] - .5) * s]);
+      if (o.boxBlocked(boxOf([...verts.map(o.P), ...group.map((i) => sp[i])]))) { seeds = seeds.filter((i) => i !== seed); continue; }
+      // Each vertex takes the nearest node still free.
+      const free = new Set(group), assigned: number[] = [];
+      for (const v of verts) {
+        let best = -1, bd = 1e9;
+        for (const i of free) { const d = dist(nodes[i].home, v); if (d < bd) { bd = d; best = i; } }
+        free.delete(best); assigned.push(best); nodes[best].busy = true;
+      }
+      formations.push({ nodes: assigned, verts, t0: now });
+      return true;
     }
-    formations.push({ nodes: assigned, verts, t0: now });
-    return true;
+    return false;
   }
 
   function draw(ctx: CanvasRenderingContext2D, o: DrawOpts) {
@@ -181,7 +198,8 @@ export function createNetwork(rnd: () => number, density: Density) {
     const blockDim = new Map<number, number>();
     for (const { f } of live) {
       const split = f.nodes.some((i) => Math.abs(sp[i][1] - sp[f.nodes[0]][1]) > H * .4);
-      const m = split ? 0 : Math.min(...f.nodes.map((i) => dim[i]));
+      // ...and the whole block fades out before any part of it reaches copy.
+      const m = split ? 0 : Math.min(o.boxFade(boxOf(f.nodes.map((i) => sp[i]))), ...f.nodes.map((i) => dim[i]));
       for (const i of f.nodes) blockDim.set(i, m);
     }
 
@@ -190,7 +208,7 @@ export function createNetwork(rnd: () => number, density: Density) {
     const eb = batch();
     for (const [a, b] of edges) {
       const A = sp[a], B = sp[b], k = 1 - Math.max(nodes[a].w, nodes[b].w);
-      if (k <= 0 || !near(a, b)) continue;
+      if (k <= 0 || !near(a, b) || o.crossesSolid(A, B)) continue;
       const p = eb.path((.06 + .13 * depth((A[2] + B[2]) / 2)) * k * gk * Math.min(dim[a], dim[b]));
       if (p) { p.moveTo(A[0], A[1]); p.lineTo(B[0], B[1]); }
     }
@@ -214,7 +232,7 @@ export function createNetwork(rnd: () => number, density: Density) {
           const [e, k] = nx.length ? nx[(rnd() * nx.length) | 0] : [edges[d.e], d.e] as const;
           d.e = k; d.f = e[1] === b; d.t = 0; [a, b] = d.f ? [e[1], e[0]] : [e[0], e[1]];
         }
-        if (Math.max(nodes[a].w, nodes[b].w) > 0 || !near(a, b)) continue;
+        if (Math.max(nodes[a].w, nodes[b].w) > 0 || !near(a, b) || o.crossesSolid(sp[a], sp[b])) continue;
         const A = sp[a], B = sp[b], p = db.path(.6 * gk * Math.min(dim[a], dim[b]));
         if (p) dot(p, A[0] + (B[0] - A[0]) * d.t, A[1] + (B[1] - A[1]) * d.t, 1.5);
       }
@@ -225,8 +243,8 @@ export function createNetwork(rnd: () => number, density: Density) {
     for (const { f, t } of live) {
       const vs = f.nodes.map((i) => sp[i]);
       if (vs.some((q) => Math.abs(q[1] - vs[0][1]) > H * .4)) continue; // split by the wrap seam
-      // fades like the rest of the network when the page scrolls copy over it
-      const life = (t < HOLD_END ? 1 : 1 - ease((t - HOLD_END) / RELAX)) * Math.min(...f.nodes.map((i) => dim[i]));
+      // fades out entirely when the page scrolls copy over it
+      const life = (t < HOLD_END ? 1 : 1 - ease((t - HOLD_END) / RELAX)) * (blockDim.get(f.nodes[0]) ?? 1);
       snap.blocks.push({ id: f, pts: vs, holding: t > EDGES_END + GLOW && t < HOLD_END - 900, life });
       const glow = t > EDGES_END && t < EDGES_END + GLOW ? Math.sin(Math.PI * (t - EDGES_END) / GLOW) : 0;
       const built = clamp01((t - EDGES_END) / 200);

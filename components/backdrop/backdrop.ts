@@ -3,11 +3,13 @@
 // field.ts), then the network's core around that logo (core.ts), so the whole site animates
 // on a single canvas.
 //
-// Copy marks itself with data-bg: "clear" (the hero text) or "dim" (mission, Focus cards,
-// chain cards, join copy, sub-page text). The network fades softly behind those areas and
-// blocks never form there.
+// Copy marks itself with data-bg: "clear" (the hero text), "dim" (mission, Focus cards,
+// chain cards, join copy, sub-page text) or "solid" (event pages: nothing at all behind each
+// line of text, with a short soft edge). The network fades softly behind those areas; blocks
+// never form anywhere near them (their whole footprint is checked) and fade out entirely before
+// copy scrolls over them, so no cube ever sits behind text.
 
-import { BOX, createNetwork, densityFor, type P2, type V3 } from "./network";
+import { BOX, createNetwork, densityFor, type Box, type P2, type V3 } from "./network";
 import { createCore, type Anchors } from "./core";
 
 type Circle = { x: number; y: number; r: number };
@@ -22,8 +24,9 @@ export type Painter = {
   anchors?: () => Anchors | null;
 };
 
-const FADE = { clear: .3, dim: .6 } as const; // remaining opacity behind copy
+const FADE = { clear: .3, dim: .6, solid: 0 } as const; // remaining opacity behind copy
 const SOFT = 56; // px over which the fade eases out past an element's edge
+const SOFT_SOLID = 18; // "solid" text: a tight halo, so the network still shows between lines and around them
 
 let engine: ReturnType<typeof createEngine> | null = null;
 const painters = new Set<Painter>();
@@ -81,16 +84,40 @@ function createEngine(cv: HTMLCanvasElement) {
   }
 
   // Copy areas, read once per frame (cheap: a handful of rects) so the mask tracks scrolling.
-  let zones: { r: Rect; f: number }[] = [];
+  let zones: { r: Rect; f: number; soft: number }[] = [];
   const readZones = () => {
     zones = [];
     for (const el of document.querySelectorAll<HTMLElement>("[data-bg]")) {
       const r = el.getBoundingClientRect();
       if (r.bottom < -SOFT || r.top > H + SOFT || !r.width) continue;
-      zones.push({ r, f: el.dataset.bg === "clear" ? FADE.clear : FADE.dim });
+      const kind = el.dataset.bg === "clear" || el.dataset.bg === "solid" ? el.dataset.bg : "dim";
+      zones.push({ r, f: FADE[kind], soft: kind === "solid" ? SOFT_SOLID : SOFT });
     }
   };
   const outside = (x: number, y: number, r: Rect) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+  /** Distance between two rectangles (0 when they overlap). */
+  const gap = (a: Rect, b: Box) => Math.hypot(Math.max(a.left - b.right, 0, b.left - a.right), Math.max(a.top - b.bottom, 0, b.top - a.bottom));
+  /** Whether segment A→B meets a "solid" zone grown by its soft edge (Liang–Barsky clipping). */
+  const crossesSolid = (A: P2, B: P2) => {
+    for (const z of zones) {
+      if (z.f > 0) continue;
+      const m = z.soft, dx = B[0] - A[0], dy = B[1] - A[1];
+      let t0 = 0, t1 = 1, hit = true;
+      for (const [p, q] of [[-dx, A[0] - (z.r.left - m)], [dx, z.r.right + m - A[0]], [-dy, A[1] - (z.r.top - m)], [dy, z.r.bottom + m - A[1]]]) {
+        if (p === 0) { if (q < 0) { hit = false; break; } continue; }
+        const t = q / p;
+        if (p < 0) { if (t > t1) { hit = false; break; } t0 = Math.max(t0, t); } else { if (t < t0) { hit = false; break; } t1 = Math.min(t1, t); }
+      }
+      if (hit) return true;
+    }
+    return false;
+  };
+  const boxBlocked = (b: Box) => zones.some((z) => gap(z.r, b) < SOFT) || [...painters].some((p) => p.avoid?.().rects.some((r) => gap(r, b) < 28));
+  const boxFade = (b: Box) => {
+    let f = 1;
+    for (const z of zones) { const d = gap(z.r, b); if (d < SOFT) { const k = d / SOFT; f = Math.min(f, k * k * (3 - 2 * k)); } }
+    return f;
+  };
 
   function frame(now: number) {
     raf = 0;
@@ -115,7 +142,7 @@ function createEngine(cv: HTMLCanvasElement) {
     };
     const fade = (x: number, y: number) => {
       let f = 1;
-      for (const z of zones) { const d = outside(x, y, z.r); if (d < SOFT) { const k = d / SOFT, s = k * k * (3 - 2 * k); f = Math.min(f, z.f + (1 - z.f) * s); } }
+      for (const z of zones) { const d = outside(x, y, z.r); if (d < z.soft) { const k = d / z.soft, s = k * k * (3 - 2 * k); f = Math.min(f, z.f + (1 - z.f) * s); } }
       for (const c of circles) { const d = Math.hypot(x - c.x, y - c.y); if (d < c.r + SOFT) f = Math.min(f, FADE.clear + (1 - FADE.clear) * Math.max(0, (d - c.r) / SOFT)); }
       return f;
     };
@@ -124,7 +151,7 @@ function createEngine(cv: HTMLCanvasElement) {
 
     ctx.clearRect(0, 0, W, H);
     const logo = [...painters].find((p) => p.anchors);
-    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, near: core.wantNear(now, logo?.anchors?.() ?? null) });
+    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, boxBlocked, boxFade, crossesSolid, near: core.wantNear(now, logo?.anchors?.() ?? null) });
     for (const p of painters) p.draw(ctx, now);
     // the core: ~30% of the page's node count, so it follows the same desktop/phone density rules
     core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round((network!.density.nodes - network!.density.members) * .3), fade);

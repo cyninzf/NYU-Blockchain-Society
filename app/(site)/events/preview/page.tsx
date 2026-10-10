@@ -34,5 +34,5 @@ async function Preview({ searchParams }: Props) {
   if (!admin || !db || !Number.isInteger(id) || id < 1) notFound();
   const [row] = await db.select({ e: events, over: sql<boolean>`coalesce(${events.endsAt}, ${events.startsAt}) <= now()` }).from(events).where(eq(events.id, id));
   if (!row) notFound();
-  return <EventDetail event={row.e} over={row.over} banner={<p className="ev-banner mono" role="note">{BANNER[row.e.status]}</p>} />;
+  return <EventDetail event={row.e} over={row.over} banner={<p className="ev-banner mono" role="note" data-bg="solid">{BANNER[row.e.status]}</p>} />;
 }
