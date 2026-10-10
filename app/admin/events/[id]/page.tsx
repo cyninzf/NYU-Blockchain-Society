@@ -9,6 +9,7 @@ import { dateToNyInput } from "@/lib/event-time";
 import EventForm from "../EventForm";
 import ShareLink from "../ShareLink";
 import StatusActions, { STATUS_LABELS } from "../StatusActions";
+import Checkins from "./Checkins";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 
@@ -33,7 +34,7 @@ export default function EditEventPage(props: Props) {
 
 async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
   const id = Number((await params).id);
-  const { created } = await searchParams;
+  const { created, q } = await searchParams;
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const [e] = Number.isInteger(id) && id > 0 ? await db.select().from(events).where(eq(events.id, id)) : [];
@@ -55,6 +56,7 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
       {isSuper(admin)
         ? <StatusActions id={e.id} status={e.status} from="edit" />
         : <p className={styles.note}>View only: only super admins can edit, publish, cancel or delete events.</p>}
+      {e.status !== "draft" && <Checkins db={db} eventId={e.id} admin={admin} q={typeof q === "string" ? q.trim().slice(0, 80) : ""} />}
       <EventForm
         readOnly={!isSuper(admin)}
         key={e.updatedAt.toISOString()}

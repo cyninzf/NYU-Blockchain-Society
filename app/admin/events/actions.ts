@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit, auditRow, requireSuperOr403 } from "@/lib/admin";
+import { recordCheckin } from "@/lib/checkin";
 import { adminAudit, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
 import { EventInput, type EventFields } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
@@ -106,5 +107,16 @@ export async function deleteEvent(fd: FormData) {
   if (gone) await audit(db, actor, "event.delete", `Deleted event #${id} "${gone.title}" (${gone.status})`);
   updateTag("events");
   if (fd.get("from") === "edit") redirect("/admin/events");
+  refresh();
+}
+
+/** "Check in a member" by hand at the door (super admins). Logged with the admin as actor. */
+export async function adminCheckIn(fd: FormData) {
+  const id = idOf(fd.get("id")), memberId = idOf(fd.get("memberId"));
+  const { db, actor } = await requireSuperOr403(`check in member #${memberId} at event #${id}`);
+  if (!id || !memberId) throw new Error("Bad request");
+  const [e] = await db.select({ id: events.id }).from(events).where(eq(events.id, id));
+  if (!e) throw new Error(`No event #${id}.`);
+  await recordCheckin(db, id, memberId, "admin", actor);
   refresh();
 }

@@ -6,7 +6,7 @@ import { authTokens } from "./db/schema";
 
 /** Magic links work once and expire after 15 minutes. */
 export const LINK_TTL_MS = 15 * 60 * 1000;
-type Purpose = "admin" | "member";
+type Purpose = "admin" | "member" | "checkin";
 
 const hash = (raw: string) => createHash("sha256").update(raw).digest("base64url");
 

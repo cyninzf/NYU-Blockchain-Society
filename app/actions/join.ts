@@ -1,16 +1,13 @@
 "use server";
 
 import { sql } from "drizzle-orm";
-import { revalidateTag } from "next/cache";
-import { after } from "next/server";
 import { z } from "zod";
 import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
-import { autoLinkQuietly } from "@/lib/contact-links";
 import { countryOf } from "@/lib/location";
-import { sendWelcome } from "@/lib/member-email";
+import { upsertMember } from "@/lib/member-join";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
 import { rateLimited, seal, sign, unseal, verify } from "@/lib/security";
@@ -63,32 +60,11 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
 
   try {
     if (await rateLimited(db, "join", 8, 600)) return { ok: false, error: "Too many attempts. Please try again in a few minutes." };
-    const blocks = [...new Set(d.blocks)];
-    const notify = d.notify ? [d.notify] : [];
     // Re-submitting an email updates that row and keeps its original block number.
     // The response is identical either way, so it never reveals whether an email exists.
-    const res = await db.execute<{ id: number; inserted: boolean }>(sql`
-      insert into members (name, email, affiliation, blocks, notify, source)
-      values (${d.name}, ${d.email}, ${d.affiliation}, ${pgArray(blocks)}::text[], ${pgArray(notify)}::text[], ${d.src ?? null})
-      on conflict ((lower(email))) do update set
-        name = excluded.name,
-        affiliation = excluded.affiliation,
-        blocks = case when cardinality(excluded.blocks) > 0 then excluded.blocks else members.blocks end,
-        notify = array(select distinct unnest(members.notify || excluded.notify)),
-        source = coalesce(members.source, excluded.source),
-        updated_at = now()
-      returning id, (xmax = 0) as inserted`);
-    const row = res.rows[0];
-    if (row.inserted) {
-      // A new block: the public aggregates (lib/chain-stats.ts) refresh in the background, and
-      // the one welcome email goes out after the response (a failure never affects the join).
-      // Re-submits update a row (inserted = false): no email, so nothing reveals an existing email.
-      revalidateTag("chain", "max");
-      after(() => sendWelcome(db, row.id, d.notify ?? null).catch((e) => console.error("welcome failed", e instanceof Error ? e.message : e)));
-    }
-    // Someone we already knew as a contact (a 2024 registrant, the LinkedIn group) may have
-    // joined: link by email or a clear name match, after the response.
-    after(() => autoLinkQuietly(db));
+    const row = await upsertMember(db, {
+      name: d.name, email: d.email, affiliation: d.affiliation, blocks: [...new Set(d.blocks)], notify: d.notify ? [d.notify] : [], src: d.src ?? null,
+    }, d.notify ?? null);
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
     // Encrypted, so it never shows the id; the block number itself only once the count is public.
@@ -99,12 +75,6 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     return { ok: false, error: GENERIC };
   }
 }
-
-/**
- * Postgres array literal. Drizzle's sql`` would expand a JS array into a parameter list,
- * so pass it as one text param. Only used for validated enum values (no quoting needed).
- */
-const pgArray = (values: string[]) => `{${values.join(",")}}`;
 
 const opt = optText;
 

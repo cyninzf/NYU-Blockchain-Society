@@ -507,3 +507,32 @@ footer ul{gap:0 22px}
 .ev-past li{display:flex; flex-wrap:wrap; gap:4px 16px; padding:14px 0; border-bottom:1px solid var(--ink-line); color:var(--ink-muted)}
 .ev-past li b{color:var(--ink-fg); font-weight:550}
 .ev-list .ev-title{margin:6px 0 0; font-weight:600; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em; line-height:1.15}
+
+/* Event check-in (round 11): /events/<slug>/checkin */
+.ci{min-height:100svh; display:grid; align-content:center; justify-items:center; gap:24px; padding:32px 16px; color:var(--ink-fg)}
+.ci-brand{display:inline-flex; align-items:center; gap:10px; color:var(--ink-fg); text-decoration:none; font-weight:600; min-height:44px}
+.ci-card{width:100%; max-width:480px; display:grid; gap:12px; padding:28px 24px; border:1px solid var(--ink-line); border-radius:14px; background:rgba(28,5,51,.82)}
+.ci-card h1{margin:0; font-weight:600; font-size:clamp(28px,7vw,40px); line-height:1.05; letter-spacing:-.03em; padding-bottom:.04em}
+.ci-card .kicker{margin:0}
+.ci-when{margin:0; color:var(--ink-muted); font-size:13px}
+.ci-step{display:grid; gap:12px; margin-top:8px}
+.ci-step h2{margin:0; font-size:20px}
+.ci-step p{margin:0; color:var(--ink-muted)}
+.ci-step label{display:grid; gap:6px; color:var(--ink-muted); font-size:15px}
+.ci-step input{min-height:48px; padding:0 12px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.6); color:var(--ink-fg); font:inherit; font-size:16px}
+.ci-step fieldset{margin:0; padding:0; border:0; display:grid; gap:8px}
+.ci-step legend{color:var(--ink-muted); font-size:15px; margin-bottom:8px}
+.ci-step .btn{width:100%}
+.ci-note{margin:0; color:var(--ink-fg); font-size:15px}
+.ci-fine{font-size:13px}
+.ci-err{min-height:1.2em; margin:0; color:#FFB4C8; font-size:15px}
+.ci-local{padding:120px 16px; text-align:center; color:var(--ink-fg)}
+.ci-done{display:grid; gap:10px; margin-top:8px}
+.ci-done h2{margin:0; font-size:26px; letter-spacing:-.02em}
+.ci-done p{margin:0; color:var(--ink-muted)}
+.ci-chain{display:flex; align-items:center; gap:18px; height:40px}
+.ci-chain i{position:relative; width:30px; height:30px; border:1px solid var(--lilac); border-radius:3px}
+.ci-chain i + i::before{content:""; position:absolute; left:-19px; top:50%; width:18px; height:1px; background:var(--lilac)}
+.ci-chain i.new{animation:ci-snap .7s cubic-bezier(.2,.8,.2,1) both; box-shadow:0 0 18px rgba(155,77,219,.8); background:rgba(155,77,219,.25)}
+@keyframes ci-snap{from{transform:translateX(40px); opacity:0} to{transform:none; opacity:1}}
+@media (prefers-reduced-motion: reduce){.ci-chain i.new{animation:none}}

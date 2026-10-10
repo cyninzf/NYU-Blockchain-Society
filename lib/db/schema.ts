@@ -276,3 +276,22 @@ export const events = pgTable(
 
 export type EventRow = typeof events.$inferSelect;
 
+export const CHECKIN_METHODS = ["qr", "admin"] as const;
+export const checkinMethod = pgEnum("checkin_method", CHECKIN_METHODS);
+
+/**
+ * Who came to an event (round 11). One row per member per event. "qr": the member checked in
+ * themselves at /events/<slug>/checkin; "admin": a super admin checked them in by hand.
+ */
+export const eventCheckins = pgTable(
+  "event_checkins",
+  {
+    id: serial().primaryKey(),
+    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true }).notNull().defaultNow(),
+    method: checkinMethod().notNull(),
+  },
+  (t) => [uniqueIndex("event_checkins_event_member_idx").on(t.eventId, t.memberId), index("event_checkins_event_idx").on(t.eventId, t.checkedInAt)],
+);
+
