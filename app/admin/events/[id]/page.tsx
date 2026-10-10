@@ -10,6 +10,7 @@ import EventForm from "../EventForm";
 import ShareLink from "../ShareLink";
 import StatusActions, { STATUS_LABELS } from "../StatusActions";
 import Checkins from "./Checkins";
+import { checkinUrl, qrSvg } from "@/lib/qr";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 
@@ -56,6 +57,19 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
       {isSuper(admin)
         ? <StatusActions id={e.id} status={e.status} from="edit" />
         : <p className={styles.note}>View only: only super admins can edit, publish, cancel or delete events.</p>}
+      {isSuper(admin) && e.status === "published" && (
+        <section className={styles.mix} aria-labelledby="qr-h">
+          <h2 id="qr-h">Check-in QR <span>Points to {checkinUrl(e.slug)}. Check-in opens 3 hours before the start and closes 2 hours after the end.</span></h2>
+          <div className={styles.qr}>
+            <div dangerouslySetInnerHTML={{ __html: await qrSvg(checkinUrl(e.slug)) }} />
+            <div className={styles.row}>
+              <a href={`/admin/events/${e.id}/qr.png`} download>Download PNG</a>
+              <a href={`/admin/events/${e.id}/qr.svg`} download>Download SVG</a>
+              <Link href={`/admin/events/${e.id}/print`}>Printable page (A4 / Letter)</Link>
+            </div>
+          </div>
+        </section>
+      )}
       {e.status !== "draft" && <Checkins db={db} eventId={e.id} admin={admin} q={typeof q === "string" ? q.trim().slice(0, 80) : ""} />}
       <EventForm
         readOnly={!isSuper(admin)}
