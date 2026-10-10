@@ -86,41 +86,41 @@ ahead, and delete it at the end.
 
 ## 7. Check-in, QR, live screen, calendar and share previews
 
-Draft-safe first: create a fake test event as a draft, dated today, starting within the next
-3 hours (so check-in is open). While it's a draft, nothing below is public.
+Everything here runs on a **draft** test event in test mode, so nothing is published. Create a
+fake draft (e.g. "Test event", venue "Example Venue"), any date. Test check-ins are stored apart,
+never counted, and cleared at the end.
 
-- [ ] While it's a draft: `/events/<link name>/checkin` and `/events/<link name>/live` are 404s,
-      and `/admin/events/<id>` shows no QR and no check-ins.
-- [ ] Publish it. `/admin/events/<id>` (super admin) shows the check-in QR: scan it with a
-      phone; it opens `/events/<link name>/checkin`. "Download PNG" (2048 px) and "Download SVG"
-      save files; "Printable page" prints on one A4 or Letter sheet with the title, date,
-      "Scan to check in" and the QR, without the admin header.
-- [ ] On a phone without a member session, enter an email you own that is a member: the page
-      shows the same message as for any email, and a "Check in: <title>" email arrives. Its
-      "Check in" button opens a page; press "Check in": "You're checked in. Welcome." Opening
-      the link again says it expired.
-- [ ] In a private window, enter a new address you own, then the join form (name, "You are…"):
-      "You're checked in. Welcome." In `/admin`, the new member's source is `event-<link name>`.
-- [ ] In a private window, use the join form with a member's email you own: the screen is the
-      same, but `/admin/events/<id>` doesn't list them; the one-tap email arrives instead.
-- [ ] `/admin/events/<id>`: "Check-ins (n)" lists name, block, time and method. As a super admin,
-      "Check in a member" finds a member by name and checks them in (method "By an admin");
-      "Export CSV" downloads the list. As an Admin: the list shows, but no search, no export and
-      no QR. `/admin/audit` has `event.checkin` rows (actor "system" for self check-in).
-- [ ] Too many tries from one phone (more than 10 emails in 10 minutes) says "Too many attempts".
-- [ ] Live screen: on the TV's browser, sign in at `/admin/login` as a super admin, open
-      `/events/<link name>/live`: the background network only, the title small at the bottom,
-      no names or counts. Check someone in: a new node arrives with a glow within ~5 s.
-      `?count=1` adds "<n> checked in tonight". Signed out, the page says "Super admins only".
-- [ ] Calendar: on `/events/<link name>` and in Block 01, "Add to calendar" → Google and Outlook
-      open with the title, time (ET), address and description; "Apple (.ics)" downloads a file
-      that opens in Calendar at the right time.
-- [ ] Join from the share link (`?src=event-<link name>`) with a new address you own: the success
-      screen says "You're on the list for <title> · <date>", with the calendar buttons and
-      "Register" if the event has a registration link.
-- [ ] Share preview: paste `/events/<link name>` into a link preview checker (or a LinkedIn / X
-      draft, not posted): the image shows the label, title, date, venue and co-host as text.
-- [ ] Clean up: delete the test members (super admin, `/admin`) and the test event.
+- [ ] While it's a draft and you're signed out (private window): `/events/<link name>/checkin`,
+      `/events/<link name>/checkin?test=1` and `/events/<link name>/live` are 404s.
+- [ ] Signed in as a super admin, `/admin/events/<id>` shows "Test mode" with "Check-in (test
+      mode)" and "Live screen (test mode)". Open check-in in test mode: "Test mode" banner, and
+      check-in works even though it's a draft and outside the window.
+- [ ] Test join, default path: enter a new address, then the join form without ticking "Create a
+      real member": "Test mode: nothing was created…". `/admin` has no new member.
+- [ ] Test join, real path: tick "Create a real member" with an address you own: "You're checked
+      in. Welcome." The member exists (source `event-<link name>`) and the event page lists them
+      under "Test check-ins", not in "Check-ins".
+- [ ] One-tap link in test mode: with a member address you own, the email arrives as "[Test]
+      Check in: …"; its page shows the banner; "Check in" records a test check-in.
+- [ ] Live screen (test mode), in another tab: banner, title, and with `count=1` "<n> checked in
+      tonight" counting test check-ins only. A new test check-in adds a node with a glow within
+      ~5 s.
+- [ ] As an Admin (not super), `?test=1` on the draft is a 404, and calling a test action anyway
+      (e.g. a replayed request) gets a 403 and a `denied` row in their audit log.
+- [ ] "Clear test check-ins" empties the test list; `/admin/audit` shows
+      `event.checkin.clear_tests`.
+- [ ] Calendar and share preview (draft-safe): the "Preview as it will appear" page shows "Add to
+      calendar" (Google and Outlook open with the title, time in ET, address and description).
+      The share image and `.ics` only exist once published, so check them on the real event:
+      paste `/events/<link name>` into a link preview checker (or an unposted LinkedIn / X draft)
+      and download `/events/<link name>/calendar.ics`.
+- [ ] QR and display link (once the real event is published): `/admin/events/<id>` shows the QR
+      (scan it: it opens check-in), PNG / SVG downloads and the printable page. "Create display
+      link" shows a URL once: on the TV, it opens the live screen without signing in, only from
+      3 hours before the start until 2 hours after the end ("Not live right now" otherwise);
+      "Revoke" stops it at once ("This display link doesn't work"). Both are in `/admin/audit`.
+- [ ] Clean up: clear the test check-ins, delete the test members (super admin, `/admin`) and the
+      draft.
 
 ## 8. Invites to contacts: `/admin/settings`, `/admin/contacts/invite`
 
