@@ -24,8 +24,6 @@ export default function InquiryForm() {
   return (
     <form action={action} className="iq-form" noValidate>
       <input type="hidden" name="formToken" value={token} />
-      {/* Real people never see this field; bots that fill it get a fake thank-you. */}
-      <Honeypot />
       <div className="iq-two">
         <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
         <label>Email<input name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} /></label>
@@ -46,6 +44,8 @@ export default function InquiryForm() {
       <p className="iq-fine">We use these details only to reply about the conference. You won&apos;t be added to any list.</p>
       <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
+      {/* Last in the form, after the button, away from any text (see components/Honeypot.tsx). */}
+      <Honeypot id="zq_k4v_i" />
     </form>
   );
 }

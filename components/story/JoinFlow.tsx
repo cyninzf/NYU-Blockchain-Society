@@ -134,9 +134,6 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
         <span className="sr" aria-live="polite">Step {step + 1} of {STEPS.length}</span>
       </div>
 
-      {/* Real people never see this field; bots that fill it get a fake success. */}
-      <Honeypot ref={honeypot} />
-
       <div className="jf-step-body" ref={stepRef} key={id}>
         {id === "blocks" && forNotify && <p className="jf-intro" id="jf-intro">{notifyIntro[forNotify]}</p>}
         {id === "blocks" && (
@@ -183,6 +180,8 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       <p className="err" id="jf-err" role="alert">{sending ? "" : err}</p>
       {id === "you" && <p className="fine">{sending ? "Adding your block…" : privacyLine}</p>}
       <PrivacyNote className="fine privacy-note" />
+      {/* Last in the form, away from any text (see components/Honeypot.tsx). */}
+      <Honeypot ref={honeypot} id="zq_k4v_j" />
     </form>
   );
 }

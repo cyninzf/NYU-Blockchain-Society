@@ -86,8 +86,6 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
   return (
     <form className="ci-step" onSubmit={onJoin} noValidate>
       <p className="ci-note" role="status">Already a member? Check your inbox: we&apos;ve emailed you a one-tap check-in link. New here? Add your block to check in.</p>
-      {/* Real people never see this field; bots that fill it get a fake success. */}
-      <Honeypot />
       <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
       <label>Email<input name="email" type="email" autoComplete="email" required defaultValue={email} /></label>
       <fieldset>
@@ -102,6 +100,8 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
       <p className="ci-fine">By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.</p>
       <p className="ci-err" role="alert">{err}</p>
       <PrivacyNote />
+      {/* Last in the form, after the buttons, away from any text (see components/Honeypot.tsx). */}
+      <Honeypot id="zq_k4v_q" />
     </form>
   );
 }

@@ -23,13 +23,13 @@ function Shell({ type, action, token, pending, state, fine, children }: { type: 
   return (
     <form action={action} className="iq-form" noValidate>
       <input type="hidden" name="formToken" value={token} />
-      {/* Real people never see this field; bots that fill it get a fake thank-you. */}
-      <Honeypot />
       {children}
       <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">{fine}</p>
       <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
+      {/* Last in the form, after the button, away from any text (see components/Honeypot.tsx). */}
+      <Honeypot id={`zq_k4v_${type === "accelerator_founder" ? "f" : "s"}`} />
     </form>
   );
 }
