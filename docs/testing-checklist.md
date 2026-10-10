@@ -83,3 +83,41 @@ ahead, and delete it at the end.
       row for it.
 - [ ] As a super admin, "Delete" the test event; it's gone from `/events` and `/admin/events`, and
       `event.delete` is in the audit log.
+
+## 7. Check-in, QR, live screen, calendar and share previews
+
+Draft-safe first: create a fake test event as a draft, dated today, starting within the next
+3 hours (so check-in is open). While it's a draft, nothing below is public.
+
+- [ ] While it's a draft: `/events/<link name>/checkin` and `/events/<link name>/live` are 404s,
+      and `/admin/events/<id>` shows no QR and no check-ins.
+- [ ] Publish it. `/admin/events/<id>` (super admin) shows the check-in QR: scan it with a
+      phone; it opens `/events/<link name>/checkin`. "Download PNG" (2048 px) and "Download SVG"
+      save files; "Printable page" prints on one A4 or Letter sheet with the title, date,
+      "Scan to check in" and the QR, without the admin header.
+- [ ] On a phone without a member session, enter an email you own that is a member: the page
+      shows the same message as for any email, and a "Check in: <title>" email arrives. Its
+      "Check in" button opens a page; press "Check in": "You're checked in. Welcome." Opening
+      the link again says it expired.
+- [ ] In a private window, enter a new address you own, then the join form (name, "You are…"):
+      "You're checked in. Welcome." In `/admin`, the new member's source is `event-<link name>`.
+- [ ] In a private window, use the join form with a member's email you own: the screen is the
+      same, but `/admin/events/<id>` doesn't list them; the one-tap email arrives instead.
+- [ ] `/admin/events/<id>`: "Check-ins (n)" lists name, block, time and method. As a super admin,
+      "Check in a member" finds a member by name and checks them in (method "By an admin");
+      "Export CSV" downloads the list. As an Admin: the list shows, but no search, no export and
+      no QR. `/admin/audit` has `event.checkin` rows (actor "system" for self check-in).
+- [ ] Too many tries from one phone (more than 10 emails in 10 minutes) says "Too many attempts".
+- [ ] Live screen: on the TV's browser, sign in at `/admin/login` as a super admin, open
+      `/events/<link name>/live`: the background network only, the title small at the bottom,
+      no names or counts. Check someone in: a new node arrives with a glow within ~5 s.
+      `?count=1` adds "<n> checked in tonight". Signed out, the page says "Super admins only".
+- [ ] Calendar: on `/events/<link name>` and in Block 01, "Add to calendar" → Google and Outlook
+      open with the title, time (ET), address and description; "Apple (.ics)" downloads a file
+      that opens in Calendar at the right time.
+- [ ] Join from the share link (`?src=event-<link name>`) with a new address you own: the success
+      screen says "You're on the list for <title> · <date>", with the calendar buttons and
+      "Register" if the event has a registration link.
+- [ ] Share preview: paste `/events/<link name>` into a link preview checker (or a LinkedIn / X
+      draft, not posted): the image shows the label, title, date, venue and co-host as text.
+- [ ] Clean up: delete the test members (super admin, `/admin`) and the test event.
