@@ -15,6 +15,7 @@ import CalendarButtons from "../events/CalendarButtons";
 import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
 import PrivacyNote from "../PrivacyNote";
+import { trackEvent } from "@/lib/analytics";
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const YOU: [Exclude<Affiliation, "friend">, string][] = [
@@ -109,6 +110,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       });
       if (!res.ok) { setErr(res.error); return; }
       clearInvite();
+      trackEvent("join_completed", { src: src ?? "none", notify: n ?? "none" });
       setDone({ n: res.n, token: res.token, devNotice: res.devNotice, notify: n });
       onJoined(name.trim());
     } catch {

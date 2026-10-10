@@ -6,6 +6,7 @@ import { startJoin } from "@/app/actions/join";
 import { AFFILIATION_LABELS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
 
 import PrivacyNote from "../PrivacyNote";
+import { trackEvent } from "@/lib/analytics";
 const entries = <K extends string>(r: Record<K, string>) => Object.entries(r) as [K, string][];
 
 /** The signed minimum-fill-time token, as for the join form, and the honeypot. */
@@ -15,7 +16,8 @@ function useFormToken() {
   return token;
 }
 
-function Shell({ action, token, pending, state, fine, children }: { action: (fd: FormData) => void; token: string; pending: boolean; state: InterestResult; fine: string; children: ReactNode }) {
+function Shell({ type, action, token, pending, state, fine, children }: { type: "accelerator_founder" | "accelerator_supporter"; action: (fd: FormData) => void; token: string; pending: boolean; state: InterestResult; fine: string; children: ReactNode }) {
+  useEffect(() => { if (state?.ok) trackEvent("inquiry_submitted", { type }); }, [state, type]);
   if (state?.ok) return <p className="iq-done" role="status">Thank you. We&apos;ve received your details and will reply by email.</p>;
   return (
     <form action={action} className="iq-form" noValidate>
@@ -56,7 +58,7 @@ export function FounderForm() {
   const [state, action, pending] = useActionState<InterestResult, FormData>(submitFounder, null);
   const token = useFormToken();
   return (
-    <Shell action={action} token={token} pending={pending} state={state} fine="We use these details only to reply about the accelerator. You won't be added to any list unless you tick the box above.">
+    <Shell type="accelerator_founder" action={action} token={token} pending={pending} state={state} fine="We use these details only to reply about the accelerator. You won't be added to any list unless you tick the box above.">
       <NameEmail />
       <Picks legend="NYU affiliation" name="affiliation" options={entries(AFFILIATION_LABELS)} />
       <div className="iq-two">
@@ -78,7 +80,7 @@ export function SupporterForm() {
   const token = useFormToken();
   const [len, setLen] = useState(0);
   return (
-    <Shell action={action} token={token} pending={pending} state={state} fine="We use these details only to reply about the accelerator. You won't be added to any list.">
+    <Shell type="accelerator_supporter" action={action} token={token} pending={pending} state={state} fine="We use these details only to reply about the accelerator. You won't be added to any list.">
       <NameEmail />
       <label>Organization<input name="organization" autoComplete="organization" required maxLength={120} /></label>
       <Picks legend="How you'd help" name="help" options={entries(HELP_LABELS)} multi />

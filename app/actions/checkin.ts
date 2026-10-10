@@ -30,6 +30,7 @@ import { cookieOptions, MEMBER_COOKIE, MEMBER_SESSION_MS } from "@/lib/session-t
 import { createSession } from "@/lib/sessions";
 
 import { reportError } from "@/lib/monitoring";
+import { trackServer } from "@/lib/analytics-server";
 export type CheckinResult = { ok: true; n: number | null; viaJoin?: boolean; fake?: boolean } | { ok: false; error: string };
 export type EmailStep = { ok: true } | { ok: false; error: string };
 
@@ -55,7 +56,7 @@ export async function checkInSelf(slug: string, test = false): Promise<CheckinRe
   const o = await openEvent(slug, test);
   if (!o) return { ok: false, error: CLOSED };
   try {
-    await recordCheckin(o.db, o.e.id, id, "qr", "system", test);
+    if ((await recordCheckin(o.db, o.e.id, id, "qr", "system", test)) && !test) await trackServer("checkin_completed", { event: slug });
     return { ok: true, n: (await countIsPublic(o.db)) ? id : null };
   } catch (e) {
     reportError("checkin", "check-in failed", e);
@@ -113,7 +114,7 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
     if (await rateLimited(o.db, "checkin-join", 8, 600)) return { ok: false, error: LIMITED };
     if (await rateLimitedEmail(o.db, "checkin-join", d.email, 3, 900)) return { ok: false, error: LIMITED };
     const row = await upsertMember(o.db, { name: d.name, email: d.email, affiliation: d.affiliation, blocks: [], notify: [], src: eventSource(d.slug) }, null);
-    if (row.inserted) await recordCheckin(o.db, o.e.id, row.id, "qr", "system", test);
+    if (row.inserted && (await recordCheckin(o.db, o.e.id, row.id, "qr", "system", test)) && !test) await trackServer("checkin_completed", { event: d.slug });
     else if (emailConfigured()) after(() => sendCheckinLink(o.db, d.email, o.e, test).catch((e) => reportError("checkin", "check-in link failed", e)));
     // Never the block number here: it would differ between new and existing emails.
     return { ok: true, n: null, viaJoin: true };
@@ -136,7 +137,7 @@ export async function confirmCheckin(fd: FormData) {
   const e = db && subject ? await checkinEvent(db, slug, test) : null;
   const back = `${eventPath(encodeURIComponent(slug))}/checkin${test ? "?test=1" : ""}`;
   if (!db || !e || Number(eventId) !== e.id || !Number(memberId) || (!test && e.window !== "open")) redirect(`${back}${test ? "&" : "?"}error=link`);
-  await recordCheckin(db, e.id, Number(memberId), "qr", "system", test);
+  if ((await recordCheckin(db, e.id, Number(memberId), "qr", "system", test)) && !test) await trackServer("checkin_completed", { event: slug });
   // Signed in for the day, like "Update your block", so the page shows them as checked in.
   const session = await createSession(db, "member", memberId, MEMBER_SESSION_MS);
   if (session) (await cookies()).set(MEMBER_COOKIE, session, cookieOptions(MEMBER_SESSION_MS));

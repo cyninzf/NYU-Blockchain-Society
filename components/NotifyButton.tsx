@@ -6,6 +6,7 @@ import type { Me } from "@/app/api/me/route";
 import type { Notify } from "@/content/notify";
 import OpenJoin from "./OpenJoin";
 
+import { trackEvent } from "@/lib/analytics";
 const PROGRAM: Record<Notify, string> = { networking: "networking events", accelerator: "the accelerator", conference: "the next conference" };
 
 // One request per page load, shared by every button on it.
@@ -27,5 +28,5 @@ export default function NotifyButton({ notify, src, className, children }: { not
       <p className="on-list" role="status">You&apos;re a member. <Link href="/update">Add {PROGRAM[notify]} to your updates</Link></p>
     );
   }
-  return <OpenJoin className={className} notify={notify} src={src}>{children}</OpenJoin>;
+  return <OpenJoin className={className} notify={notify} src={src} onOpen={() => trackEvent("get_notified_clicked", { block: notify })}>{children}</OpenJoin>;
 }

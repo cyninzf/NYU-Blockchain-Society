@@ -5,6 +5,7 @@ import { submitInquiry, type InquiryResult } from "@/app/actions/inquiry";
 import { startJoin } from "@/app/actions/join";
 
 import PrivacyNote from "../PrivacyNote";
+import { trackEvent } from "@/lib/analytics";
 const INTERESTS = [["sponsor", "Sponsor"], ["speak", "Speak"], ["other", "Other"]] as const;
 
 /** "Interested in sponsoring or speaking?" Name, email, company, interest, message (1,000 characters). */
@@ -15,6 +16,7 @@ export default function InquiryForm() {
   // The signed minimum-fill-time token, as for the join form.
   useEffect(() => { startJoin().then(setToken).catch(() => {}); }, []);
 
+  useEffect(() => { if (state?.ok) trackEvent("inquiry_submitted", { type: "conference" }); }, [state]);
   if (state?.ok) {
     return <p className="iq-done" role="status">Thank you. We&apos;ve received your note and will reply by email.</p>;
   }

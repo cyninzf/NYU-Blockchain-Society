@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { homeTitle, siteDescription, siteName, siteUrl } from "@/content/site";
 import "./globals.css";
 
+import SiteAnalytics from "@/components/SiteAnalytics";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -52,7 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body>{children}</body>
+      <body>{children}<SiteAnalytics /></body>
     </html>
   );
 }

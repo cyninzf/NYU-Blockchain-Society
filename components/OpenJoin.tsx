@@ -17,7 +17,8 @@ export function openJoin(detail: OpenJoinDetail = {}) {
 export const joinHref = (notify?: Notify, src?: string) => `/?join=1${notify ? `&notify=${notify}` : ""}${src ? `&src=${encodeURIComponent(src)}` : ""}`;
 
 /** `src`: the join source this link carries (e.g. event-<slug>), stored on the member when they join. */
-export default function OpenJoin({ className, notify, src, children }: { className?: string; notify?: Notify; src?: string; children: ReactNode }) {
+/** `onOpen`: called on every click (analytics), before the flow opens or the page changes. */
+export default function OpenJoin({ className, notify, src, onOpen, children }: { className?: string; notify?: Notify; src?: string; onOpen?: () => void; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   return (
@@ -25,6 +26,7 @@ export default function OpenJoin({ className, notify, src, children }: { classNa
       className={className}
       href={joinHref(notify, src)}
       onClick={(e) => {
+        onOpen?.();
         if (e.metaKey || e.ctrlKey || e.shiftKey) return;
         e.preventDefault();
         if (src) setJoinSource(src);
