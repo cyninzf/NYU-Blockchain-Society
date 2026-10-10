@@ -253,6 +253,8 @@ export const events = pgTable(
   {
     id: serial().primaryKey(),
     title: text().notNull(),
+    /** Small label above the title, e.g. "Networking evening"; "Event" when empty. */
+    kind: text(),
     slug: text().notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),

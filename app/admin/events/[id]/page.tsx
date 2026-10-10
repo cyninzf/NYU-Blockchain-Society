@@ -56,7 +56,7 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
       <EventForm
         key={e.updatedAt.toISOString()}
         e={{
-          id: e.id, title: e.title, slug: e.slug, startsAt: dateToNyInput(e.startsAt), endsAt: e.endsAt ? dateToNyInput(e.endsAt) : "",
+          id: e.id, title: e.title, kind: e.kind ?? "", slug: e.slug, startsAt: dateToNyInput(e.startsAt), endsAt: e.endsAt ? dateToNyInput(e.endsAt) : "",
           venueName: e.venueName ?? "", address: e.address ?? "", description: e.description ?? "", registrationUrl: e.registrationUrl ?? "", cohost: e.cohost ?? "",
         }}
       />

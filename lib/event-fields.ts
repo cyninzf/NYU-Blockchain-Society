@@ -22,6 +22,7 @@ const when = (what: string) => z.string().trim().transform((v, ctx) => {
 
 export const EventInput = z.object({
   title: z.string().trim().min(1, "Add a title.").max(140, "Keep the title under 140 characters."),
+  kind: text(40, "label"),
   slug: z.string().trim().toLowerCase().max(34, "Keep the link name under 34 characters."),
   startsAt: when("start date and time"),
   endsAt: when("end date and time"),

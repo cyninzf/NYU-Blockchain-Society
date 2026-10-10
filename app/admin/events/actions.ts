@@ -18,7 +18,7 @@ const idOf = (v: FormDataEntryValue | null) => { const n = Number(v); return Num
 /** How a value reads in the audit log: times in New York, blanks as null. */
 const shown = (v: string | Date | null) => (v === null ? null : v instanceof Date ? `${dateToNyInput(v).replace("T", " ")} ET` : v);
 const FIELDS: [keyof EventFields, string][] = [
-  ["title", "title"], ["slug", "link name"], ["startsAt", "starts"], ["endsAt", "ends"], ["venueName", "venue"],
+  ["title", "title"], ["kind", "label"], ["slug", "link name"], ["startsAt", "starts"], ["endsAt", "ends"], ["venueName", "venue"],
   ["address", "address"], ["description", "description"], ["registrationUrl", "registration link"], ["cohost", "co-host"],
 ];
 

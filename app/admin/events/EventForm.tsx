@@ -6,11 +6,11 @@ import styles from "../admin.module.css";
 
 /** Form values: times as datetime-local strings in New York time. */
 export type EventFormValues = {
-  id?: number; title: string; slug: string; startsAt: string; endsAt: string; venueName: string;
+  id?: number; title: string; kind: string; slug: string; startsAt: string; endsAt: string; venueName: string;
   address: string; description: string; registrationUrl: string; cohost: string;
 };
 
-export const EMPTY_EVENT: EventFormValues = { title: "", slug: "", startsAt: "", endsAt: "", venueName: "", address: "", description: "", registrationUrl: "", cohost: "" };
+export const EMPTY_EVENT: EventFormValues = { title: "", kind: "", slug: "", startsAt: "", endsAt: "", venueName: "", address: "", description: "", registrationUrl: "", cohost: "" };
 
 export default function EventForm({ e }: { e: EventFormValues }) {
   const [state, action, pending] = useActionState<EventFormResult, FormData>(saveEvent, null);
@@ -24,6 +24,7 @@ export default function EventForm({ e }: { e: EventFormValues }) {
     <form className={`${styles.panel} ${styles.compose}`} onSubmit={submit} noValidate>
       {e.id && <input type="hidden" name="id" value={e.id} />}
       <label className={styles.field}>Title<input name="title" defaultValue={e.title} required maxLength={140} autoComplete="off" /></label>
+      <label className={styles.field}>Label above the title (optional)<input name="kind" defaultValue={e.kind} maxLength={40} autoComplete="off" placeholder="e.g. Networking evening (shows “Event” if empty)" /></label>
       <div className={styles.row}>
         <label className={styles.field}>Starts (New York time)<input name="startsAt" type="datetime-local" defaultValue={e.startsAt} required /></label>
         <label className={styles.field}>Ends (optional)<input name="endsAt" type="datetime-local" defaultValue={e.endsAt} /></label>

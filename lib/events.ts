@@ -10,7 +10,7 @@ import { eventOver } from "./event-time";
 // Public events: published and cancelled ones, never drafts. Cached under the "events" tag
 // (every admin change refreshes it) and re-split into upcoming and past at least hourly.
 
-export type PublicEvent = Pick<EventRow, "id" | "title" | "slug" | "startsAt" | "endsAt" | "venueName" | "address" | "description" | "registrationUrl" | "cohost" | "updatedAt"> & {
+export type PublicEvent = Pick<EventRow, "id" | "title" | "kind" | "slug" | "startsAt" | "endsAt" | "venueName" | "address" | "description" | "registrationUrl" | "cohost" | "updatedAt"> & {
   status: "published" | "cancelled";
   /** Ended (or, without an end time, started) as of the cached read. */
   over: boolean;
@@ -27,7 +27,7 @@ async function load(): Promise<Wire[]> {
   if (!db) return [];
   try {
     const rows = await db.select({
-      id: events.id, title: events.title, slug: events.slug, startsAt: events.startsAt, endsAt: events.endsAt, venueName: events.venueName,
+      id: events.id, title: events.title, kind: events.kind, slug: events.slug, startsAt: events.startsAt, endsAt: events.endsAt, venueName: events.venueName,
       address: events.address, description: events.description, registrationUrl: events.registrationUrl, cohost: events.cohost,
       status: events.status, updatedAt: events.updatedAt,
     }).from(events).where(ne(events.status, "draft")).orderBy(asc(events.startsAt));

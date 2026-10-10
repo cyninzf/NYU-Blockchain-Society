@@ -6,7 +6,7 @@ import Icon from "../Icon";
 import OpenJoin from "../OpenJoin";
 
 export type EventView = {
-  title: string; slug: string; startsAt: Date; endsAt: Date | null; venueName: string | null; address: string | null;
+  title: string; kind: string | null; slug: string; startsAt: Date; endsAt: Date | null; venueName: string | null; address: string | null;
   description: string | null; registrationUrl: string | null; cohost: string | null; status: EventStatus;
 };
 
@@ -20,7 +20,7 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
       <div className="wrap">
       <div className="ev-detail">
         {banner}
-        <p className="kicker mono" data-bg="solid">{cancelled ? "Cancelled" : over ? "Past event" : "Event"}</p>
+        <p className="kicker mono" data-bg="solid">{[e.kind || "Event", cancelled ? "Cancelled" : over ? "Past" : null].filter(Boolean).join(" · ")}</p>
         <h1 id="ev-h" data-bg="solid">{e.title}</h1>
         <p className="when mono" data-bg="solid">{eventWhen(e.startsAt, e.endsAt)}</p>
         {(e.venueName || e.address) && <p className="ev-where" data-bg="solid">{[e.venueName, e.address].filter(Boolean).join(" · ")}</p>}
