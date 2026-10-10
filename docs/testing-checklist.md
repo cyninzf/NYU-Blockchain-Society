@@ -301,6 +301,11 @@ Sentry (after setting the environment variables and redeploying)
       string, and no email address appears anywhere. Resolve both test issues afterwards.
 - [ ] On a preview without the Sentry variables, the test page says Sentry is off, and the site
       works normally.
+- [ ] After each deploy (round 18): open `/admin/contacts` as a super admin, do an action there
+      (for example filter, or link and undo a contact), and browse a few other admin tabs. In
+      Sentry, confirm no new "session lookup failed" event appears.
+- [ ] Open any database error event in Sentry: its message shows the SQL with `$1, $2` and
+      "[params removed]", and no email address or token anywhere in the chain.
 
 Analytics (after enabling Web Analytics in Vercel and redeploying)
 - [ ] Visit `/`, `/conference`, `/networking` and `/accelerator` (ad blockers off): they appear
