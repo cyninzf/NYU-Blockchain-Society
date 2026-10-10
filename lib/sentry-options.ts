@@ -13,7 +13,14 @@ const EMAIL = /[^\s@<>"'(),;:/]+@[^\s@<>"'(),;:/]+\.[a-z]{2,}/gi;
 const TOKEN_PARAM = /\b(t|d|token|invite|code|key|secret|sig)=([^&\s#"']+)/gi;
 const BEARER = /\b(Bearer|whsec_|re_)[\w.-]{8,}/g;
 
-export const scrubText = (s: string) => s.replace(EMAIL, "[email]").replace(TOKEN_PARAM, "$1=[redacted]").replace(BEARER, "[redacted]");
+/**
+ * Query parameters never go to Sentry (round 18): a Drizzle "Failed query" error ends with a
+ * "params: …" line holding the bound values (emails, token hashes). Everything from "params:"
+ * on is cut; the SQL before it only has placeholders ($1, $2) and stays.
+ */
+const QUERY_PARAMS = /(^|\n)[ \t]*params:[\s\S]*$/i;
+
+export const scrubText = (s: string) => s.replace(QUERY_PARAMS, "$1[params removed]").replace(EMAIL, "[email]").replace(TOKEN_PARAM, "$1=[redacted]").replace(BEARER, "[redacted]");
 /** Path only: query strings and fragments can carry tokens. */
 export const scrubUrl = (u: string) => scrubText(u.split(/[?#]/)[0]);
 
@@ -33,7 +40,7 @@ const scrubDeep = (v: unknown, depth = 0): unknown => {
   if (typeof v === "string") return scrubText(v);
   if (depth > 4 || !v || typeof v !== "object") return v;
   if (Array.isArray(v)) return v.map((x) => scrubDeep(x, depth + 1));
-  return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /cookie|authorization|token|password|secret|email|^name$|^user/i.test(k) ? "[redacted]" : scrubDeep(x, depth + 1)]));
+  return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /cookie|authorization|token|password|secret|email|^name$|^user|^params$/i.test(k) ? "[redacted]" : scrubDeep(x, depth + 1)]));
 };
 
 const pathOf = (url: string) => { try { return new URL(url, "https://x.invalid").pathname; } catch { return url.split(/[?#]/)[0]; } };
@@ -49,6 +56,7 @@ export function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (!event.tags?.area && typeof window !== "undefined") event.tags = { ...event.tags, area: areaForPath(location.pathname) };
   if (event.message) event.message = scrubText(event.message);
   if (event.transaction) event.transaction = scrubUrl(event.transaction);
+  // Every exception in the chain (an error and its causes), not just the first.
   for (const ex of event.exception?.values ?? []) if (ex.value) ex.value = scrubText(ex.value);
   if (event.breadcrumbs) event.breadcrumbs = event.breadcrumbs.map(scrubBreadcrumb).filter((b): b is Breadcrumb => b !== null);
   if (event.extra) event.extra = scrubDeep(event.extra) as typeof event.extra;

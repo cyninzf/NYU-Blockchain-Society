@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "predev": "node scripts/media-kit.mjs",
     "media-kit": "node scripts/media-kit.mjs",
-    "test:db": "node --import ./test/server-only-stub.mjs --import tsx test/db.mts"
+    "test:db": "node --import ./test/server-only-stub.mjs --import tsx test/db.mts",
+    "test:sentry": "node --import ./test/server-only-stub.mjs --import tsx test/sentry.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
