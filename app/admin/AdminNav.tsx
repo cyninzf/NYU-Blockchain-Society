@@ -6,6 +6,7 @@ import type { AdminRole } from "@/lib/db/schema";
 import styles from "./admin.module.css";
 
 // Super-only tabs are hidden from admins; the pages and actions check the role themselves.
+// Imports have no tab: the Import button on Contacts opens /admin/contacts/import.
 const TABS = [
   { href: "/admin", label: "Members" },
   { href: "/admin/contacts", label: "Contacts" },
@@ -20,7 +21,7 @@ export default function AdminNav({ role }: { role: AdminRole }) {
   return (
     <nav aria-label="Admin" className={styles.tabs}>
       {TABS.filter((t) => role === "super_admin" || !("superOnly" in t)).map((t) => (
-        <Link key={t.href} href={t.href} aria-current={pathname === t.href ? "page" : undefined}>{t.label}</Link>
+        <Link key={t.href} href={t.href} aria-current={pathname === t.href || (t.href !== "/admin" && pathname.startsWith(`${t.href}/`)) ? "page" : undefined}>{t.label}</Link>
       ))}
     </nav>
   );
