@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ConferenceNotify from "@/components/conference/ConferenceNotify";
+import InquiryForm from "@/components/conference/InquiryForm";
 import Icon from "@/components/Icon";
 import { editionStatus, editionTitle, nextEdition, pastEditions, series } from "@/content/conferences";
 import { siteName } from "@/content/site";
@@ -50,6 +51,12 @@ export default function ConferencePage() {
             </ol>
           </>
         )}
+
+        <div className="iq" id="inquire">
+          <h2 className="conf-proof-h" data-bg="dim">Interested in sponsoring or speaking?</h2>
+          <p className="series-sub" data-bg="dim">Tell us a little about you and we&apos;ll reply by email.</p>
+          <div data-bg="dim"><InquiryForm /></div>
+        </div>
       </div>
     </section>
   );

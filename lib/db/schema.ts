@@ -389,3 +389,30 @@ export const displayLinks = pgTable(
   (t) => [uniqueIndex("display_links_hash_idx").on(t.tokenHash), index("display_links_event_idx").on(t.eventId)],
 );
 
+export const INQUIRY_INTERESTS = ["sponsor", "speak", "other"] as const;
+export const INQUIRY_STATUSES = ["new", "replied", "closed"] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
+
+/**
+ * Sponsor and speaker inquiries from /conference (round 13). Not contacts and not members: they
+ * only become members if they join themselves. Super admins change the status; admins read.
+ */
+export const conferenceInquiries = pgTable(
+  "conference_inquiries",
+  {
+    id: serial().primaryKey(),
+    name: text().notNull(),
+    email: text().notNull(),
+    company: text(),
+    interest: text().$type<(typeof INQUIRY_INTERESTS)[number]>().notNull(),
+    message: text().notNull(),
+    /** The edition it's about, e.g. "2027". */
+    edition: text().notNull(),
+    status: text().$type<InquiryStatus>().notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("conference_inquiries_status_idx").on(t.status, t.createdAt)],
+);
+
+export type ConferenceInquiry = typeof conferenceInquiries.$inferSelect;
+

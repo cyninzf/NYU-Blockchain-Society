@@ -567,3 +567,22 @@ footer ul{gap:0 22px}
 .conf-proof-h{margin:clamp(48px,6vw,80px) 0 0; font-weight:550; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em}
 .series .ed-chain{margin-top:20px}
 .conf-proof-t{margin:6px 0 0; font-weight:600; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em; line-height:1.15}
+/* Sponsor and speaker inquiries on /conference (round 13) */
+.iq{max-width:640px}
+.iq .series-sub{margin-top:10px}
+.iq-form{display:grid; gap:14px; margin-top:24px}
+.iq-form label{display:grid; gap:6px; color:var(--ink-muted); font-size:15px}
+.iq-form input:not([type=radio]),.iq-form textarea{min-height:48px; padding:10px 12px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.6); color:var(--ink-fg); font:inherit; font-size:16px; box-sizing:border-box; width:100%}
+.iq-form textarea{resize:vertical}
+.iq-two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:640px){.iq-two{grid-template-columns:1fr}}
+.iq-form fieldset{margin:0; padding:0; border:0}
+.iq-form legend{color:var(--ink-muted); font-size:15px; margin-bottom:8px}
+.iq-pick{display:inline-flex !important; grid-auto-flow:column; align-items:center; gap:8px !important; min-height:46px; padding:0 16px; border:1px solid #6A4590; border-radius:10px; color:var(--ink-fg) !important; cursor:pointer}
+.iq-pick:has(input:checked){background:#fff; color:#1C0533 !important; border-color:#fff}
+.iq-pick input{accent-color:#57068C}
+.iq-count{font-size:13px}
+.iq-form .btn{justify-self:start}
+.iq-fine{margin:0; font-size:13px; color:var(--ink-muted)}
+.iq-err{min-height:1.2em; margin:0; color:#FFB4C8; font-size:15px}
+.iq-done{margin:24px 0 0; padding:16px 18px; border:1px solid var(--ink-line); border-radius:10px; color:var(--ink-fg)}

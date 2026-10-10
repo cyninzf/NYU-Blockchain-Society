@@ -132,5 +132,19 @@ await db.update(schema.displayLinks).set({ revokedAt: new Date() }).where(eq(sch
 const a3 = await displayAccess(db, "now", link.token);
 ok(!a3.ok && a3.reason === "invalid", "revoked display link refused");
 ok(!(await displayAccess(db, "now", "x".repeat(43))).ok, "unknown token refused");
+// Round 13: conference inquiries.
+const { saveInquiry, setInquiryStatus, InquiryInput } = await import(`${P}/lib/inquiries.ts`);
+const input = InquiryInput.parse({ name: "Gus Sponsor", email: "gus@example.com", company: "", interest: "sponsor", message: "We'd like to sponsor the 2027 edition." });
+ok(input.company === null, "blank company stored as null");
+ok(!InquiryInput.safeParse({ ...input, message: "x".repeat(1001) }).success, "message over 1,000 characters refused");
+const iq = await saveInquiry(db, input, "2027");
+ok(await setInquiryStatus(db, iq, "replied", "admin@example.com"), "inquiry status changed");
+ok(!(await setInquiryStatus(db, iq, "replied", "admin@example.com")), "same status is a no-op");
+const iqAudit = (await db.select().from(adminAudit)).filter((a: any) => a.action === "inquiry.status");
+ok(iqAudit.length === 1 && iqAudit[0].changes.status[1] === "replied", "status change logged with old and new");
+const [iqRow] = await db.select().from(schema.conferenceInquiries);
+ok(iqRow.edition === "2027" && iqRow.status === "replied", "inquiry stored with edition and status");
+const [{ asMember }] = await db.select({ asMember: sql<number>`count(*)::int` }).from(members).where(eq(members.email, "gus@example.com"));
+ok(asMember === 0, "an inquirer is not a member");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

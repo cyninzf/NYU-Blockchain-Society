@@ -162,6 +162,13 @@
       "when": 1791649337759,
       "tag": "0022_checkin_test_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791650243594,
+      "tag": "0023_conference_inquiries",
+      "breakpoints": true
     }
   ]
 }

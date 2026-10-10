@@ -12,6 +12,7 @@ const TABS = [
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/events", label: "Events" },
   { href: "/admin/announcements", label: "Announcements" },
+  { href: "/admin/inquiries", label: "Inquiries" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/team", label: "Team", superOnly: true },
   { href: "/admin/media-kit-preview", label: "Media kit preview", superOnly: true },
