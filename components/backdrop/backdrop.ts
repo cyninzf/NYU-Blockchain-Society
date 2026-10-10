@@ -41,6 +41,9 @@ export function addPainter(p: Painter) {
 /** The background network as drawn last frame (screen positions), e.g. for the logo to assemble from. */
 export const networkSnapshot = () => engine?.snapshot() ?? null;
 
+/** The live screen: one new node per check-in, arriving with a glow. */
+export const backdropArrive = () => engine?.arrive();
+
 /** Ask for a frame (only needed under reduced motion; otherwise the loop runs anyway). */
 export const requestBackdropFrame = () => engine?.request();
 
@@ -171,6 +174,7 @@ function createEngine(cv: HTMLCanvasElement) {
 
   return {
     request,
+    arrive: () => { network?.arrive(performance.now()); request(); },
     snapshot: () => network?.snapshot() ?? null,
     destroy() {
       alive = false; cancelAnimationFrame(raf);

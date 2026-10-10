@@ -46,6 +46,7 @@ export function densityFor(W: number, H: number, members: number | null = null) 
 }
 export type Density = ReturnType<typeof densityFor>;
 
+const ARRIVE = 3200; // ms: a new node's arrival glow (live screen)
 const ease = (t: number) => { const x = Math.min(Math.max(t, 0), 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -115,10 +116,13 @@ export function createNetwork(rnd: () => number, density: Density) {
   }
   pairs.sort((a, b) => a[2] - b[2]);
   for (const [i, j] of pairs) if (deg[i] < 3 && deg[j] < 3) { edges.push([i, j]); deg[i]++; deg[j]++; }
-  const adj = nodes.map((_, i) => edges.map((e, k) => [e, k] as const).filter(([e]) => e[0] === i || e[1] === i));
+  const adjOf = () => nodes.map((_, i) => edges.map((e, k) => [e, k] as const).filter(([e]) => e[0] === i || e[1] === i));
+  let adj = adjOf();
   const dots = Array.from({ length: density.dots }, () => ({ e: (rnd() * edges.length) | 0, t: rnd(), s: .18 + rnd() * .22, f: rnd() < .5 }));
 
   let formations: Formation[] = [];
+  /** New nodes (the live screen: one per check-in), with when they arrived, for their glow. */
+  const arrivals: { i: number; t0: number }[] = [];
   let nextAt = -1;
   let lastNow = 0;
   let snap: Snapshot = { sp: [], w: [], blocks: [] };
@@ -238,6 +242,20 @@ export function createNetwork(rnd: () => number, density: Density) {
       }
       db.fill(ctx, "233,219,248");
     }
+    // arrivals (live screen): an expanding ring and a bright core, fading over ARRIVE ms
+    if (reduce) arrivals.length = 0; // static under reduced motion: the new node just appears
+    for (let k = arrivals.length - 1; k >= 0; k--) {
+      const a = arrivals[k], t = (now - a.t0) / ARRIVE;
+      if (t >= 1) { arrivals.splice(k, 1); continue; }
+      const q = sp[a.i], f = (1 - t) * gk;
+      ctx.save();
+      ctx.strokeStyle = `rgba(216,194,240,${.7 * f})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(q[0], q[1], 6 + 60 * ease(t), 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowColor = "rgba(185,120,240,.95)"; ctx.shadowBlur = 24 * f;
+      ctx.fillStyle = `rgba(245,238,251,${Math.min(1, .4 + f)})`;
+      ctx.beginPath(); ctx.arc(q[0], q[1], 2.5 + 3 * f, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     snap = { sp, w: nodes.map((n) => n.w), blocks: [] };
     // forming blocks
     for (const { f, t } of live) {
@@ -279,5 +297,17 @@ export function createNetwork(rnd: () => number, density: Density) {
     }
   }
 
-  return { draw, density, snapshot: () => snap };
+  /**
+   * Adds one node (the live screen: a check-in), near the middle of the volume, tied to its 3
+   * nearest neighbours. It arrives with a soft ring and glow that fade over ~3 s.
+   */
+  function arrive(now: number) {
+    const p: V3 = [(rnd() - .5) * BOX[0] * .7, (rnd() - .5) * BOX[1] * .6, (rnd() - .5) * BOX[2] * .6];
+    const i = nodes.push({ home: p, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], sp: .12 + rnd() * .14, w: 0, busy: false }) - 1;
+    nodes.slice(0, i).map((n, j) => [j, dist(n.home, p)] as const).sort((a, b) => a[1] - b[1]).slice(0, 3).forEach(([j]) => edges.push([j, i]));
+    adj = adjOf();
+    arrivals.push({ i, t0: now });
+  }
+
+  return { draw, density, snapshot: () => snap, arrive };
 }
