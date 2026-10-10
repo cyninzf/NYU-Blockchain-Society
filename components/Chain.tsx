@@ -87,7 +87,15 @@ export default async function Chain() {
                     )}
                   </ol>
                 )}
-                {a.kind === "join" ? (
+                {ev.page && a.kind === "join" ? (
+                  // The card opens the block's page; "Get notified" is a button of its own above it.
+                  <div className="blk-acts">
+                    <Link className="blk-go go" href={ev.page.href}>{ev.page.label} <Icon name="arrow-right" /></Link>
+                    <OpenJoin className="btn btn-o blk-act" notify={a.notify} src={a.src}>
+                      {a.label}<span className="sr">: {ev.title}</span>
+                    </OpenJoin>
+                  </div>
+                ) : a.kind === "join" ? (
                   <OpenJoin className={cls} notify={a.notify} src={a.src}>
                     {a.label}<span className="sr">: {ev.title}</span>
                   </OpenJoin>

@@ -591,3 +591,16 @@ footer ul{gap:0 22px}
 @keyframes live-tick{from{opacity:0; transform:translateY(.45em) scale(1.25)} to{opacity:1; transform:none}}
 @media (prefers-reduced-motion: reduce){.live-n{animation:live-fade .6s ease both}}
 @keyframes live-fade{from{opacity:0} to{opacity:1}}
+/* Accelerator (round 14): Block 02's page, "Building", two paths with a form each */
+.acc-kicker{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center}
+.acc-intro{max-width:60ch}
+.acc-paths{list-style:none; margin:clamp(40px,5vw,64px) 0 0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; max-width:960px}
+.acc-paths .ed-blk h2{font-size:clamp(22px,2.2vw,28px)}
+.acc-paths .ed-blk + .ed-blk::before,.acc-paths .ed-blk + .ed-blk::after{content:none}
+.acc-paths .ed-blk .go{margin-top:auto; padding-top:6px}
+@media (max-width:760px){.acc-paths{grid-template-columns:1fr}}
+.acc-form{scroll-margin-top:96px}
+/* Block 02: the card opens /accelerator; "Get notified" sits above the card's link */
+.blk-acts{margin-top:auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 18px}
+.blk-acts .go{margin-top:0}
+.blk-act{position:relative; z-index:3; min-height:44px}

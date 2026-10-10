@@ -32,6 +32,8 @@ export type ChainBlock = {
   /** Show the conference's mini edition chain (from conferences.ts) inside the card. */
   editions?: boolean;
   action: BlockAction;
+  /** The block's own page: the whole card opens it, and `action` sits beside it as its own button. */
+  page?: { label: string; href: string };
 };
 
 const notifyNetworking: BlockAction = { kind: "join", label: "Get notified", notify: "networking" };
@@ -69,6 +71,7 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     status: "building",
     title: "Accelerator",
     text: "Support for NYU founders working across digital assets and AI.",
+    page: { label: "About the accelerator", href: "/accelerator" },
     action: { kind: "join", label: "Get notified", notify: "accelerator" },
   },
 ];
