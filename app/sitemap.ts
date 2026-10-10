@@ -12,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}${NETWORKING_PATH}`, changeFrequency: "weekly", priority: .8 },
     { url: `${siteUrl}/accelerator`, changeFrequency: "monthly", priority: .7 },
     { url: `${siteUrl}/media-kit`, changeFrequency: "yearly", priority: .5 },
+    { url: `${siteUrl}/privacy`, changeFrequency: "yearly", priority: .3 },
     ...pastEditions.map((e) => ({ url: `${siteUrl}/conference/${e.year}`, changeFrequency: "yearly" as const, priority: .7 })),
     // Published events (cancelled ones only until their date, while their page still exists).
     ...[...upcoming, ...past].map((e) => ({ url: `${siteUrl}${eventPath(e.slug)}`, lastModified: e.updatedAt, changeFrequency: "weekly" as const, priority: e.over ? .4 : .7 })),

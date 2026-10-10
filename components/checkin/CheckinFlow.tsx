@@ -5,6 +5,7 @@ import { checkinJoin, checkInSelf, requestCheckin, type CheckinResult } from "@/
 import { startJoin } from "@/app/actions/join";
 import CheckinDone from "./CheckinDone";
 
+import PrivacyNote from "../PrivacyNote";
 const YOU = [["alumni", "Alumni"], ["industry", "Industry professional"], ["faculty_staff", "Faculty/Staff"], ["student", "Student"]] as const;
 const JOINED_BEFORE = "Joined before with this email? Tap the link we just emailed you to finish checking in.";
 
@@ -75,6 +76,7 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
         <label>Your email<input type="email" name="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <button className="btn btn-w" type="submit" disabled={busy}>{busy ? "One moment…" : "Continue"}</button>
         <p className="ci-err" role="alert">{err}</p>
+        <PrivacyNote />
       </form>
     );
   }
@@ -97,6 +99,7 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
       )}
       <p className="ci-fine">By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.</p>
       <p className="ci-err" role="alert">{err}</p>
+      <PrivacyNote />
     </form>
   );
 }

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { requestMemberLink, type LinkState } from "./actions";
 import s from "../account.module.css";
 
+import PrivacyNote from "@/components/PrivacyNote";
 export default function RequestLink() {
   const [state, action, pending] = useActionState<LinkState, FormData>(requestMemberLink, null);
   if (state?.sent) {
@@ -16,6 +17,7 @@ export default function RequestLink() {
       </label>
       <div className={s.actions}><button className="btn btn-w" type="submit" disabled={pending}>{pending ? "Sending…" : "Email me a link"}</button></div>
       {state && !state.sent && <p className={s.err} role="alert">{state.error}</p>}
+      <PrivacyNote />
     </form>
   );
 }

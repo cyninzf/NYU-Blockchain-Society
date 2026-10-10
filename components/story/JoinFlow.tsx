@@ -14,6 +14,7 @@ import Icon from "../Icon";
 import CalendarButtons from "../events/CalendarButtons";
 import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
+import PrivacyNote from "../PrivacyNote";
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const YOU: [Exclude<Affiliation, "friend">, string][] = [
@@ -180,6 +181,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       )}
       <p className="err" id="jf-err" role="alert">{sending ? "" : err}</p>
       {id === "you" && <p className="fine">{sending ? "Adding your block…" : privacyLine}</p>}
+      <PrivacyNote className="fine privacy-note" />
     </form>
   );
 }

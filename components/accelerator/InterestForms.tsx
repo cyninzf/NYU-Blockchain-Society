@@ -5,6 +5,7 @@ import { submitFounder, submitSupporter, type InterestResult } from "@/app/actio
 import { startJoin } from "@/app/actions/join";
 import { AFFILIATION_LABELS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
 
+import PrivacyNote from "../PrivacyNote";
 const entries = <K extends string>(r: Record<K, string>) => Object.entries(r) as [K, string][];
 
 /** The signed minimum-fill-time token, as for the join form, and the honeypot. */
@@ -24,6 +25,7 @@ function Shell({ action, token, pending, state, fine, children }: { action: (fd:
       {children}
       <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">{fine}</p>
+      <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
     </form>
   );

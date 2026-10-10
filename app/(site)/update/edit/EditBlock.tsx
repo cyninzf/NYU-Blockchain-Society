@@ -6,6 +6,7 @@ import { industries } from "@/content/industries";
 import { saveOwnBlock, type SaveState } from "../actions";
 import s from "../../account.module.css";
 
+import PrivacyNote from "@/components/PrivacyNote";
 export type OwnBlock = {
   blocks: string[]; notify: string[]; linkedinUrl: string | null; role: string | null; company: string | null;
   school: string | null; gradYear: number | null; location: string | null;
@@ -39,6 +40,7 @@ export default function EditBlock({ b }: { b: OwnBlock }) {
         <button className="btn btn-w" type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
         <span className={state && !state.ok ? s.err : s.small} role="status">{state ? (state.ok ? "Saved." : state.error) : ""}</span>
       </div>
+      <PrivacyNote />
     </form>
   );
 }

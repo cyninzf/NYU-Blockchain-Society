@@ -17,6 +17,7 @@ export default function Footer() {
           <li><OpenJoin>Add your block</OpenJoin></li>
           <li><Link href="/update">Update your block</Link></li>
           <li><Link href="/media-kit">Media kit</Link></li>
+          <li><Link href="/privacy">Privacy</Link></li>
           <li><a href={links.x} target="_blank" rel="noopener">X</a></li>
           <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn</a></li>
           <li><a href={links.nyuAlumni} target="_blank" rel="noopener">NYU Alumni</a></li>

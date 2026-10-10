@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { submitInquiry, type InquiryResult } from "@/app/actions/inquiry";
 import { startJoin } from "@/app/actions/join";
 
+import PrivacyNote from "../PrivacyNote";
 const INTERESTS = [["sponsor", "Sponsor"], ["speak", "Speak"], ["other", "Other"]] as const;
 
 /** "Interested in sponsoring or speaking?" Name, email, company, interest, message (1,000 characters). */
@@ -40,6 +41,7 @@ export default function InquiryForm() {
       </label>
       <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">We use these details only to reply about the conference. You won&apos;t be added to any list.</p>
+      <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
     </form>
   );
