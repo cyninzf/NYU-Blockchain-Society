@@ -19,7 +19,7 @@ export default function TeamPage() {
   return (
     <>
       <h1>Team</h1>
-      <p className={styles.lede}>Who can sign in to the admin. Admins can view and edit members and send announcements; super admins can also import, export, delete, manage the team and see everyone&apos;s actions. Every change here is in the audit log.</p>
+      <p className={styles.lede}>Who can sign in to the admin. Admins can view and edit members, link contacts and send announcements. Only super admins can manage events, import, export, delete, manage the team or change settings. Every change here is in the audit log.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard min="super_admin">{() => <Team />}</Guard>
       </Suspense>

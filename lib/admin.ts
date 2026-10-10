@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
+import { forbidden } from "next/navigation";
 import { getDb, type Db } from "./db";
 import { adminAudit, adminUsers, type AdminRole, type AuditChanges } from "./db/schema";
 import { ADMIN_COOKIE } from "./session-token";
@@ -60,6 +61,19 @@ export async function requireAdmin(min: AdminRole = "admin"): Promise<{ db: Db; 
   const db = getDb();
   if (!db) throw new Error("DATABASE_URL is not set");
   return { db, admin, actor: admin.actor };
+}
+
+/**
+ * For super-admin-only actions where an admin might try anyway (events): an admin is refused
+ * with a 403 and the attempt is logged as "denied" (they see it in their own audit log).
+ */
+export async function requireSuperOr403(attempt: string): Promise<{ db: Db; admin: Admin; actor: string }> {
+  const { db, admin, actor } = await requireAdmin();
+  if (admin.role !== "super_admin") {
+    await audit(db, actor, "denied", `Refused (super admins only): ${attempt}`).catch((e) => console.error("audit failed", e instanceof Error ? e.message : e));
+    forbidden();
+  }
+  return { db, admin, actor };
 }
 
 /** One admin_audit row for an action that isn't a member edit (or a member edit's own row). */

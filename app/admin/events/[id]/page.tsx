@@ -22,7 +22,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<str
 export default function EditEventPage(props: Props) {
   return (
     <>
-      <h1>Edit event</h1>
+      <h1>Event</h1>
       <p><Link href="/admin/events">Back to events</Link></p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Edit {...props} admin={admin} />}</Guard>
@@ -52,8 +52,11 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
           <ShareLink slug={e.slug} />
         </section>
       )}
-      <StatusActions id={e.id} status={e.status} canDelete={isSuper(admin)} from="edit" />
+      {isSuper(admin)
+        ? <StatusActions id={e.id} status={e.status} from="edit" />
+        : <p className={styles.note}>View only: only super admins can edit, publish, cancel or delete events.</p>}
       <EventForm
+        readOnly={!isSuper(admin)}
         key={e.updatedAt.toISOString()}
         e={{
           id: e.id, title: e.title, kind: e.kind ?? "", slug: e.slug, startsAt: dateToNyInput(e.startsAt), endsAt: e.endsAt ? dateToNyInput(e.endsAt) : "",

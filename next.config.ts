@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   // Admin contacts import sends a CSV (max 4 MB) to a server action.
-  experimental: { serverActions: { bodySizeLimit: "5mb" } },
+  // authInterrupts: forbidden() answers super-admin-only actions with a real 403 (lib/admin.ts).
+  experimental: { serverActions: { bodySizeLimit: "5mb" }, authInterrupts: true },
 };
 
 export default nextConfig;

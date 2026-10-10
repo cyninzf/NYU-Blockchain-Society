@@ -15,7 +15,7 @@ export default function NewEventPage() {
       <h1>New event</h1>
       <p><Link href="/admin/events">Back to events</Link></p>
       <Suspense fallback={null}>
-        <Guard>{() => <EventForm e={EMPTY_EVENT} />}</Guard>
+        <Guard min="super_admin">{() => <EventForm e={EMPTY_EVENT} />}</Guard>
       </Suspense>
     </>
   );

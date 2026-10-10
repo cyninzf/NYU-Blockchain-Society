@@ -3,13 +3,14 @@
 import { eq } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { audit, auditRow, requireAdmin } from "@/lib/admin";
+import { audit, auditRow, requireSuperOr403 } from "@/lib/admin";
 import { adminAudit, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
 import { EventInput, type EventFields } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
 
-// Events: both roles create, edit, publish and cancel; only super admins delete. Every change is
-// logged in admin_audit, and the public pages (cached under "events") refresh at once.
+// Events: super admins only (round 10.2). Admins can view /admin/events and the preview, but
+// every action here refuses them with a 403 and logs the attempt. Every change is logged in
+// admin_audit, and the public pages (cached under "events") refresh at once.
 
 export type EventFormResult = { ok: true; message: string } | { ok: false; error: string } | null;
 
@@ -29,11 +30,11 @@ const isUnique = (e: unknown) => {
 
 /** Create (as a draft) or edit. Editing never changes the status. */
 export async function saveEvent(_prev: EventFormResult, fd: FormData): Promise<EventFormResult> {
-  const { db, actor } = await requireAdmin();
+  const id = idOf(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(id ? `edit event #${id}` : "create an event");
   const parsed = EventInput.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the fields." };
   const d = parsed.data;
-  const id = idOf(fd.get("id"));
 
   if (!id) {
     let created: number;
@@ -82,8 +83,8 @@ const MOVES: Record<string, { from: EventStatus[]; action: string; verb: string 
 };
 
 export async function setEventStatus(fd: FormData) {
-  const { db, actor } = await requireAdmin();
   const id = idOf(fd.get("id")), to = String(fd.get("to"));
+  const { db, actor } = await requireSuperOr403(`${MOVES[to]?.action ?? "change the status of"} event #${id}`);
   const move = MOVES[to];
   if (!id || !move) throw new Error("Bad request");
   const [e] = await db.select({ status: events.status, title: events.title }).from(events).where(eq(events.id, id));
@@ -96,10 +97,10 @@ export async function setEventStatus(fd: FormData) {
   refresh();
 }
 
-/** Super admins only. Permanent. */
+/** Permanent. */
 export async function deleteEvent(fd: FormData) {
-  const { db, actor } = await requireAdmin("super_admin");
   const id = idOf(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`delete event #${id}`);
   if (!id || fd.get("confirm") !== "yes") throw new Error("Bad request");
   const [gone] = await db.delete(events).where(eq(events.id, id)).returning({ title: events.title, status: events.status });
   if (gone) await audit(db, actor, "event.delete", `Deleted event #${id} "${gone.title}" (${gone.status})`);

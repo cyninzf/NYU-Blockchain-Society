@@ -43,7 +43,9 @@ async function Events({ admin }: { admin: Admin }) {
   const past = rows.filter((r) => r.over).map((r) => r.e).reverse();
   return (
     <>
-      <p className={styles.row}><Link className={`${styles.button} ${styles.primary}`} href="/admin/events/new">New event</Link></p>
+      {isSuper(admin)
+        ? <p className={styles.row}><Link className={`${styles.button} ${styles.primary}`} href="/admin/events/new">New event</Link></p>
+        : <p className={styles.note}>View only: only super admins can create, edit, publish, cancel or delete events.</p>}
       <List title="Upcoming" rows={upcoming} admin={admin} joined={joined} empty="No upcoming events. Block 01 shows “Next date soon”." />
       <List title="Past" rows={past} admin={admin} joined={joined} empty="No past events yet." />
     </>
@@ -73,11 +75,11 @@ function List({ title, rows, admin, joined, empty }: { title: string; rows: Even
                 <td><span className={styles.badge}>{STATUS_LABELS[e.status]}</span></td>
                 <td>
                   <div className={styles.row}>
-                    <Link href={`/admin/events/${e.id}`}>Edit</Link>
+                    <Link href={`/admin/events/${e.id}`}>{isSuper(admin) ? "Edit" : "View"}</Link>
                     <a href={`/events/preview?id=${e.id}`} target="_blank" rel="noopener">Preview</a>
                     {e.status !== "draft" && <a href={`/events/${e.slug}`} target="_blank" rel="noopener">Public page</a>}
                   </div>
-                  <StatusActions id={e.id} status={e.status} canDelete={isSuper(admin)} />
+                  {isSuper(admin) && <StatusActions id={e.id} status={e.status} />}
                 </td>
               </tr>
             ))}

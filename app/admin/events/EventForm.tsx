@@ -12,7 +12,8 @@ export type EventFormValues = {
 
 export const EMPTY_EVENT: EventFormValues = { title: "", kind: "", slug: "", startsAt: "", endsAt: "", venueName: "", address: "", description: "", registrationUrl: "", cohost: "" };
 
-export default function EventForm({ e }: { e: EventFormValues }) {
+/** `readOnly`: admins (not super admins) see the event but can't change it: no Save. */
+export default function EventForm({ e, readOnly = false }: { e: EventFormValues; readOnly?: boolean }) {
   const [state, action, pending] = useActionState<EventFormResult, FormData>(saveEvent, null);
   // Submit by hand so a refused save keeps what was typed (a form `action` would reset it).
   const submit = (ev: FormEvent<HTMLFormElement>) => {
@@ -23,6 +24,7 @@ export default function EventForm({ e }: { e: EventFormValues }) {
   return (
     <form className={`${styles.panel} ${styles.compose}`} onSubmit={submit} noValidate>
       {e.id && <input type="hidden" name="id" value={e.id} />}
+      <fieldset disabled={readOnly} className={styles.compose} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <label className={styles.field}>Title<input name="title" defaultValue={e.title} required maxLength={140} autoComplete="off" /></label>
       <label className={styles.field}>Label above the title (optional)<input name="kind" defaultValue={e.kind} maxLength={40} autoComplete="off" placeholder="e.g. Networking evening (shows “Event” if empty)" /></label>
       <div className={styles.row}>
@@ -36,9 +38,12 @@ export default function EventForm({ e }: { e: EventFormValues }) {
       <label className={styles.field}>Co-host (optional, text only)<input name="cohost" defaultValue={e.cohost} maxLength={80} autoComplete="off" placeholder="e.g. KPMG" /></label>
       <label className={styles.field}>Link name (optional)<input name="slug" defaultValue={e.slug} maxLength={34} autoComplete="off" placeholder="made from the title if empty" pattern="[a-z0-9-]*" /></label>
       <p className={styles.note}>The link name sets the event page (/events/<i>link-name</i>) and the share link (?src=event-<i>link-name</i>). Changing it after sharing breaks those links.</p>
-      <div className={styles.row}>
-        <button type="submit" className={styles.primary} disabled={pending}>{pending ? "Saving…" : e.id ? "Save" : "Create draft"}</button>
-      </div>
+      </fieldset>
+      {!readOnly && (
+        <div className={styles.row}>
+          <button type="submit" className={styles.primary} disabled={pending}>{pending ? "Saving…" : e.id ? "Save" : "Create draft"}</button>
+        </div>
+      )}
       <p className={state?.ok === false ? styles.err : styles.note} role="status">{state ? (state.ok ? state.message : state.error) : ""}</p>
     </form>
   );

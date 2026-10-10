@@ -10,8 +10,8 @@ const MOVES: Record<EventStatus, { to: EventStatus; label: string }[]> = {
   cancelled: [{ to: "published", label: "Publish again" }],
 };
 
-/** Publish / cancel / back to draft (both roles) and delete (super admins only). */
-export default function StatusActions({ id, status, canDelete, from }: { id: number; status: EventStatus; canDelete: boolean; from?: "edit" }) {
+/** Publish / cancel / back to draft and delete. Super admins only: shown only to them, and refused for anyone else on the server. */
+export default function StatusActions({ id, status, from }: { id: number; status: EventStatus; from?: "edit" }) {
   return (
     <div className={styles.row}>
       {MOVES[status].map((m) => (
@@ -21,17 +21,15 @@ export default function StatusActions({ id, status, canDelete, from }: { id: num
           <button type="submit" className={m.to === "published" ? styles.primary : undefined}>{m.label}</button>
         </form>
       ))}
-      {canDelete && (
-        <details className={styles.del}>
-          <summary>Delete</summary>
-          <form action={deleteEvent}>
-            <input type="hidden" name="id" value={id} />
-            <input type="hidden" name="confirm" value="yes" />
-            {from && <input type="hidden" name="from" value={from} />}
-            <button type="submit">Delete event {id} permanently</button>
-          </form>
-        </details>
-      )}
+      <details className={styles.del}>
+        <summary>Delete</summary>
+        <form action={deleteEvent}>
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="confirm" value="yes" />
+          {from && <input type="hidden" name="from" value={from} />}
+          <button type="submit">Delete event {id} permanently</button>
+        </form>
+      </details>
     </div>
   );
 }

@@ -75,5 +75,11 @@ ahead, and delete it at the end.
       "Cancelled" with "Get notified" (or the next published event, if there is one).
 - [ ] `/sitemap.xml` lists `/events/<link name>` while it's public.
 - [ ] `/admin/audit` lists `event.create`, `event.edit`, `event.publish` and `event.cancel`.
+- [ ] Sign in as an Admin (not a super admin) on another device: `/admin/events` lists the
+      events with "View" links and a "View only" note, and has no "New event", Publish, Cancel or
+      Delete; the event page's form is greyed out with no Save; "Preview as it will appear" still
+      works; `/admin/events/new` says it's for super admins. An event change sent anyway (e.g. a
+      replayed request) gets a 403 "Not allowed", and the Admin's `/admin/audit` shows a `denied`
+      row for it.
 - [ ] As a super admin, "Delete" the test event; it's gone from `/events` and `/admin/events`, and
-      `event.delete` is in the audit log. As an Admin, there's no Delete button.
+      `event.delete` is in the audit log.
