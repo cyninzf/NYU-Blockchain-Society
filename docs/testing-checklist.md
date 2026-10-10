@@ -268,3 +268,35 @@ treated as bots: they see the thank-you and nothing is stored).
       The check-in email's button links to `/networking/<slug>/checkin/confirm`.
 - [ ] `/sitemap.xml` lists `/networking` and `/networking/<slug>` only (no `/events`). An event
       page's canonical tag, og:url and JSON-LD url are `/networking/<slug>`; its share image loads.
+
+## 12. Privacy, Sentry and analytics (round 16)
+
+Privacy links
+- [ ] `/privacy` opens from the footer on every page (home, `/conference`, `/networking`, an
+      event page, `/accelerator`, `/media-kit`) and shows "Last updated", the short version and
+      all sections, including Cookies ("no cookie banner") and Alumni in the EU and UK. Checked at
+      390 px: no sideways scrolling.
+- [ ] "See our privacy policy." appears under: the join flow (every step), `/update` (the email
+      form and the edit form), check-in (the email step and the join step), the conference
+      inquiry form and both accelerator forms. Each link opens `/privacy`.
+
+Sentry (after setting the environment variables and redeploying)
+- [ ] `/admin/sentry-test` as an Admin: "Only super admins can open this page."
+- [ ] As a super admin: "Send a server test error" says "Sent. Look for event …"; in Sentry,
+      Issues shows "Sentry test error (server) from /admin/sentry-test" with tags `area:admin`,
+      `test:yes`. `/admin/audit` shows `sentry.test`.
+- [ ] "Send a browser test error" (with ad blockers off) shows the browser event in Sentry too.
+- [ ] Open one test event in Sentry: no user, no cookies or headers, the request URL has no query
+      string, and no email address appears anywhere. Resolve both test issues afterwards.
+- [ ] On a preview without the Sentry variables, the test page says Sentry is off, and the site
+      works normally.
+
+Analytics (after enabling Web Analytics in Vercel and redeploying)
+- [ ] Visit `/`, `/conference`, `/networking` and `/accelerator` (ad blockers off): they appear
+      under Analytics → Pages within a few minutes. `/admin`, `/update`, a check-in confirm link
+      and a live screen never appear; a `?src=…` visit shows the src and no other query.
+- [ ] Analytics → Events: "Get notified" on Block 02 → `get_notified_clicked` (block
+      accelerator); a join from it → `join_completed` (src chain-accelerator, notify accelerator);
+      a conference inquiry and each accelerator form → `inquiry_submitted` with its type; a real
+      check-in (not test mode) → `checkin_completed` with the event slug. No event carries a name
+      or email.
