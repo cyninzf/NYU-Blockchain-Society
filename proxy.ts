@@ -54,6 +54,8 @@ export async function proxy(request: NextRequest) {
   // Check-in (and its emailed link) and the live screen: published events only.
   const sub = /^\/events\/([^/]+)\/(?:checkin(?:\/confirm)?|live)\/?$/.exec(pathname)?.[1];
   if (sub !== undefined) return SLUG_RE.test(sub) && (await eventIsPublic(sub, true)) ? noStore(NextResponse.next()) : notFound(request);
+  // Everything else under an event (share images, calendar.ics) answers for itself.
+  if (pathname.startsWith("/events/")) return NextResponse.next();
 
   // Sign-in pages are open (they never show admin data).
   if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) return admin(NextResponse.next());
