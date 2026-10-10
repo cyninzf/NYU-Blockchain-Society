@@ -6,6 +6,9 @@ export const privacyUpdated = "October 10, 2026";
 export const privacyDescription =
   "How NYU Blockchain Society collects, uses and protects your details: what we keep, who sees it, the services we use, and your choices and rights.";
 
+/** Shown after "Your choices and rights" when REPLY_TO_EMAIL is set (round 17): a way in for people who never got a society email. */
+export const privacyContactLead = "For access or deletion requests you can also write to";
+
 export type PrivacySection = { id: string; title: string; paragraphs?: string[]; items?: string[]; after?: string[] };
 
 export const privacySections: PrivacySection[] = [
