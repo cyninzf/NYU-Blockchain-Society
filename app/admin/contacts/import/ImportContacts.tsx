@@ -80,9 +80,11 @@ export default function ImportContacts() {
           <div><dt>Duplicates skipped</dt><dd>{summary.duplicates}</dd></div>
           <div><dt>Skipped (no name or email)</dt><dd>{summary.skipped}</dd></div>
           <div><dt>Invalid emails skipped</dt><dd>{summary.invalid}</dd></div>
-          <div><dt>Already members</dt><dd>{summary.alreadyMembers}</dd></div>
+          <div><dt>Linked by email</dt><dd>{summary.linkedByEmail}</dd></div>
+          <div><dt>Linked by name</dt><dd>{summary.linkedByName}</dd></div>
+          <div><dt>Needs a look</dt><dd>{summary.needsLook}</dd></div>
         </dl>
-        <p>Source: <code>{source}</code>. No emails were sent.</p>
+        <p>Source: <code>{source}</code>. Every contact was matched against existing members{summary.needsLook ? <>; unclear name matches are under <Link href="/admin/contacts#review">Needs a look</Link></> : ""}. No emails were sent.</p>
         <p className={styles.row}><Link href={`/admin/contacts?source=${source}`}>See these contacts</Link><button type="button" onClick={reset}>Import another file</button></p>
       </section>
     );
@@ -124,7 +126,7 @@ export default function ImportContacts() {
             </tbody>
           </table>
         </div>
-        <p className={styles.note}>Rows with an email dedupe on it; rows without one on name + headline. Invalid emails and rows with neither a name nor an email are skipped. Existing contacts and members are never overwritten.{preview.ignored.some(Boolean) ? " Group role and Open to work are never read or stored." : ""}</p>
+        <p className={styles.note}>Rows with an email dedupe on it; rows without one on name + headline. Invalid emails and rows with neither a name nor an email are skipped. Existing contacts and members are never overwritten; after the import, contacts are linked to members by email or a clear name match.{preview.ignored.some(Boolean) ? " Group role and Open to work are never read or stored." : ""}</p>
         <p className={styles.row}>
           <button type="button" className={styles.primary} onClick={onImport} disabled={busy || (map.name < 0 && map.email < 0)}>{busy ? "Importing…" : `Import ${preview.rows} rows`}</button>
           <button type="button" onClick={reset} disabled={busy}>Cancel</button>

@@ -8,6 +8,7 @@ import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
+import { autoLinkQuietly } from "@/lib/contact-links";
 import { countryOf } from "@/lib/location";
 import { sendWelcome } from "@/lib/member-email";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
@@ -85,8 +86,9 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
       revalidateTag("chain", "max");
       after(() => sendWelcome(db, row.id, d.notify ?? null).catch((e) => console.error("welcome failed", e instanceof Error ? e.message : e)));
     }
-    // Someone we already knew as a contact (e.g. a 2024 registrant) has now joined.
-    await db.execute(sql`update contacts set member_id = ${row.id} where lower(email) = lower(${d.email}) and member_id is null`);
+    // Someone we already knew as a contact (a 2024 registrant, the LinkedIn group) may have
+    // joined: link by email or a clear name match, after the response.
+    after(() => autoLinkQuietly(db));
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
     // Encrypted, so it never shows the id; the block number itself only once the count is public.

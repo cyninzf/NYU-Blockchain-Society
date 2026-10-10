@@ -1,13 +1,14 @@
 "use server";
 
-// Contacts import. The file (.csv or .xlsx) travels in the request body, is parsed in memory and
+// Contacts: import, linking to members, delete. The import file (.csv or .xlsx) travels in the request body, is parsed in memory and
 // dropped: it's never written to disk, logged or stored anywhere except as the resulting rows.
 
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
-import { audit, requireAdmin } from "@/lib/admin";
-import { contacts, members } from "@/lib/db/schema";
+import { audit, auditRow, requireAdmin } from "@/lib/admin";
+import { autoLinkContacts, LINK_LABELS, nameMatches } from "@/lib/contact-links";
+import { adminAudit, contactLinkBlocks, contacts, members } from "@/lib/db/schema";
 import { parseCsv } from "@/lib/csv";
 import {
   clean, EMAIL_RE, formatOf, headerRowIndex, isIgnoredColumn, maskEmail, MAX_IMPORT_BYTES, nameHeadlineKey, parseCheckIn, SOURCE_RE,
@@ -61,6 +62,7 @@ type Candidate = typeof contacts.$inferInsert;
 /**
  * Step 2: import with the confirmed mapping. Rows with an email dedupe on it; rows without one
  * (the LinkedIn export) on name + headline. Existing contacts and members are never overwritten.
+ * Then every contact is matched against existing members (by email, then by name).
  */
 export async function importContacts(fd: FormData): Promise<ImportResult> {
   const { db, actor } = await requireAdmin("super_admin");
@@ -76,7 +78,7 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
   const m: Mapping = { name: col("name"), email: col("email"), headline: col("headline"), checkIn: col("checkIn") };
   if (m.name < 0 && m.email < 0) return { ok: false, error: "Pick the name column, the email column, or both." };
 
-  const s: ImportSummary = { total: data.length, imported: 0, duplicates: 0, skipped: 0, invalid: 0, alreadyMembers: 0 };
+  const s: ImportSummary = { total: data.length, imported: 0, duplicates: 0, skipped: 0, invalid: 0, linkedByEmail: 0, linkedByName: 0, needsLook: 0 };
   const seen = new Set<string>();
   const withEmail: (Candidate & { email: string })[] = [];
   const noEmail: Candidate[] = [];
@@ -102,14 +104,11 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
     for (let i = 0; i < withEmail.length; i += 500) {
       const chunk = withEmail.slice(i, i + 500);
       const keys = chunk.map((c) => c.email.toLowerCase());
-      const [isMember, isContact] = await Promise.all([
-        db.select({ k: sql<string>`lower(${members.email})` }).from(members).where(inArray(sql`lower(${members.email})`, keys)),
-        db.select({ k: sql<string>`lower(${contacts.email})` }).from(contacts).where(inArray(sql`lower(${contacts.email})`, keys)),
-      ]).then((rs) => rs.map((x) => new Set(x.map((y) => y.k))));
+      const isContact = new Set((await db.select({ k: sql<string>`lower(${contacts.email})` }).from(contacts)
+        .where(inArray(sql`lower(${contacts.email})`, keys))).map((x) => x.k));
+      // Emails that are already members are imported too, then linked to them below.
       const fresh = chunk.filter((c) => {
-        const k = c.email.toLowerCase();
-        if (isMember.has(k)) { s.alreadyMembers++; return false; }
-        if (isContact.has(k)) { s.duplicates++; return false; }
+        if (isContact.has(c.email.toLowerCase())) { s.duplicates++; return false; }
         return true;
       });
       if (fresh.length) await insert(fresh);
@@ -121,7 +120,16 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
     await audit(db, actor, "contacts.import", `Contacts import "${source}" stopped after ${s.imported} rows`).catch(() => {});
     return { ok: false, error: `The import stopped after ${s.imported} rows because of a database error. Re-run it: rows already imported are skipped.` };
   }
-  await audit(db, actor, "contacts.import", `Imported contacts "${source}": ${s.imported} imported, ${s.duplicates} duplicates, ${s.skipped} skipped, ${s.invalid} invalid emails, ${s.alreadyMembers} already members`);
+  await audit(db, actor, "contacts.import", `Imported contacts "${source}": ${s.imported} imported, ${s.duplicates} duplicates, ${s.skipped} skipped, ${s.invalid} invalid emails`);
+  try {
+    const linked = await autoLinkContacts(db);
+    s.linkedByEmail = linked.email.length;
+    s.linkedByName = linked.name.length;
+    s.needsLook = (await nameMatches(db)).review.length;
+  } catch (e) {
+    // The rows are in; matching runs again after the next join, edit or import.
+    console.error("contact auto-link failed", e instanceof Error ? e.message : e);
+  }
   refresh();
   return { ok: true, ...s };
 
@@ -140,5 +148,37 @@ export async function deleteContact(fd: FormData) {
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
   const [gone] = await db.delete(contacts).where(eq(contacts.id, id)).returning({ id: contacts.id });
   if (gone) await audit(db, actor, "contact.delete", `Deleted contact #${id}`);
+  refresh();
+}
+
+const intOf = (v: FormDataEntryValue | null) => { const n = Number(String(v ?? "").trim().replace(/^#/, "")); return Number.isInteger(n) && n > 0 ? n : 0; };
+
+/** "Link to member" by hand, for "Needs a look" and anything automatic matching can't see. Both roles. */
+export async function linkContact(fd: FormData) {
+  const { db, actor } = await requireAdmin();
+  const id = intOf(fd.get("id")), memberId = intOf(fd.get("memberId"));
+  if (!id || !memberId) throw new Error("Enter a block number.");
+  const [m] = await db.select({ id: members.id }).from(members).where(eq(members.id, memberId));
+  if (!m) throw new Error(`No member #${memberId}.`);
+  const [done] = await db.update(contacts).set({ memberId, linkMethod: "manual" })
+    .where(and(eq(contacts.id, id), isNull(contacts.memberId))).returning({ id: contacts.id });
+  if (done) await audit(db, actor, "contact.link", `Linked contact #${id} to member #${memberId} (manual)`, { memberId });
+  refresh();
+}
+
+/** Undo any link (automatic or manual). The pair is remembered and never linked automatically again. Both roles. */
+export async function unlinkContact(fd: FormData) {
+  const { db, actor } = await requireAdmin();
+  const id = intOf(fd.get("id"));
+  if (!id) throw new Error("Bad request");
+  const [c] = await db.select({ memberId: contacts.memberId, how: contacts.linkMethod }).from(contacts).where(eq(contacts.id, id));
+  if (c?.memberId) {
+    await db.batch([
+      db.update(contacts).set({ memberId: null, linkMethod: null }).where(and(eq(contacts.id, id), eq(contacts.memberId, c.memberId))),
+      db.insert(contactLinkBlocks).values({ contactId: id, memberId: c.memberId, actor }).onConflictDoNothing(),
+      db.insert(adminAudit).values(auditRow(actor, "contact.unlink",
+        `Undid the link of contact #${id} to member #${c.memberId} (${LINK_LABELS[c.how ?? ""] ?? "unknown"}); never auto-linked again`, { memberId: c.memberId })),
+    ]);
+  }
   refresh();
 }

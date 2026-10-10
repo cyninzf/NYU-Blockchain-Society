@@ -71,5 +71,9 @@ export type ImportSummary = {
   skipped: number;
   /** An email cell that isn't an email address. */
   invalid: number;
-  alreadyMembers: number;
+  /** Linked to members right after the import (lib/contact-links.ts), across all contacts. */
+  linkedByEmail: number;
+  linkedByName: number;
+  /** Contacts with an unclear name match, listed under "Needs a look". */
+  needsLook: number;
 };

@@ -10,6 +10,6 @@ export async function GET(request: Request) {
   const filters = parseContactFilters(Object.fromEntries(new URL(request.url).searchParams));
   const rows = await listContacts(db, filters);
   await audit(db, actor, "export.contacts", `Exported ${rows.length} contacts (filters: ${describeFilters(filters)})`);
-  const cols = ["id", "name", "email", "source", "checkedIn", "memberId", "invitedAt", "importedAt"] as const;
-  return csvResponse("contacts", cols, rows);
+  const cols = ["id", "name", "email", "headline", "source", "checkedIn", "memberId", "linkMethod", "invitedAt", "importedAt"] as const;
+  return csvResponse("contacts", cols, rows.map(({ c }) => c));
 }

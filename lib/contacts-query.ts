@@ -15,12 +15,14 @@ export function parseContactFilters(sp: Record<string, string | string[] | undef
   };
 }
 
+/** Contacts (newest first) with the linked member's name, if any. */
 export function listContacts(db: Db, f: ContactFilters) {
   const where: SQL[] = [];
   if (f.source) where.push(eq(contacts.source, f.source));
   if (f.status) where.push(f.status === "converted" ? isNotNull(contacts.memberId) : isNull(contacts.memberId));
   if (f.checkedIn) where.push(f.checkedIn === "unknown" ? isNull(contacts.checkedIn) : eq(contacts.checkedIn, f.checkedIn === "yes"));
-  return db.select().from(contacts).where(where.length ? and(...where) : undefined).orderBy(desc(contacts.id));
+  return db.select({ c: contacts, memberName: members.name }).from(contacts).leftJoin(members, eq(members.id, contacts.memberId))
+    .where(where.length ? and(...where) : undefined).orderBy(desc(contacts.id));
 }
 
 export async function listSources(db: Db) {
@@ -28,7 +30,7 @@ export async function listSources(db: Db) {
   return rows.map((r) => r.source);
 }
 
-/** Header numbers for /admin. Contacts are never counted as members. */
+/** Header numbers for /admin. Contacts are never counted as members; "converted" is every linked contact, however it was linked. */
 export async function adminCounts(db: Db) {
   const [[m], [c]] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(members),

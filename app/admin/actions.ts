@@ -6,6 +6,7 @@ import { z } from "zod";
 import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { audit, auditRow, requireAdmin } from "@/lib/admin";
+import { autoLinkContacts } from "@/lib/contact-links";
 import { countryOf } from "@/lib/location";
 import { memberColumns } from "@/lib/members-query";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
@@ -25,7 +26,11 @@ export async function deleteMember(fd: FormData) {
   const { db, actor } = await requireAdmin("super_admin");
   if (fd.get("confirm") !== "yes") throw new Error("Not confirmed");
   const id = idOf(fd);
-  const [gone] = await db.delete(members).where(eq(members.id, id)).returning({ id: members.id });
+  // Its contacts fall back to unlinked (member_id is set null by the foreign key).
+  const [, [gone]] = await db.batch([
+    db.update(contacts).set({ linkMethod: null }).where(eq(contacts.memberId, id)),
+    db.delete(members).where(eq(members.id, id)).returning({ id: members.id }),
+  ]);
   if (gone) await audit(db, actor, "member.delete", `Deleted member #${id}`);
   updateTag("chain");
   refresh();
@@ -55,8 +60,9 @@ const shown = (v: string | number | string[] | null) =>
 /**
  * Change any of a member's fields (name, email, affiliation, blocks, notify interests and the
  * optional details). The block number (id) never changes. Email stays unique on lower(email):
- * another member's email is refused; a contact's email links that contact to this member. Every
- * changed field is logged in admin_audit as old → new, with who and when.
+ * another member's email is refused; a contact with the new email is linked to this member
+ * automatically (lib/contact-links.ts), unless it's already linked to another member, which is
+ * refused. Every changed field is logged in admin_audit as old → new, with who and when.
  */
 export async function updateMember(_prev: EditResult, fd: FormData): Promise<EditResult> {
   const { db, actor } = await requireAdmin();
@@ -88,20 +94,17 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
   if (!Object.keys(changes).length) return { ok: true, message: "No changes." };
 
   // A different address (not just different capitals): check it against members and contacts.
-  let linkContact: number | null = null;
   if (input.email.toLowerCase() !== m.email.toLowerCase()) {
     const key = input.email.toLowerCase();
     const [other] = await db.select({ id: members.id }).from(members)
       .where(and(eq(sql`lower(${members.email})`, key), ne(members.id, m.id)));
     if (other) return { ok: false, error: `That email already belongs to member #${other.id}. Nothing was saved.` };
-    const [c] = await db.select({ id: contacts.id, memberId: contacts.memberId, source: contacts.source }).from(contacts)
-      .where(eq(sql`lower(${contacts.email})`, key));
+    const [c] = await db.select({ memberId: contacts.memberId }).from(contacts).where(eq(sql`lower(${contacts.email})`, key));
     if (c?.memberId && c.memberId !== m.id) return { ok: false, error: `That email is a contact already linked to member #${c.memberId}. Nothing was saved.` };
-    if (c && c.memberId !== m.id) { linkContact = c.id; changes.contact = [null, `#${c.id} (${c.source})`]; }
   }
 
   try {
-    // One round trip, in one transaction: the edit, its audit row and any contact link.
+    // One round trip, in one transaction: the edit and its audit row.
     const update = db.update(members)
       .set({
         name: input.name, email: input.email, affiliation: input.affiliation, blocks, notify,
@@ -110,8 +113,7 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
       })
       .where(eq(members.id, m.id));
     const log = db.insert(adminAudit).values(auditRow(actor, "edit", `Edited #${m.id}`, { memberId: m.id, changes }));
-    if (linkContact) await db.batch([update, log, db.update(contacts).set({ memberId: m.id }).where(eq(contacts.id, linkContact))]);
-    else await db.batch([update, log]);
+    await db.batch([update, log]);
   } catch (e) {
     // e.g. the same email was taken a moment ago (unique on lower(email))
     const err = e as { code?: string; message?: string; cause?: { code?: string; message?: string } };
@@ -121,7 +123,12 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
     console.error("member edit failed", e instanceof Error ? e.message : e);
     return { ok: false, error: "The database refused the change. Nothing was saved." };
   }
+  // A new email or name may match a contact now (logged as "system").
+  const linked = await autoLinkContacts(db).then((r) => [...r.email, ...r.name].filter((l) => l.memberId === m.id).length, (e) => {
+    console.error("contact auto-link failed", e instanceof Error ? e.message : e);
+    return 0;
+  });
   updateTag("chain");
   refresh();
-  return { ok: true, message: linkContact ? "Saved. The matching contact is now linked to this member." : "Saved." };
+  return { ok: true, message: linked ? `Saved. ${linked === 1 ? "A matching contact is" : `${linked} matching contacts are`} now linked to this member.` : "Saved." };
 }

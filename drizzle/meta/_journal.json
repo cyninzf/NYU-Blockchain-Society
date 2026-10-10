@@ -92,6 +92,13 @@
       "when": 1791640772514,
       "tag": "0012_merge_linkedin_into_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791640870521,
+      "tag": "0013_contact_auto_links",
+      "breakpoints": true
     }
   ]
 }

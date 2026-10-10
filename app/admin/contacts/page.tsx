@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
+import { LINK_LABELS, nameMatches, type Review } from "@/lib/contact-links";
 import { listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
-import { deleteContact } from "./actions";
+import { deleteContact, linkContact, unlinkContact } from "./actions";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
 
@@ -18,7 +19,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Contacts</h1>
-      <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins, they&apos;re linked to their member row.</p>
+      <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins they&apos;re linked to their member automatically: by email, or for contacts without an email by an exact name match. Unclear name matches wait under Needs a look; Undo removes a link for good.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Contacts searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
@@ -33,11 +34,13 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
   const f = parseContactFilters(await searchParams);
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
-  const [rows, sources] = await Promise.all([listContacts(db, f), listSources(db)]);
+  const [rows, sources, { review }] = await Promise.all([listContacts(db, f), listSources(db), nameMatches(db)]);
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
     <>
+      {review.length > 0 && <NeedsALook review={review} />}
+
       <form className={styles.filters} method="get">
         <label>Source
           <select name="source" defaultValue={f.source ?? ""}>
@@ -76,14 +79,20 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => (
+            {rows.map(({ c, memberName }) => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td>{c.name}</td>
                 <td>{c.email}</td>
                 <td>{c.source}</td>
                 <td>{checked(c.checkedIn)}</td>
-                <td>{c.memberId ? `Block #${c.memberId}` : "—"}</td>
+                <td>{c.memberId ? (
+                  <form action={unlinkContact}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <div>Block #{c.memberId}{memberName ? ` · ${memberName}` : ""}</div>
+                    <div className={styles.row}><span className={styles.badge}>{LINK_LABELS[c.linkMethod ?? ""] ?? "linked"}</span><button type="submit">Undo</button></div>
+                  </form>
+                ) : <LinkForm id={c.id} />}</td>
                 <td>{c.invitedAt ? dateFmt.format(c.invitedAt) : "—"}</td>
                 <td>{dateFmt.format(c.importedAt)}</td>
                 <td>
@@ -105,5 +114,54 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
         {!rows.length && <p className={styles.empty}>No contacts match these filters.</p>}
       </div>
     </>
+  );
+}
+
+/** Block-number field for linking by hand. */
+function LinkForm({ id }: { id: number }) {
+  return (
+    <details className={styles.editd}>
+      <summary>Link to member</summary>
+      <form action={linkContact} className={styles.row}>
+        <input type="hidden" name="id" value={id} />
+        <label>Block number<input name="memberId" inputMode="numeric" pattern="#?[0-9]*" required /></label>
+        <button type="submit">Link</button>
+      </form>
+    </details>
+  );
+}
+
+/** Contacts without an email whose name matches more than one member, or shares its name with another contact. */
+function NeedsALook({ review }: { review: Review[] }) {
+  return (
+    <section className={styles.mix} id="review" aria-labelledby="review-h">
+      <h2 id="review-h">Needs a look ({review.length}) <span>Same name as more than one member, or as another contact without an email, so nothing was linked automatically. Link the right one by hand.</span></h2>
+      <div className={styles.scroll}>
+        <table className={styles.table}>
+          <thead><tr><th scope="col">Contact</th><th scope="col">Headline</th><th scope="col">Source</th><th scope="col">Possible members</th></tr></thead>
+          <tbody>
+            {review.map(({ contact: c, candidates }) => (
+              <tr key={c.id}>
+                <td>#{c.id} · {c.name}</td>
+                <td>{c.headline}</td>
+                <td>{c.source}</td>
+                <td>
+                  <div className={styles.edit}>
+                    {candidates.map((m) => (
+                      <form key={m.id} action={linkContact}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="memberId" value={m.id} />
+                        <button type="submit">Link #{m.id} · {m.name}</button>
+                      </form>
+                    ))}
+                    <LinkForm id={c.id} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

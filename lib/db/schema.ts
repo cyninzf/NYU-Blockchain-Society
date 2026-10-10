@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigserial, boolean, index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigserial, boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // "friend" is no longer offered in the join flow but stays valid for existing rows.
 export const AFFILIATIONS = ["alumni", "industry", "student", "faculty_staff", "friend"] as const;
@@ -76,6 +76,8 @@ export const contacts = pgTable(
     importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
     invitedAt: timestamp("invited_at", { withTimezone: true }),
     memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
+    /** How `memberId` was set: email | name (automatic, lib/contact-links.ts) | manual. Null when unlinked. */
+    linkMethod: text("link_method"),
   },
   (t) => [
     // Dedupe: rows with an email on lower(email); rows without one on (name, headline).
@@ -86,6 +88,21 @@ export const contacts = pgTable(
 );
 
 export type Contact = typeof contacts.$inferSelect;
+
+/**
+ * Contact–member pairs an admin unlinked ("Undo"): automatic linking never pairs them again.
+ * A manual "Link to member" still can.
+ */
+export const contactLinkBlocks = pgTable(
+  "contact_link_blocks",
+  {
+    contactId: integer("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+    memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+    actor: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.contactId, t.memberId] })],
+);
 
 /** Field changes as { field: [old, new] }, e.g. { email: ["a@example.com", "b@example.com"] }. */
 export type AuditChanges = Record<string, [string | null, string | null]>;
