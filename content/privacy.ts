@@ -6,8 +6,13 @@ export const privacyUpdated = "October 10, 2026";
 export const privacyDescription =
   "How NYU Blockchain Society collects, uses and protects your details: what we keep, who sees it, the services we use, and your choices and rights.";
 
-/** Shown after "Your choices and rights" when REPLY_TO_EMAIL is set (round 17): a way in for people who never got a society email. */
-export const privacyContactLead = "For access or deletion requests you can also write to";
+/**
+ * After "Your choices and rights" (round 19; replaced round 17's reply-to address line): the
+ * contact form is the way in for people who never got a society email. "our contact form"
+ * becomes a link to /contact. There is no public email address.
+ */
+export const privacyContactLine =
+  "For access or deletion requests, use our contact form. We first email you a link to confirm the request comes from you, and act on it only once you've confirmed.";
 
 export type PrivacySection = { id: string; title: string; paragraphs?: string[]; items?: string[]; after?: string[] };
 
@@ -82,14 +87,14 @@ export const privacySections: PrivacySection[] = [
     items: [
       "Unsubscribe: every email we send has an unsubscribe link that works in one click.",
       "Update your block: change your blocks, the updates you get and your optional details at /update.",
-      "Access or deletion: to get a copy of what we hold about you, or to have it deleted, reply to any email from the society and an organizer will take care of it.",
+      "Access or deletion: to get a copy of what we hold about you, or to have it deleted, use our contact form or reply to any email from the society, and an organizer will take care of it.",
     ],
   },
   {
     id: "gdpr",
     title: "Alumni in the EU and UK",
     paragraphs: [
-      "If you're in the European Union or the United Kingdom, the GDPR (and the UK GDPR) gives you the right to access your data, correct it, have it deleted, restrict or object to how we use it, and receive it in a portable format, as well as the right to complain to your local data protection authority. We use your details because you gave them to us to join or to get in touch, and, for registrants of our past events, because of our legitimate interest in inviting them once to the society. Reply to any email from the society to use these rights.",
+      "If you're in the European Union or the United Kingdom, the GDPR (and the UK GDPR) gives you the right to access your data, correct it, have it deleted, restrict or object to how we use it, and receive it in a portable format, as well as the right to complain to your local data protection authority. We use your details because you gave them to us to join or to get in touch, and, for registrants of our past events, because of our legitimate interest in inviting them once to the society. To use these rights, use our contact form (we confirm the request by email first) or reply to any email from the society.",
     ],
   },
 ];

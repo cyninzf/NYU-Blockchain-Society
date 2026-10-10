@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { privacyContactLead, privacyDescription, privacySections, privacyUpdated } from "@/content/privacy";
+import { privacyContactLine, privacyDescription, privacySections, privacyUpdated } from "@/content/privacy";
 import { siteName } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -10,18 +10,12 @@ export const metadata: Metadata = {
   openGraph: { type: "website", url: "/privacy", siteName, title: `Privacy policy · ${siteName}`, description: privacyDescription, locale: "en_US" },
 };
 
-// "/update" in the copy becomes a link.
-const withLinks = (t: string) => t.split(/(\/update)\b/).map((part, i) => (part === "/update" ? <Link key={i} href="/update">/update</Link> : part));
-
-// The society's reply-to address (Vercel env, read at build time), for people who never got an email from us.
-const contactEmail = () => {
-  const e = process.env.REPLY_TO_EMAIL?.trim();
-  return e && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(e) ? e : null;
-};
+// "/update" and "our contact form" in the copy become links.
+const LINKS: Record<string, string> = { "/update": "/update", "our contact form": "/contact" };
+const withLinks = (t: string) => t.split(/(\/update\b|our contact form)/).map((part, i) => (LINKS[part] ? <Link key={i} href={LINKS[part]}>{part}</Link> : part));
 
 // Plain-English privacy policy (round 16). Copy in content/privacy.ts.
 export default function PrivacyPage() {
-  const contact = contactEmail();
   return (
     <section className="series privacy page-top" aria-labelledby="privacy-h">
       <div className="wrap">
@@ -35,10 +29,10 @@ export default function PrivacyPage() {
         {privacySections.map((s) => (
           <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`}>
             <h2 id={`${s.id}-h`}>{s.title}</h2>
-            {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
+            {s.paragraphs?.map((p) => <p key={p}>{withLinks(p)}</p>)}
             {s.items && <ul>{s.items.map((i) => <li key={i}>{withLinks(i)}</li>)}</ul>}
             {s.after?.map((p) => <p key={p}>{p}</p>)}
-            {s.id === "choices" && contact && <p className="privacy-contact">{privacyContactLead} <a href={`mailto:${contact}`}>{contact}</a>.</p>}
+            {s.id === "choices" && <p className="privacy-contact">{withLinks(privacyContactLine)}</p>}
           </section>
         ))}
         </div>
