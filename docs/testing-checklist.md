@@ -121,3 +121,38 @@ Draft-safe first: create a fake test event as a draft, dated today, starting wit
 - [ ] Share preview: paste `/events/<link name>` into a link preview checker (or a LinkedIn / X
       draft, not posted): the image shows the label, title, date, venue and co-host as text.
 - [ ] Clean up: delete the test members (super admin, `/admin`) and the test event.
+
+## 8. Invites to contacts: `/admin/settings`, `/admin/contacts/invite`
+
+Use one fake contact with your own address (never a real contact's) and a source label of its
+own, so the campaign can only ever reach you. Do the real send on production only once you're
+sure; tests work on a preview too. Vercel needs `CRON_SECRET` and `RESEND_WEBHOOK_SECRET` set,
+and a Resend webhook (email.bounced, email.complained) pointing at `/api/resend/webhook`.
+
+- [ ] As an Admin (not super): `/admin/contacts` shows the Invite column read-only, with no Invite
+      button; `/admin/contacts/invite` and `/admin/settings` say they're for super admins.
+- [ ] `/admin/contacts/invite` with no postal address: a red note, and both send buttons are off.
+      Set the address in `/admin/settings`; `/admin/audit` shows `settings.edit`.
+- [ ] Make a one-row CSV `name,email` with your name and an address you own (a "+invite" alias
+      works), import it at `/admin/contacts/import` with the source `invite-test-<today>`.
+      `/admin/contacts?source=invite-test-<today>` shows it as "Eligible".
+- [ ] In `/admin/contacts/invite`, pick that source (1 eligible) and, optionally, an upcoming
+      published event. Edit the text: the preview updates. "Send to 1 contact" before any test
+      is refused ("Send yourself a test…").
+- [ ] "Send a test to me": it arrives marked "[Test]" from hello@nyublockchainsociety.com, with
+      the 2024 conference line, the one-liner, the featured event (title, date, venue, "Members
+      get the invite first"), the reason, an unsubscribe link and the postal address.
+- [ ] Production only: "Send to 1 contact" → confirm. The campaign shows Sent 1 and "Done"; the
+      contact shows "Invited" with the date; `/admin/audit` has `invite.test`, `invite.campaign`
+      and `invite.batch`. Sending again finds 0 eligible (once ever).
+- [ ] The invite arrives: "Hi <first name>," and the join button. Open it in a private window:
+      the join flow opens with your address pre-filled, and the URL no longer shows the token.
+      Join (any address): the contact shows "Joined" and "auto (invite)". Opening the same
+      invite link again doesn't pre-fill (single use).
+- [ ] Unsubscribe instead (second fake contact, same steps): the link's page unsubscribes on
+      the button press ("You won't get another invitation"), with no Resubscribe. The contact
+      shows "Unsubscribed"; re-importing the same address in a new source still shows
+      "Unsubscribed" and is never eligible.
+- [ ] Pause / Resume on a queued campaign switches its status, logged as `invite.pause` /
+      `invite.resume`.
+- [ ] Clean up: delete the fake contacts and any test member (super admin).
