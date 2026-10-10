@@ -216,3 +216,24 @@ export const announcements = pgTable(
 );
 
 export type Announcement = typeof announcements.$inferSelect;
+
+/**
+ * Server-side sessions for admins and members. The cookie carries a random session id (signed);
+ * only its SHA-256 is stored. Sign-out and admin removal set `revoked_at`, which ends the session
+ * at once, even for a copied cookie.
+ */
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: serial().primaryKey(),
+    tokenHash: text("token_hash").notNull(),
+    /** admin | member */
+    kind: text().notNull(),
+    /** admin: the lowercase email; member: the member id */
+    subject: text().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("auth_sessions_hash_idx").on(t.tokenHash), index("auth_sessions_subject_idx").on(t.kind, t.subject)],
+);

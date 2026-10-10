@@ -54,9 +54,16 @@ export async function ipKey(): Promise<string> {
   return hmac(`ip:${ip}`).slice(0, 32);
 }
 
-/** Lightweight Postgres-backed limiter: at most `limit` hits per `windowSec` per key. */
+/** Lightweight Postgres-backed limiter: at most `limit` hits per `windowSec` per IP (hashed). */
 export async function rateLimited(db: Db, action: string, limit: number, windowSec: number): Promise<boolean> {
-  const key = `${action}:${await ipKey()}`;
+  return rateLimitedKey(db, `${action}:${await ipKey()}`, limit, windowSec);
+}
+
+/** Per email: the key is an HMAC, so no address is stored. Counts whether or not the email exists. */
+export const rateLimitedEmail = (db: Db, action: string, email: string, limit: number, windowSec: number) =>
+  rateLimitedKey(db, `${action}:email:${hmac(`email:${email.trim().toLowerCase()}`).slice(0, 32)}`, limit, windowSec);
+
+export async function rateLimitedKey(db: Db, key: string, limit: number, windowSec: number): Promise<boolean> {
   const since = sql`now() - make_interval(secs => ${windowSec})`;
   const [{ n }] = await db
     .select({ n: sql<number>`count(*)::int` })

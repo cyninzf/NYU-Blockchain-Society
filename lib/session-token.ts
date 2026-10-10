@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// Signed session cookies for admins and members, keyed by AUTH_SECRET. No "server-only" here:
-// proxy.ts verifies the admin cookie too. Without AUTH_SECRET nothing signs or verifies, so
-// email sign-in is simply off (the shared-password fallback still works for /admin).
+// Signed session cookies for admins and members, keyed by AUTH_SECRET. The signed subject is a
+// random session id (lib/sessions.ts holds who it is and whether it's revoked). No "server-only"
+// here: proxy.ts verifies the admin cookie's signature too. Without AUTH_SECRET nothing signs or
+// verifies, so email sign-in is simply off (the shared-password fallback still works for /admin).
 
 export const ADMIN_COOKIE = "nyubs_admin";
 export const MEMBER_COOKIE = "nyubs_member";

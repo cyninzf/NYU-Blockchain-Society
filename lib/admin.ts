@@ -4,7 +4,8 @@ import { cookies, headers } from "next/headers";
 import { isAdminAuthorized } from "./admin-auth";
 import { getDb, type Db } from "./db";
 import { adminAudit, adminUsers, type AdminRole, type AuditChanges } from "./db/schema";
-import { ADMIN_COOKIE, readSession } from "./session-token";
+import { ADMIN_COOKIE } from "./session-token";
+import { sessionSubject } from "./sessions";
 
 // Who is acting in /admin, and what they may do. Checked on the server in every admin page,
 // action and route (proxy.ts only keeps strangers out): hiding a button is never the guard.
@@ -41,11 +42,13 @@ export async function roleFor(db: Db | null, email: string): Promise<AdminRole |
 
 /** The signed-in admin (session cookie first, then the basic-auth fallback), or null. */
 export async function getAdmin(): Promise<Admin | null> {
-  const session = readSession("admin", (await cookies()).get(ADMIN_COOKIE)?.value);
-  if (session) {
-    // Re-checked on every request, so removing an admin or changing a role applies at once.
-    const role = await roleFor(getDb(), session.subject);
-    if (role) return { email: session.subject, role, actor: session.subject, via: "email" };
+  const db = getDb();
+  // A live server-side session (not signed out or revoked), and the role re-checked on every
+  // request, so removing an admin or changing a role applies at once.
+  const email = await sessionSubject(db, "admin", (await cookies()).get(ADMIN_COOKIE)?.value);
+  if (email) {
+    const role = await roleFor(db, email);
+    if (role) return { email, role, actor: email, via: "email" };
   }
   const auth = (await headers()).get("authorization");
   if (isAdminAuthorized(auth)) {

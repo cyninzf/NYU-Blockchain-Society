@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { auditRow, isSuperAdminEmail, requireAdmin } from "@/lib/admin";
 import { adminAudit, ADMIN_ROLES, adminUsers } from "@/lib/db/schema";
+import { revokeAllFor } from "@/lib/sessions";
 
 export type TeamResult = { ok: true; message: string } | { ok: false; error: string } | null;
 
@@ -47,12 +48,13 @@ export async function setAdminRole(fd: FormData) {
   refresh();
 }
 
-/** Takes effect at once: every request re-checks admin_users, so their session stops working. */
+/** Takes effect at once: their sessions are revoked, and every request re-checks admin_users anyway. */
 export async function removeAdmin(fd: FormData) {
   const { db, actor, u } = await active(Number(fd.get("id")));
   if (fd.get("confirm") !== "yes") throw new Error("Not confirmed");
   await db.batch([
     db.update(adminUsers).set({ removedAt: new Date() }).where(eq(adminUsers.id, u.id)),
+    revokeAllFor(db, "admin", u.email.toLowerCase()),
     db.insert(adminAudit).values(auditRow(actor, "team.remove", `Removed ${u.email} (${u.role})`, { changes: { [u.email]: [u.role, null] } })),
   ]);
   refresh();

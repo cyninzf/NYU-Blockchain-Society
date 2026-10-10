@@ -19,11 +19,17 @@ export async function createLinkToken(db: Db, purpose: Purpose, subject: string)
   return raw;
 }
 
-/** Marks the token used and returns its subject, in one statement, so it can never work twice. */
+/**
+ * Marks the token used and returns its subject, in one statement, so it can never work twice.
+ * The lookup is by SHA-256 of a 256-bit random token: an attacker can't steer the hash, so the
+ * index comparison leaks nothing useful (no plaintext compare happens anywhere). On success,
+ * every other unused link for the same person is spent too.
+ */
 export async function consumeLinkToken(db: Db, purpose: Purpose, raw: string): Promise<string | null> {
   if (!/^[\w-]{20,100}$/.test(raw)) return null;
   const [row] = await db.update(authTokens).set({ usedAt: new Date() })
     .where(and(eq(authTokens.tokenHash, hash(raw)), eq(authTokens.purpose, purpose), isNull(authTokens.usedAt), gt(authTokens.expiresAt, sql`now()`)))
     .returning({ subject: authTokens.subject });
+  if (row) await db.update(authTokens).set({ usedAt: new Date() }).where(and(eq(authTokens.purpose, purpose), eq(authTokens.subject, row.subject), isNull(authTokens.usedAt)));
   return row?.subject ?? null;
 }
