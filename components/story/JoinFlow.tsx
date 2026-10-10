@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { inviteEmail, join, saveDetails, startJoin, type SaveResult } from "@/app/actions/join";
-import { NOTIFY, notifyMessages, type Notify } from "@/content/notify";
+import { NOTIFY, notifyIntro, notifyMessages, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
 import { clearInvite, joinSource, storedInvite } from "@/lib/join-source";
@@ -43,6 +43,9 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     const t = storedInvite();
     if (t) inviteEmail(t).then((e) => { if (e) setEmail((cur) => cur || e); }).catch(() => {});
   }, []);
+  // The program this flow was opened for: a block's "Get notified" (prop) or ?notify= in the URL.
+  const [urlNotify] = useState(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("notify")));
+  const forNotify = notify ?? (NOTIFY.includes(urlNotify as Notify) ? (urlNotify as Notify) : undefined);
   const [err, setErr] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
@@ -87,10 +90,8 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     const affiliation = YOU.find(([v]) => v === submitter?.value)?.[0];
     if (!affiliation) { setErr("Pick the one that fits best."); return; }
 
-    const params = new URLSearchParams(window.location.search);
     const src = joinSource();
-    const urlNotify = params.get("notify");
-    const n = notify ?? (NOTIFY.includes(urlNotify as Notify) ? (urlNotify as Notify) : undefined);
+    const n = forNotify;
 
     setSending(true);
     try {
@@ -135,8 +136,9 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       </div>
 
       <div className="jf-step-body" ref={stepRef} key={id}>
+        {id === "blocks" && forNotify && <p className="jf-intro" id="jf-intro">{notifyIntro[forNotify]}</p>}
         {id === "blocks" && (
-          <fieldset>
+          <fieldset aria-describedby={forNotify ? "jf-intro" : undefined}>
             <legend id="jf-q">Which blocks do you work in?<span>Pick any, or tap them in the logo.</span></legend>
             <div className="picks">
               {industries.map((ind, i) => (

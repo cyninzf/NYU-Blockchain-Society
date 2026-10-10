@@ -10,7 +10,9 @@ export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" 
 
 export type BlockAction =
   | { kind: "link"; label: string; href: string; external?: boolean }
-  | { kind: "join"; label: string; notify: Notify; src?: string };
+  | { kind: "join"; label: string; notify: Notify; src?: string }
+  /** "Get notified" (round 14): the join flow with this notify and src, or "You're on the list" for a signed-in member. */
+  | { kind: "notify"; label: string; notify: Notify; src: string };
 
 /** The next networking event as Block 01 shows it (already formatted). */
 export type NextEvent = {
@@ -36,7 +38,7 @@ export type ChainBlock = {
   page?: { label: string; href: string };
 };
 
-const notifyNetworking: BlockAction = { kind: "join", label: "Get notified", notify: "networking" };
+const notifyNetworking: BlockAction = { kind: "notify", label: "Get notified", notify: "networking", src: "chain-networking" };
 
 function networkingBlock(next: NextEvent | null): ChainBlock {
   const base = { label: "Block 01", kind: "Networking", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni wherever they are." };
@@ -72,6 +74,6 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     title: "Accelerator",
     text: "Support for NYU founders working across digital assets and AI.",
     page: { label: "About the accelerator", href: "/accelerator" },
-    action: { kind: "join", label: "Get notified", notify: "accelerator" },
+    action: { kind: "notify", label: "Get notified", notify: "accelerator", src: "chain-accelerator" },
   },
 ];

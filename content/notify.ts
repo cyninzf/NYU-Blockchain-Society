@@ -10,3 +10,10 @@ export const notifyMessages: Record<Notify, string> = {
   accelerator: "We'll tell you when the Accelerator launches.",
   conference: "We'll tell you when the next conference is announced.",
 };
+
+/** Shown above the join flow's first question when it was opened from that program's "Get notified" (round 14). */
+export const notifyIntro: Record<Notify, string> = {
+  networking: "Join the society to hear about upcoming networking events",
+  accelerator: "Join the society to hear about the accelerator",
+  conference: "Join the society to hear when the next conference is announced",
+};

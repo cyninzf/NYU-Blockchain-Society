@@ -223,3 +223,24 @@ treated as bots: they see the thank-you and nothing is stored).
       `export.accelerator`.
 - [ ] Clean up: delete the test member (super admin, `/admin`). Interest rows stay as a record
       (there is no delete).
+
+### Nav and "Get notified" (round 14)
+
+- [ ] At 1440 px the nav reads The chain · Conference · Networking · Accelerator · Join.
+      Networking is underlined on `/events` and on an event page; Accelerator on `/accelerator`;
+      Conference on `/conference` and `/conference/2024`.
+- [ ] At 390 px (and anything up to 900 px) only the brand, Join and the menu button show. With
+      the keyboard: Tab to the menu button, Enter opens the sheet (The chain, Conference,
+      Networking, Accelerator, Media kit, Add your block); Tab stays inside it; Esc closes it and
+      focus returns to the button. A screen reader announces "Menu, button, collapsed".
+- [ ] The footer shows the same links: The chain, Conference, Networking, Accelerator.
+- [ ] Private window, home page: Block 01's "Get notified" (when there's no upcoming event)
+      opens the join flow with "Join the society to hear about upcoming networking events" above
+      "Which blocks do you work in?". Join: `/admin` shows notify "networking" and source
+      `chain-networking`.
+- [ ] Same for Block 02: "Join the society to hear about the accelerator"; notify
+      "accelerator", source `chain-accelerator`.
+- [ ] Sign in through "Update your block" (`/update`), then open the home page in that browser:
+      Block 01 / Block 02 show "You're on the list for …" with "Update your block" for programs
+      you picked, and "You're a member. Add … to your updates" for ones you didn't, instead of
+      "Get notified".

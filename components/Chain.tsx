@@ -10,6 +10,7 @@ import { publicEvents, type PublicEvent } from "@/lib/events";
 import DrawIn from "./DrawIn";
 import CalendarButtons from "./events/CalendarButtons";
 import Icon from "./Icon";
+import NotifyButton from "./NotifyButton";
 import OpenJoin from "./OpenJoin";
 
 // Each block is drawn by its status: confirmed (done/annual) = solid edges, active (the
@@ -87,14 +88,18 @@ export default async function Chain() {
                     )}
                   </ol>
                 )}
-                {ev.page && a.kind === "join" ? (
+                {ev.page && a.kind === "notify" ? (
                   // The card opens the block's page; "Get notified" is a button of its own above it.
                   <div className="blk-acts">
                     <Link className="blk-go go" href={ev.page.href}>{ev.page.label} <Icon name="arrow-right" /></Link>
-                    <OpenJoin className="btn btn-o blk-act" notify={a.notify} src={a.src}>
+                    <NotifyButton className="btn btn-o blk-act" notify={a.notify} src={a.src}>
                       {a.label}<span className="sr">: {ev.title}</span>
-                    </OpenJoin>
+                    </NotifyButton>
                   </div>
+                ) : a.kind === "notify" ? (
+                  <NotifyButton className={cls} notify={a.notify} src={a.src}>
+                    {a.label}<span className="sr">: {ev.title}</span>
+                  </NotifyButton>
                 ) : a.kind === "join" ? (
                   <OpenJoin className={cls} notify={a.notify} src={a.src}>
                     {a.label}<span className="sr">: {ev.title}</span>
