@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { LINK_LABELS, nameMatches, type Review } from "@/lib/contact-links";
-import { listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
+import { INVITE_STATUS_LABELS, INVITE_STATUSES, listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
 import { deleteContact, linkContact, unlinkContact } from "./actions";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
@@ -60,6 +60,12 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
             <option value="no">Not linked</option>
           </select>
         </label>
+        <label>Invite
+          <select name="invite" defaultValue={f.invite ?? ""}>
+            <option value="">Any</option>
+            {INVITE_STATUSES.map((s) => <option key={s} value={s}>{INVITE_STATUS_LABELS[s]}</option>)}
+          </select>
+        </label>
         <label>Checked in
           <select name="checkedIn" defaultValue={f.checkedIn ?? ""}>
             <option value="">Any</option>
@@ -81,12 +87,12 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           <thead>
             <tr>
               <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Email</th><th scope="col">Source</th>
-              <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invited</th><th scope="col">Imported</th>
+              <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invite</th><th scope="col">Imported</th>
               <th scope="col"><span className="sr">Actions</span></th>
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, SHOWN).map(({ c, memberName }) => (
+            {rows.slice(0, SHOWN).map(({ c, memberName, invite }) => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td>{c.name}</td>
@@ -101,7 +107,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
                     <div className={styles.row}><span className={styles.badge}>{LINK_LABELS[c.linkMethod ?? ""] ?? "linked"}</span><button type="submit">Undo</button></div>
                   </form>
                 ) : <LinkForm id={c.id} />}</td>
-                <td>{c.invitedAt ? dateFmt.format(c.invitedAt) : "—"}</td>
+                <td>{INVITE_STATUS_LABELS[invite]}{c.invitedAt && <div className={styles.note}>Invited {dateFmt.format(c.invitedAt)}</div>}</td>
                 <td>{dateFmt.format(c.importedAt)}</td>
                 <td>
                   {isSuper(admin) && (

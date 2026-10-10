@@ -1,9 +1,32 @@
 import "server-only";
 import { and, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
-import { contacts, members } from "./db/schema";
+import { contacts, inviteQueue, inviteSuppressions, members } from "./db/schema";
+import { eligibleWhere, hashSql } from "./invites";
 
-export type ContactFilters = { q?: string; source?: string; linked?: "yes" | "no"; checkedIn?: "yes" | "no" | "unknown" };
+export const INVITE_STATUSES = ["eligible", "queued", "invited", "joined", "unsubscribed", "bounced", "none"] as const;
+export type InviteStatus = (typeof INVITE_STATUSES)[number];
+export const INVITE_STATUS_LABELS: Record<InviteStatus, string> = {
+  eligible: "Eligible", queued: "Queued", invited: "Invited", joined: "Joined", unsubscribed: "Unsubscribed", bounced: "Bounced / spam", none: "No email",
+};
+
+/**
+ * One invite status per contact (round 12), in this order: joined (linked to a member) →
+ * unsubscribed from an invite → bounced or complained → invited → queued in a campaign → eligible
+ * → no (valid) email.
+ */
+const suppressedAs = (reasons: string[]) =>
+  sql`exists (select 1 from ${inviteSuppressions} s where s.email_hash = ${hashSql(contacts.email)} and s.reason in (${sql.join(reasons.map((r) => sql`${r}`), sql`, `)}))`;
+export const inviteStatusSql = sql<InviteStatus>`case
+  when ${contacts.memberId} is not null then 'joined'
+  when ${contacts.email} is not null and ${suppressedAs(["unsubscribe"])} then 'unsubscribed'
+  when ${contacts.email} is not null and ${suppressedAs(["bounce", "complaint"])} then 'bounced'
+  when ${contacts.invitedAt} is not null then 'invited'
+  when exists (select 1 from ${inviteQueue} q where q.contact_id = ${contacts.id} and q.status in ('queued', 'sending')) then 'queued'
+  when ${eligibleWhere()} then 'eligible'
+  else 'none' end`;
+
+export type ContactFilters = { q?: string; source?: string; linked?: "yes" | "no"; checkedIn?: "yes" | "no" | "unknown"; invite?: InviteStatus };
 
 const pick = <T extends string>(v: unknown, allowed: readonly T[]) => (typeof v === "string" && (allowed as readonly string[]).includes(v) ? (v as T) : undefined);
 
@@ -13,6 +36,7 @@ export function parseContactFilters(sp: Record<string, string | string[] | undef
     source: typeof sp.source === "string" && /^[a-z0-9-]{1,40}$/.test(sp.source) ? sp.source : undefined,
     linked: pick(sp.linked, ["yes", "no"] as const),
     checkedIn: pick(sp.checkedIn, ["yes", "no", "unknown"] as const),
+    invite: pick(sp.invite, INVITE_STATUSES),
   };
 }
 
@@ -26,7 +50,8 @@ export function listContacts(db: Db, f: ContactFilters) {
   if (f.source) where.push(eq(contacts.source, f.source));
   if (f.linked) where.push(f.linked === "yes" ? isNotNull(contacts.memberId) : isNull(contacts.memberId));
   if (f.checkedIn) where.push(f.checkedIn === "unknown" ? isNull(contacts.checkedIn) : eq(contacts.checkedIn, f.checkedIn === "yes"));
-  return db.select({ c: contacts, memberName: members.name }).from(contacts).leftJoin(members, eq(members.id, contacts.memberId))
+  if (f.invite) where.push(sql`(${inviteStatusSql}) = ${f.invite}`);
+  return db.select({ c: contacts, memberName: members.name, invite: inviteStatusSql }).from(contacts).leftJoin(members, eq(members.id, contacts.memberId))
     .where(where.length ? and(...where) : undefined).orderBy(desc(contacts.id));
 }
 
