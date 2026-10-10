@@ -295,3 +295,22 @@ export const eventCheckins = pgTable(
   (t) => [uniqueIndex("event_checkins_event_member_idx").on(t.eventId, t.memberId), index("event_checkins_event_idx").on(t.eventId, t.checkedInAt)],
 );
 
+export const SUPPRESSION_REASONS = ["unsubscribe", "bounce", "complaint"] as const;
+export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number];
+
+/**
+ * Addresses that must never get an invite again (round 12): an unsubscribe from an invite, a
+ * hard bounce or a spam complaint. Only a hash of the lowercased email is stored (lib/invites.ts),
+ * so a re-imported contact is still recognised. Bounces and complaints also stop every other email.
+ */
+export const inviteSuppressions = pgTable(
+  "invite_suppressions",
+  {
+    id: serial().primaryKey(),
+    emailHash: text("email_hash").notNull(),
+    reason: text().$type<SuppressionReason>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("invite_suppressions_hash_idx").on(t.emailHash)],
+);
+

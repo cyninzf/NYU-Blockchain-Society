@@ -2,6 +2,7 @@ import "server-only";
 import { gt, sql } from "drizzle-orm";
 import type { Db } from "./db";
 import { emailLog } from "./db/schema";
+import { undeliverable } from "./invites";
 
 // All email goes through Resend's HTTP API (no SDK). RESEND_API_KEY and REPLY_TO_EMAIL come from
 // the environment and are never logged. Without a key (local Codespaces) nothing is sent.
@@ -52,6 +53,8 @@ async function post(path: string, body: unknown): Promise<{ ok: boolean; status:
 export async function sendEmail(db: Db, kind: EmailKind, m: Message): Promise<SendResult> {
   if (!emailConfigured()) return { ok: false, error: "Email isn't set up for this environment (RESEND_API_KEY)." };
   if ((await remainingToday(db)) < 1) return { ok: false, error: "Today's email limit is used up. Try again tomorrow." };
+  // Hard bounces and spam complaints (Resend's webhook, lib/invites.ts) never get another email.
+  if ((await undeliverable(db, [m.to])).size) return { ok: false, error: "That address bounced or reported spam before, so it gets no email." };
   const r = await post("/emails", payload(m));
   if (!r.ok) { console.error(`email ${kind} failed`, r.status, r.error); return { ok: false, error: "The email service refused the message." }; }
   await db.insert(emailLog).values({ kind, recipients: 1 });
@@ -65,8 +68,12 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * spaced out to stay under Resend's request rate. The caller checks the daily limit first.
  * Stops at the first failed batch and reports how many went out.
  */
-export async function sendBatch(db: Db, kind: EmailKind, messages: Message[]): Promise<SendResult & { sent: number }> {
-  if (!emailConfigured()) return { ok: false, error: "Email isn't set up for this environment (RESEND_API_KEY).", sent: 0 };
+export async function sendBatch(db: Db, kind: EmailKind, all: Message[]): Promise<SendResult & { sent: number; skipped: number }> {
+  if (!emailConfigured()) return { ok: false, error: "Email isn't set up for this environment (RESEND_API_KEY).", sent: 0, skipped: 0 };
+  // Hard bounces and spam complaints never get another email: left out, and counted as skipped.
+  const blocked = await undeliverable(db, all.map((m) => m.to));
+  const messages = all.filter((m) => !blocked.has(m.to.trim().toLowerCase()));
+  const skipped = all.length - messages.length;
   let sent = 0;
   for (let i = 0; i < messages.length; i += BATCH_MAX) {
     const chunk = messages.slice(i, i + BATCH_MAX);
@@ -74,12 +81,12 @@ export async function sendBatch(db: Db, kind: EmailKind, messages: Message[]): P
     const r = await post("/emails/batch", chunk.map(payload));
     if (!r.ok) {
       console.error(`email batch ${kind} failed`, r.status, r.error);
-      return { ok: false, error: `The email service refused a batch after ${sent} sent.`, sent };
+      return { ok: false, error: `The email service refused a batch after ${sent} sent.`, sent, skipped };
     }
     await db.insert(emailLog).values({ kind, recipients: chunk.length });
     sent += chunk.length;
   }
-  return { ok: true, sent };
+  return { ok: true, sent, skipped };
 }
 
 // --- Templates: plain, on-brand HTML plus a text version ---

@@ -60,6 +60,14 @@ Built. See "Decided" below for the flow, data model and admin.
 - "Update your block" (round 9, `/update`; footer link and the welcome email): enter an email → the same answer whether or not it's a member → a magic link (purpose `member` in `auth_tokens`, single-use, 15 minutes; never sent to unsubscribed members) → `/update/verify` (a "Continue" click) → a 24-hour signed `nyubs_member` cookie → `/update/edit`, where the member edits their own blocks, notify preferences and optional fields (LinkedIn, role, company, NYU school, grad year, city and country), never name or email. Validation is shared (`lib/member-fields.ts`).
 - Unsubscribe (round 9): `members.unsubscribed_at`; unsubscribed members never receive any email (welcome, announcements, magic links). Every member email has a signed, never-expiring unsubscribe link (`/unsubscribe?t=…`, no login) and RFC 8058 headers (`List-Unsubscribe` → `POST /api/unsubscribe`, `List-Unsubscribe-Post: One-Click`), so mail apps unsubscribe in one click. The page itself unsubscribes on one button press, not on load (link scanners open pages; they don't press buttons), and offers "Resubscribe".
 
+## Invites to contacts (round 12)
+Rules, enforced in code (`lib/invites.ts`):
+- Eligible: a contact with a valid email, not linked to a member, not suppressed and never invited. Each contact is invited at most once, ever: `contacts.invited_at` is set on send and never reset.
+- Suppression list `invite_suppressions` (email_hash unique, reason unsubscribe | bounce | complaint, created_at). The hash is SHA-256 of "nyubs-suppress:" + the lowercased, trimmed address, deliberately unkeyed, so a rotated secret can never forget who opted out; the same expression runs in SQL (`hashSql`). A re-imported contact is still recognised.
+- Anyone who unsubscribes from an invite, hard-bounces or complains is added and never invited again. Bounces and complaints also block every other email (`undeliverable()` in `sendEmail` / `sendBatch`, which skip them). An invite unsubscribe only stops invites: if that person joins later, that's their own choice.
+- Bounces and complaints arrive by Resend's webhook, `POST /api/resend/webhook` (events `email.bounced` and `email.complained`), verified the Svix way with `RESEND_WEBHOOK_SECRET` (whsec_…; unsigned, bad or older-than-5-minutes requests get a 401). Nothing else from the webhook is stored.
+- Invites are super admin only on the server; admins see invite status read-only. Sending is blocked until a postal address is set.
+
 ## Email (round 9)
 - Sent through Resend's HTTP API (`lib/email.ts`, no SDK) from "NYU Blockchain Society <hello@nyublockchainsociety.com>", reply-to `REPLY_TO_EMAIL`. DNS (DKIM, SPF on `send.`, DMARC) is in Wix DNS.
 - Secrets live only in Vercel: `RESEND_API_KEY`, `SUPER_ADMIN_EMAIL`, `REPLY_TO_EMAIL`, `AUTH_SECRET`. Never print, log or commit their values.
