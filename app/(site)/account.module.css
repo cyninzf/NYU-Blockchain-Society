@@ -2,7 +2,8 @@
 .page{color:var(--ink-fg); padding-bottom:clamp(80px,10vw,140px); min-height:100svh}
 .page h1{margin:0; font-weight:620; font-size:clamp(40px,6vw,72px); line-height:1.02; padding-bottom:.04em; letter-spacing:-.05em}
 .lede{margin:18px 0 28px; max-width:48ch; font-size:clamp(17px,1.5vw,20px); color:var(--ink-muted)}
-.form{display:grid; gap:16px; max-width:560px}
+.form{display:grid; gap:16px; max-width:560px; justify-items:start}
+.form > label,.form > fieldset,.form > .two{justify-self:stretch}
 .form label{display:grid; gap:6px; font-size:15px; color:var(--ink-muted)}
 .form input[type="email"],.form input[type="text"],.form input[type="url"],.form input:not([type]){min-height:48px; padding:0 14px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.7); color:var(--ink-fg); font:inherit; font-size:16px}
 .form input:focus-visible{outline:2px solid var(--glow); outline-offset:2px}

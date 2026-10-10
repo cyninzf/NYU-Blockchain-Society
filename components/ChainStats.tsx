@@ -1,5 +1,5 @@
 import { industries } from "@/content/industries";
-import { chainPublic } from "@/lib/chain-stats";
+import { chainPublic, type ChainStats } from "@/lib/chain-stats";
 import BlockGlyph from "./BlockGlyph";
 
 const fmt = new Intl.NumberFormat("en-US");
@@ -11,7 +11,10 @@ const fmt = new Intl.NumberFormat("en-US");
  */
 export default async function ChainStats() {
   const { stats } = await chainPublic();
-  if (!stats) return null;
+  return stats ? <ChainStatsView stats={stats} /> : null;
+}
+
+export function ChainStatsView({ stats }: { stats: ChainStats }) {
   return (
     <section className="stats" id="network" aria-labelledby="stats-h">
       <div className="wrap" data-bg="dim">
