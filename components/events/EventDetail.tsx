@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { EventStatus } from "@/lib/db/schema";
+import { eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import Icon from "../Icon";
 import OpenJoin from "../OpenJoin";
 
 export type EventView = {
-  title: string; startsAt: Date; endsAt: Date | null; venueName: string | null; address: string | null;
+  title: string; slug: string; startsAt: Date; endsAt: Date | null; venueName: string | null; address: string | null;
   description: string | null; registrationUrl: string | null; cohost: string | null; status: EventStatus;
 };
 
@@ -27,9 +28,15 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
         {e.description && <p className="ev-desc">{e.description}</p>}
         {cancelled ? (
           <p className="ev-note">This event was cancelled. <OpenJoin className="ev-link" notify="networking">Hear about the next one</OpenJoin></p>
-        ) : !over && e.registrationUrl ? (
+        ) : over ? null : e.registrationUrl ? (
           <p><a className="btn btn-w" href={e.registrationUrl} target="_blank" rel="noopener">Register <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></p>
-        ) : null}
+        ) : (
+          // No registration link yet: members hear first, and the join is tracked as event-<slug>.
+          <>
+            <p className="ev-note">Registration opens soon.</p>
+            <p><OpenJoin className="btn btn-w" notify="networking" src={eventSource(e.slug)}>Join the society to get the invite <Icon name="arrow-right" /></OpenJoin></p>
+          </>
+        )}
       </div>
       </div>
     </section>

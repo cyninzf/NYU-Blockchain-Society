@@ -2,6 +2,7 @@ import Link from "next/link";
 import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
 import { chainBlocks, type BlockStatus, type NextEvent } from "@/content/chain";
 import { chainIntro } from "@/content/site";
+import { eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import { publicEvents, type PublicEvent } from "@/lib/events";
 import NextEditionLink from "./conference/NextEditionLink";
@@ -25,7 +26,7 @@ const STATUS: Record<BlockStatus, { label: string; dot: string; draw: Draw }> = 
 
 const nextEvent = (e: PublicEvent | undefined): NextEvent | null => e ? {
   title: e.title, slug: e.slug, when: eventWhen(e.startsAt, e.endsAt), venue: e.venueName, cohost: e.cohost,
-  registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled",
+  registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled", src: eventSource(e.slug),
 } : null;
 
 export default async function Chain() {
@@ -62,6 +63,7 @@ export default async function Chain() {
                     {ev.next.cancelled && <span className="tag mono">Cancelled</span>}
                     <span>Next: <b>{ev.next.title}</b> · {ev.next.when}{ev.next.venue && <> · {ev.next.venue}</>}</span>
                     {ev.next.cohost && <span className="cohost">Co-hosted with {ev.next.cohost}</span>}
+                    {!ev.next.cancelled && !ev.next.registrationUrl && <span className="cohost">Registration opens soon</span>}
                   </p>
                 )}
                 {ev.editions && (
@@ -81,7 +83,7 @@ export default async function Chain() {
                   </ol>
                 )}
                 {a.kind === "join" ? (
-                  <OpenJoin className={cls} notify={a.notify}>
+                  <OpenJoin className={cls} notify={a.notify} src={a.src}>
                     {a.label}<span className="sr">: {ev.title}</span>
                   </OpenJoin>
                 ) : a.external ? (

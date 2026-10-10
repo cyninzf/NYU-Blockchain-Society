@@ -9,10 +9,14 @@ export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" 
 
 export type BlockAction =
   | { kind: "link"; label: string; href: string; external?: boolean }
-  | { kind: "join"; label: string; notify: Notify };
+  | { kind: "join"; label: string; notify: Notify; src?: string };
 
 /** The next networking event as Block 01 shows it (already formatted). */
-export type NextEvent = { title: string; slug: string; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean };
+export type NextEvent = {
+  title: string; slug: string; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
+  /** The join source for "Join the society to get the invite": event-<slug>. */
+  src: string;
+};
 
 export type ChainBlock = {
   label: string;
@@ -37,7 +41,10 @@ function networkingBlock(next: NextEvent | null): ChainBlock {
     ...base,
     status: "upcoming",
     next,
-    action: next.registrationUrl ? { kind: "link", label: "Register", href: next.registrationUrl, external: true } : { kind: "link", label: "Event details", href: `/events/${next.slug}` },
+    // No registration link yet: "Registration opens soon" and the join flow, tracked as event-<slug>.
+    action: next.registrationUrl
+      ? { kind: "link", label: "Register", href: next.registrationUrl, external: true }
+      : { kind: "join", label: "Join the society to get the invite", notify: "networking", src: next.src },
   };
 }
 

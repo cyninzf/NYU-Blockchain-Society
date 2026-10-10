@@ -13,6 +13,13 @@ export function rememberSource() {
   } catch {}
 }
 
+/** Remember a source chosen by a link, e.g. an event's "Join the society to get the invite". */
+export function setJoinSource(s: string) {
+  try {
+    if (RE.test(s)) sessionStorage.setItem(KEY, s);
+  } catch {}
+}
+
 /** ?src from the current URL, else the one remembered this session. */
 export function joinSource(): string | undefined {
   try {
