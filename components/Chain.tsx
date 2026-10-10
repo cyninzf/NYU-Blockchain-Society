@@ -2,18 +2,13 @@ import Link from "next/link";
 import { editionStatus, nextEdition, pastEditions } from "@/content/conferences";
 import { chainBlocks, type BlockStatus, type NextEvent } from "@/content/chain";
 import { chainIntro } from "@/content/site";
-import { baseUrl } from "@/lib/base-url";
-import { calendarLinks } from "@/lib/calendar";
-import { eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import { publicEvents, type PublicEvent } from "@/lib/events";
 import DrawIn from "./DrawIn";
-import CalendarButtons from "./events/CalendarButtons";
 import Icon from "./Icon";
 import NotifyButton from "./NotifyButton";
-import OpenJoin from "./OpenJoin";
 
-// Each block is drawn by its status: confirmed (done/annual) = solid edges, active (the
+// Each block is drawn by its status (its behaviour is the same for all three): confirmed (done/annual) = solid edges, active (the
 // current block: next event) = glowing edges with a slow pulse, building = dashed edges, as
 // if still being mined. Change a block's status in content/ (or Block 01's event in
 // /admin/events) and its drawing follows.
@@ -29,8 +24,7 @@ const STATUS: Record<BlockStatus, { label: string; dot: string; draw: Draw }> = 
 
 const nextEvent = (e: PublicEvent | undefined): NextEvent | null => e ? {
   title: e.title, slug: e.slug, when: eventWhen(e.startsAt, e.endsAt), venue: e.venueName, cohost: e.cohost,
-  registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled", src: eventSource(e.slug),
-  calendar: e.status === "cancelled" ? null : calendarLinks({ ...e, pageUrl: `${baseUrl()}/events/${e.slug}` }),
+  registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled",
 } : null;
 
 export default async function Chain() {
@@ -47,8 +41,6 @@ export default async function Chain() {
         <ol className="blocks">
           {blocks.map((ev, i) => {
             const st = STATUS[ev.status];
-            const cls = `blk-go ${st.draw === "active" ? "btn btn-w" : "go"}`;
-            const a = ev.action;
             return (
               <li className={`blk ${st.draw}`} key={ev.label} data-bg="dim">
                 <span className="frame" aria-hidden="true">
@@ -65,12 +57,11 @@ export default async function Chain() {
                 {ev.next && (
                   <p className="next">
                     {ev.next.cancelled && <span className="tag mono">Cancelled</span>}
-                    <span>Next: <b>{ev.next.title}</b> · {ev.next.when}{ev.next.venue && <> · {ev.next.venue}</>}</span>
+                    <span>Next: <Link className="next-go" href={`/events/${ev.next.slug}`}>{ev.next.title}</Link> · {ev.next.when}{ev.next.venue && <> · {ev.next.venue}</>}</span>
                     {ev.next.cohost && <span className="cohost">Co-hosted with {ev.next.cohost}</span>}
                     {!ev.next.cancelled && !ev.next.registrationUrl && <span className="cohost">Registration opens soon</span>}
                   </p>
                 )}
-                {ev.next?.calendar && <CalendarButtons links={ev.next.calendar} />}
                 {ev.editions && (
                   <ol className="editions" aria-label="Editions">
                     {pastEditions.map((e) => (
@@ -88,31 +79,14 @@ export default async function Chain() {
                     )}
                   </ol>
                 )}
-                {ev.page && a.kind === "notify" ? (
-                  // The card opens the block's page; "Get notified" is a button of its own above it.
-                  <div className="blk-acts">
-                    <Link className="blk-go go" href={ev.page.href}>{ev.page.label} <Icon name="arrow-right" /></Link>
-                    <NotifyButton className="btn btn-o blk-act" notify={a.notify} src={a.src}>
-                      {a.label}<span className="sr">: {ev.title}</span>
-                    </NotifyButton>
-                  </div>
-                ) : a.kind === "notify" ? (
-                  <NotifyButton className={cls} notify={a.notify} src={a.src}>
-                    {a.label}<span className="sr">: {ev.title}</span>
+                {/* The same two actions on every block: the text link (stretched over the whole card)
+                    and "Get notified", which sits above it as its own tab stop. */}
+                <div className="blk-acts">
+                  <Link className="blk-go go" href={ev.page.href}>{ev.page.label} <Icon name="arrow-right" /></Link>
+                  <NotifyButton className="btn btn-w blk-act" notify={ev.notify} src={ev.src}>
+                    Get notified<span className="sr">: {ev.title}</span>
                   </NotifyButton>
-                ) : a.kind === "join" ? (
-                  <OpenJoin className={cls} notify={a.notify} src={a.src}>
-                    {a.label}<span className="sr">: {ev.title}</span>
-                  </OpenJoin>
-                ) : a.external ? (
-                  <a className={cls} href={a.href} target="_blank" rel="noopener">
-                    {a.label} <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span>
-                  </a>
-                ) : (
-                  <Link className={cls} href={a.href}>
-                    {a.label} <Icon name="arrow-right" />
-                  </Link>
-                )}
+                </div>
               </li>
             );
           })}

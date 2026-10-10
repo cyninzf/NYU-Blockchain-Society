@@ -1,26 +1,17 @@
-// "The chain so far": events and programs, one block each. Every block is clickable.
-// The accelerator is "building": never present it as live. New programs get a block only
-// once someone owns them. Block 01's next event comes from the events table (/admin/events).
+// "The chain so far": events and programs, one block each. The three blocks behave the same
+// (round 15): the whole card opens the block's page, and every card has the same two actions, a
+// text link to that page and "Get notified" (the join flow with the block's notify and src).
+// The accelerator is "building": never present it as live. New programs get a block only once
+// someone owns them. Block 01's next event comes from the events table (/admin/events).
 
 import { series } from "./conferences";
-import type { CalendarLinks } from "@/lib/calendar";
 import type { Notify } from "./notify";
 
 export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" | "building";
 
-export type BlockAction =
-  | { kind: "link"; label: string; href: string; external?: boolean }
-  | { kind: "join"; label: string; notify: Notify; src?: string }
-  /** "Get notified" (round 14): the join flow with this notify and src, or "You're on the list" for a signed-in member. */
-  | { kind: "notify"; label: string; notify: Notify; src: string };
-
 /** The next networking event as Block 01 shows it (already formatted). */
 export type NextEvent = {
   title: string; slug: string; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
-  /** The join source for "Join the society to get the invite": event-<slug>. */
-  src: string;
-  /** "Add to calendar" links (not for a cancelled event). */
-  calendar: CalendarLinks | null;
 };
 
 export type ChainBlock = {
@@ -33,27 +24,12 @@ export type ChainBlock = {
   next?: NextEvent;
   /** Show the conference's mini edition chain (from conferences.ts) inside the card. */
   editions?: boolean;
-  action: BlockAction;
-  /** The block's own page: the whole card opens it, and `action` sits beside it as its own button. */
-  page?: { label: string; href: string };
+  /** The block's canonical page: the whole card and the text link open it. */
+  page: { label: string; href: string };
+  /** "Get notified": the join flow with this notify interest and ?src=. */
+  notify: Notify;
+  src: string;
 };
-
-const notifyNetworking: BlockAction = { kind: "notify", label: "Get notified", notify: "networking", src: "chain-networking" };
-
-function networkingBlock(next: NextEvent | null): ChainBlock {
-  const base = { label: "Block 01", kind: "Networking", title: "Networking", text: "Mixers, workshops, roundtables and more, for NYU alumni wherever they are." };
-  if (!next) return { ...base, status: "soon", action: notifyNetworking };
-  if (next.cancelled) return { ...base, status: "cancelled", next, action: notifyNetworking };
-  return {
-    ...base,
-    status: "upcoming",
-    next,
-    // No registration link yet: "Registration opens soon" and the join flow, tracked as event-<slug>.
-    action: next.registrationUrl
-      ? { kind: "link", label: "Register", href: next.registrationUrl, external: true }
-      : { kind: "join", label: "Join the society to get the invite", notify: "networking", src: next.src },
-  };
-}
 
 /** The chain, with the next networking event (published first, else a cancelled one) or null. */
 export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
@@ -64,9 +40,21 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     title: series.name,
     text: `Annual · since ${series.since}`,
     editions: true,
-    action: { kind: "link", label: "The conference series", href: "/conference" },
+    page: { label: "The conference series", href: "/conference" },
+    notify: "conference",
+    src: "chain-conference",
   },
-  networkingBlock(next),
+  {
+    label: "Block 01",
+    kind: "Networking",
+    status: !next ? "soon" : next.cancelled ? "cancelled" : "upcoming",
+    title: "Networking",
+    text: "Mixers, workshops, roundtables and more, for NYU alumni wherever they are.",
+    ...(next ? { next } : {}),
+    page: { label: "See all events", href: "/events" },
+    notify: "networking",
+    src: "chain-networking",
+  },
   {
     label: "Block 02",
     kind: "Accelerator",
@@ -74,6 +62,7 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     title: "Accelerator",
     text: "Support for NYU founders working across digital assets and AI.",
     page: { label: "About the accelerator", href: "/accelerator" },
-    action: { kind: "notify", label: "Get notified", notify: "accelerator", src: "chain-accelerator" },
+    notify: "accelerator",
+    src: "chain-accelerator",
   },
 ];

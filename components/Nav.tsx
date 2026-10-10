@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { navBlocks as BLOCKS } from "@/content/site";
+import { navLinks } from "@/content/site";
 import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
@@ -68,9 +68,11 @@ export default function Nav() {
     };
   }, [menu]);
 
-  // Each block's page and everything under it (/events/<slug> lights Networking).
-  const on = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const current = (on: boolean, kind: "page" | "location") => (on ? { "aria-current": kind, className: "on" } : {});
+  // "The chain" while it's in view on the home page; a block's page and everything under it.
+  const isCurrent = (href: string) => href === "/#chain"
+    ? current(home && section === "chain", "location")
+    : current(pathname === href || pathname.startsWith(`${href}/`), "page");
 
   return (
     <header className={home && !scrolled && !menu ? "nav" : "nav solid"}>
@@ -81,8 +83,7 @@ export default function Nav() {
         </Link>
         <nav aria-label="Main">
           <ul>
-            <li className="l"><Link href="/#chain" {...current(home && section === "chain", "location")}>The chain</Link></li>
-            {BLOCKS.map((b) => <li className="l" key={b.href}><Link href={b.href} {...current(on(b.href), "page")}>{b.label}</Link></li>)}
+            {navLinks.map((l) => <li className="l" key={l.href}><Link href={l.href} {...isCurrent(l.href)}>{l.label}</Link></li>)}
             <li><OpenJoin className="btn btn-w">Join</OpenJoin></li>
             <li className="m">
               <button ref={menuBtn} className="menu-btn" type="button" aria-expanded={menu} aria-controls="menu-sheet" aria-haspopup="dialog" onClick={() => setMenu(true)}>
@@ -107,10 +108,9 @@ export default function Nav() {
             <button className="menu-btn" type="button" onClick={() => setMenu(false)}><Icon name="close" size={20} /><span className="sr">Close menu</span></button>
           </div>
           <ol className="sheet-links wrap">
-            <li style={{ "--i": 0 } as CSSProperties}><Link href="/#chain">The chain</Link></li>
-            {BLOCKS.map((b, i) => <li style={{ "--i": i + 1 } as CSSProperties} key={b.href}><Link href={b.href} {...current(on(b.href), "page")}>{b.label}</Link></li>)}
-            <li style={{ "--i": BLOCKS.length + 1 } as CSSProperties}><Link href="/media-kit" {...current(pathname === "/media-kit", "page")}>Media kit</Link></li>
-            <li style={{ "--i": BLOCKS.length + 2 } as CSSProperties}><OpenJoin className="add">Add your block</OpenJoin></li>
+            {navLinks.map((l, i) => <li style={{ "--i": i } as CSSProperties} key={l.href}><Link href={l.href} {...isCurrent(l.href)}>{l.label}</Link></li>)}
+            <li style={{ "--i": navLinks.length } as CSSProperties}><Link href="/media-kit" {...current(pathname === "/media-kit", "page")}>Media kit</Link></li>
+            <li style={{ "--i": navLinks.length + 1 } as CSSProperties}><OpenJoin className="add">Add your block</OpenJoin></li>
           </ol>
         </div>,
         document.body,

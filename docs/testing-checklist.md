@@ -224,23 +224,28 @@ treated as bots: they see the thank-you and nothing is stored).
 - [ ] Clean up: delete the test member (super admin, `/admin`). Interest rows stay as a record
       (there is no delete).
 
-### Nav and "Get notified" (round 14)
+### Nav, chain blocks and "Get notified" (rounds 14 and 15)
 
-- [ ] At 1440 px the nav reads The chain · Conference · Networking · Accelerator · Join.
-      Networking is underlined on `/events` and on an event page; Accelerator on `/accelerator`;
-      Conference on `/conference` and `/conference/2024`.
+- [ ] At 1440 px the nav reads The chain · Conference · Accelerator · Join. Conference is
+      underlined on `/conference` and `/conference/2024`; Accelerator on `/accelerator`.
 - [ ] At 390 px (and anything up to 900 px) only the brand, Join and the menu button show. With
-      the keyboard: Tab to the menu button, Enter opens the sheet (The chain, Conference,
-      Networking, Accelerator, Media kit, Add your block); Tab stays inside it; Esc closes it and
-      focus returns to the button. A screen reader announces "Menu, button, collapsed".
-- [ ] The footer shows the same links: The chain, Conference, Networking, Accelerator.
-- [ ] Private window, home page: Block 01's "Get notified" (when there's no upcoming event)
-      opens the join flow with "Join the society to hear about upcoming networking events" above
-      "Which blocks do you work in?". Join: `/admin` shows notify "networking" and source
-      `chain-networking`.
-- [ ] Same for Block 02: "Join the society to hear about the accelerator"; notify
-      "accelerator", source `chain-accelerator`.
+      the keyboard: Tab to the menu button, Enter opens the sheet; Tab stays inside it; Esc closes
+      it and focus returns to the button. A screen reader announces "Menu, button, collapsed".
+- [ ] The footer shows The chain, Conference, Networking, Accelerator.
+- [ ] Home page, The chain: clicking the title or the text of each card opens its page (Block 00
+      → `/conference`, Block 01 → the events page, Block 02 → `/accelerator`), with the pointer
+      cursor and glowing edges on hover for all three. Each card ends with the same text link and
+      a white "Get notified" button. The 2024 and 2027 chips and an event's title open their own
+      pages, not the card's.
+- [ ] Tab through the chain: each card gives exactly its inner links (chips, event title), the
+      text link, then "Get notified"; the focused card shows an outline.
+- [ ] Private window: each "Get notified" opens the join flow with its line above "Which blocks do
+      you work in?" ("…upcoming networking events", "…the accelerator", "…when the next
+      conference is announced"). Join from Block 01: `/admin` shows notify "networking" and
+      source `chain-networking` (Block 02: `chain-accelerator`; Block 00: `chain-conference`).
+- [ ] With a published upcoming event, Block 01 shows "Next: <title> · <date> · <venue>" plus the
+      same two actions (no Register button on the card; it's on the event page).
 - [ ] Sign in through "Update your block" (`/update`), then open the home page in that browser:
-      Block 01 / Block 02 show "You're on the list for …" with "Update your block" for programs
-      you picked, and "You're a member. Add … to your updates" for ones you didn't, instead of
+      each block shows "You're on the list for …" with "Update your block" for programs you
+      picked, and "You're a member. Add … to your updates" for ones you didn't, instead of
       "Get notified".

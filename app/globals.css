@@ -143,7 +143,6 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .blk p{margin:0; color:var(--ink-muted); font-size:16px}
 .blk .foot{margin-top:auto; display:flex; flex-wrap:wrap; gap:6px 16px; color:var(--ink-muted)}
 .blk .foot b{color:var(--ink-fg); font-weight:500}
-.blk.active .btn{margin-top:auto; align-self:flex-start}
 .blk .next{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; color:var(--ink-fg); font-size:15px}
 .blk .next b{font-weight:550}
 .blk .next .cohost{flex-basis:100%; color:var(--ink-muted); font-size:14px}
@@ -601,10 +600,13 @@ footer ul{gap:0 22px}
 .acc-paths .ed-blk .go{margin-top:auto; padding-top:6px}
 @media (max-width:760px){.acc-paths{grid-template-columns:1fr}}
 .acc-form{scroll-margin-top:96px}
-/* Block 02: the card opens /accelerator; "Get notified" sits above the card's link */
-.blk-acts{margin-top:auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 18px}
+/* Every chain block (round 15): the text link to its page (stretched over the card) and
+   "Get notified", raised above the stretched link so each is its own click and tab stop */
+.blk-acts{margin-top:auto; display:flex; flex-direction:column; align-items:flex-start; gap:8px}
 .blk-acts .go{margin-top:0}
 .blk-act{position:relative; z-index:3; min-height:44px}
+.blk .next .next-go{position:relative; z-index:3; color:var(--ink-fg); font-weight:550; text-underline-offset:3px}
+.blk .next .next-go:hover{color:var(--lilac)}
 .iq-hint{font-size:13px; color:var(--ink-muted)}
 .iq-check{display:grid !important; grid-template-columns:auto 1fr; align-items:center; gap:4px 12px !important; min-height:44px; color:var(--ink-fg) !important; cursor:pointer}
 .iq-check input{width:20px; height:20px; accent-color:#9B4DDB}
