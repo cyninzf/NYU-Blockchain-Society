@@ -56,7 +56,7 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
 
   const s: ImportSummary = { total: data.length, imported: 0, duplicates: 0, invalid: 0, alreadyMembers: 0 };
   const seen = new Set<string>();
-  const candidates: (typeof contacts.$inferInsert)[] = [];
+  const candidates: (typeof contacts.$inferInsert & { email: string })[] = [];
   for (const r of data) {
     const email = (r[m.email] ?? "").trim();
     if (!isEmail(email)) { s.invalid++; continue; }

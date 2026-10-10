@@ -54,17 +54,22 @@ export const rateLimitHits = pgTable(
 );
 
 /**
- * People we know from outside the join flow, e.g. 2024 conference registrants imported from a
- * CSV. Contacts are NOT members: no block number, never counted as members, never on the wall.
- * `memberId` is set when the same email later joins through the normal flow.
+ * People we know from outside the join flow: imported lists such as 2024 conference registrants
+ * (with email) or the LinkedIn group export (name and headline, no email). Contacts are NOT
+ * members: no block number, never counted as members. A contact without an email can never be
+ * emailed and is left out of every email feature (today no email goes to contacts at all).
+ * `memberId` is set when the same person joins (lib/contact-links.ts).
  */
 export const contacts = pgTable(
   "contacts",
   {
     id: serial().primaryKey(),
     name: text(),
-    email: text().notNull(),
-    /** Import label, e.g. "conference-2024". */
+    /** Null for lists without emails, e.g. the LinkedIn group export. */
+    email: text(),
+    /** From the LinkedIn export's "Title / Headline". */
+    headline: text(),
+    /** Import label, e.g. "luma-2024" or "linkedin-2026-10". */
     source: text().notNull(),
     /** Null when the import had no check-in column. */
     checkedIn: boolean("checked_in"),
@@ -72,7 +77,12 @@ export const contacts = pgTable(
     invitedAt: timestamp("invited_at", { withTimezone: true }),
     memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
   },
-  (t) => [uniqueIndex("contacts_email_lower_idx").on(sql`lower(${t.email})`), index("contacts_source_idx").on(t.source)],
+  (t) => [
+    // Dedupe: rows with an email on lower(email); rows without one on (name, headline).
+    uniqueIndex("contacts_email_lower_idx").on(sql`lower(${t.email})`),
+    uniqueIndex("contacts_name_headline_idx").on(sql`lower(${t.name})`, sql`lower(coalesce(${t.headline}, ''))`).where(sql`${t.email} is null`),
+    index("contacts_source_idx").on(t.source),
+  ],
 );
 
 export type Contact = typeof contacts.$inferSelect;
