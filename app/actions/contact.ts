@@ -19,10 +19,11 @@ const GENERIC = "Something went wrong on our side. Please try again in a moment.
  */
 export async function submitContact(_prev: ContactResult, fd: FormData): Promise<ContactResult> {
   const guard = formGuard("contact", String(fd.get("formToken") ?? ""), String(fd.get(HONEYPOT_FIELD) ?? ""));
-  if (guard === "expired") return { ok: false, error: EXPIRED };
+  if (guard.kind === "expired") return { ok: false, error: EXPIRED };
   const parsed = ContactInput.safeParse(Object.fromEntries(fd));
-  // Bots: the honeypot or an instant submit get the normal thank-you and nothing is stored (the drop is logged).
-  if (guard === "drop") return { ok: true, privacy: parsed.success && parsed.data.topic !== "general" };
+  if (guard.kind === "drop") return { ok: true, privacy: parsed.success && parsed.data.topic !== "general" };
+  // Suspected bots are saved flagged (no confirmation, no notification) and see the normal thank-you.
+  const spam = guard.spam;
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
   const db = getDb();
@@ -30,7 +31,8 @@ export async function submitContact(_prev: ContactResult, fd: FormData): Promise
   try {
     if (await rateLimited(db, "contact", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "contact", d.email, 3, 86400)) return { ok: false, error: "This message wasn't sent: you've already sent us 3 today. We'll reply to those; for anything new, please try again tomorrow." };
-    const id = await saveContactMessage(db, d);
+    const id = await saveContactMessage(db, d, spam);
+    if (spam) return { ok: true, privacy: d.topic !== "general" };
     // Privacy requests: one confirmation email to the address given, after the response.
     if (d.topic !== "general") after(() => sendContactVerification(db, id, d.email).catch((e) => reportError("forms", "contact verification failed", e)));
     // And one notification to the super admin, Reply going to the sender.

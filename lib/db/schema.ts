@@ -409,6 +409,10 @@ export const conferenceInquiries = pgTable(
     /** The edition it's about, e.g. "2027". */
     edition: text().notNull(),
     status: text().$type<InquiryStatus>().notNull().default("new"),
+    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    suspectedSpam: boolean("suspected_spam").notNull().default(false),
+    /** honeypot | too_fast */
+    spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("conference_inquiries_status_idx").on(t.status, t.createdAt)],
@@ -455,6 +459,10 @@ export const acceleratorInterest = pgTable(
     /** Founders ticked "Also add me as a member". */
     addMember: boolean("add_member").notNull().default(false),
     status: text().$type<InterestStatus>().notNull().default("new"),
+    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    suspectedSpam: boolean("suspected_spam").notNull().default(false),
+    /** honeypot | too_fast */
+    spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("accelerator_interest_type_idx").on(t.type, t.status, t.createdAt)],
@@ -482,9 +490,42 @@ export const contactMessages = pgTable(
     /** Privacy requests only: when the sender confirmed the address. Null = unverified (or not needed). */
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     status: text().$type<ContactStatus>().notNull().default("new"),
+    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    suspectedSpam: boolean("suspected_spam").notNull().default(false),
+    /** honeypot | too_fast */
+    spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("contact_messages_status_idx").on(t.status, t.createdAt)],
 );
 
 export type ContactMessage = typeof contactMessages.$inferSelect;
+
+export const SPAM_REASONS = ["honeypot", "too_fast"] as const;
+export type SpamReason = (typeof SPAM_REASONS)[number];
+
+/**
+ * Joins and check-in quick joins caught by the bot guard (round 20). Never a member until a super
+ * admin marks it "Not spam": then it joins through upsertMember (welcome email, contact linking,
+ * a block number) and a check-in join is also checked in. Never counted or emailed before that.
+ */
+export const pendingJoins = pgTable(
+  "pending_joins",
+  {
+    id: serial().primaryKey(),
+    /** join | checkin */
+    kind: text().$type<"join" | "checkin">().notNull(),
+    name: text().notNull(),
+    email: text().notNull(),
+    affiliation: affiliation().notNull(),
+    blocks: text().array().notNull().default(sql`'{}'::text[]`),
+    notify: text().array().notNull().default(sql`'{}'::text[]`),
+    source: text(),
+    /** Check-in quick joins: the event to check them in to once approved. */
+    eventId: integer("event_id").references(() => events.id, { onDelete: "set null" }),
+    spamReason: text("spam_reason").$type<SpamReason>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+export type PendingJoin = typeof pendingJoins.$inferSelect;

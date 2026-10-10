@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
-import { adminAudit, conferenceInquiries, INQUIRY_INTERESTS, type InquiryStatus } from "./db/schema";
+import { adminAudit, conferenceInquiries, INQUIRY_INTERESTS, type InquiryStatus, type SpamReason } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 
 // Sponsor and speaker inquiries from /conference (round 13). Stored, then one notification to
@@ -20,8 +20,9 @@ export const InquiryInput = z.object({
 });
 export type InquiryFields = z.output<typeof InquiryInput>;
 
-export async function saveInquiry(db: Db, d: InquiryFields, edition: string) {
-  const [row] = await db.insert(conferenceInquiries).values({ ...d, edition }).returning({ id: conferenceInquiries.id });
+/** `spam`: the bot guard's reason; a flagged inquiry is saved but sends nothing until "Not spam". */
+export async function saveInquiry(db: Db, d: InquiryFields, edition: string, spam: SpamReason | null = null) {
+  const [row] = await db.insert(conferenceInquiries).values({ ...d, edition, suspectedSpam: Boolean(spam), spamReason: spam }).returning({ id: conferenceInquiries.id });
   return row.id;
 }
 

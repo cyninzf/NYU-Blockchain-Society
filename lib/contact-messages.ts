@@ -5,7 +5,7 @@ import { baseUrl } from "./base-url";
 import type { Db } from "./db";
 import { TOPIC_LABELS } from "@/content/contact";
 import { auditRow } from "./admin";
-import { adminAudit, CONTACT_TOPICS, contactMessages, type ContactStatus } from "./db/schema";
+import { adminAudit, CONTACT_TOPICS, contactMessages, type ContactStatus, type SpamReason } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 import { CONTACT_LINK_TTL_MS, consumeLinkToken, createLinkToken } from "./magic-link";
 
@@ -20,8 +20,9 @@ export const ContactInput = z.object({
 });
 export type ContactFields = z.output<typeof ContactInput>;
 
-export async function saveContactMessage(db: Db, d: ContactFields) {
-  const [row] = await db.insert(contactMessages).values(d).returning({ id: contactMessages.id });
+/** `spam`: the bot guard's reason; a flagged message is saved but sends nothing until "Not spam". */
+export async function saveContactMessage(db: Db, d: ContactFields, spam: SpamReason | null = null) {
+  const [row] = await db.insert(contactMessages).values({ ...d, suspectedSpam: Boolean(spam), spamReason: spam }).returning({ id: contactMessages.id });
   return row.id;
 }
 

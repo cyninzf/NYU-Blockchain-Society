@@ -20,9 +20,10 @@ const GENERIC = "Something went wrong on our side. Please try again in a moment.
  */
 async function submit(type: InterestType, fd: FormData): Promise<InterestResult> {
   const guard = formGuard("accelerator", String(fd.get("formToken") ?? ""), String(fd.get(HONEYPOT_FIELD) ?? ""));
-  if (guard === "expired") return { ok: false, error: EXPIRED };
-  // Bots: the honeypot or an instant submit get the normal thank-you and nothing is stored (the drop is logged).
-  if (guard === "drop") return { ok: true };
+  if (guard.kind === "expired") return { ok: false, error: EXPIRED };
+  if (guard.kind === "drop") return { ok: true };
+  // Suspected bots are saved flagged (no notification, no member) and see the normal thank-you.
+  const spam = guard.spam;
   const parsed = parseInterest(type, fd);
   if (!parsed.ok) return parsed;
   const d = parsed.data;
@@ -31,7 +32,8 @@ async function submit(type: InterestType, fd: FormData): Promise<InterestResult>
   try {
     if (await rateLimited(db, "accelerator", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "accelerator", d.email, 3, 86400)) return { ok: false, error: "This wasn't sent: you've already sent us 3 today. We'll reply to those; for anything new, please try again tomorrow." };
-    const id = await saveInterest(db, d);
+    const id = await saveInterest(db, d, spam);
+    if (spam) return { ok: true };
     // The same thank-you whether or not the email was already a member.
     if (d.type === "founder" && d.addMember) await joinFounder(db, d);
     after(() => notifyInterest(db, id, d).catch((e) => reportError("forms", "accelerator email failed", e)));

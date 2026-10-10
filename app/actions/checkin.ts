@@ -25,7 +25,8 @@ import { eventPath, eventSource } from "@/lib/event-fields";
 import { consumeLinkToken } from "@/lib/magic-link";
 import { upsertMember } from "@/lib/member-join";
 import { memberIdFromSession } from "@/lib/member-session";
-import { EXPIRED, formGuard } from "@/lib/form-guard";
+import { EXPIRED, formGuard, type GuardResult } from "@/lib/form-guard";
+import { savePendingJoin } from "@/lib/pending-joins";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 import { cookieOptions, MEMBER_COOKIE, MEMBER_SESSION_MS } from "@/lib/session-token";
 import { createSession } from "@/lib/sessions";
@@ -102,11 +103,10 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
   const test = Boolean(d.test);
-  // Bots: the honeypot or an instant submit get the normal answer and nothing is stored (the drop
-  // is logged). Test mode skips the bot checks so super admins can test quickly.
-  const guard = test ? (verify(d.formToken) ? "ok" : "expired") : formGuard("checkin", d.formToken, d.hp);
-  if (guard === "expired") return { ok: false, error: EXPIRED };
-  if (guard === "drop") return { ok: true, n: null, viaJoin: true };
+  // Test mode skips the bot checks so super admins can test quickly.
+  const guard: GuardResult = test ? (verify(d.formToken) ? { kind: "ok", spam: null } : { kind: "expired" }) : formGuard("checkin", d.formToken, d.hp);
+  if (guard.kind === "expired") return { ok: false, error: EXPIRED };
+  if (guard.kind === "drop") return { ok: true, n: null, viaJoin: true };
   const o = await openEvent(d.slug, test);
   if (!o) return { ok: false, error: CLOSED };
   // Test mode, by default: the form is checked and nothing at all is created.
@@ -114,6 +114,12 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
   try {
     if (await rateLimited(o.db, "checkin-join", 8, 600)) return { ok: false, error: LIMITED };
     if (await rateLimitedEmail(o.db, "checkin-join", d.email, 3, 900)) return { ok: false, error: LIMITED };
+    // A suspected bot is neither a member nor checked in: it waits in pending_joins (with the
+    // event) for a super admin, and sees the same answer as everyone.
+    if (guard.spam) {
+      await savePendingJoin(o.db, { kind: "checkin", name: d.name, email: d.email, affiliation: d.affiliation, blocks: [], notify: [], source: eventSource(d.slug), eventId: o.e.id, spamReason: guard.spam });
+      return { ok: true, n: null, viaJoin: true };
+    }
     const row = await upsertMember(o.db, { name: d.name, email: d.email, affiliation: d.affiliation, blocks: [], notify: [], src: eventSource(d.slug) }, null);
     if (row.inserted && (await recordCheckin(o.db, o.e.id, row.id, "qr", "system", test)) && !test) await trackServer("checkin_completed", { event: d.slug });
     else if (emailConfigured()) after(() => sendCheckinLink(o.db, d.email, o.e, test).catch((e) => reportError("checkin", "check-in link failed", e)));

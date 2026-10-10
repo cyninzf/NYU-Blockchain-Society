@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
-import { acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType } from "./db/schema";
+import { acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
 import { optText } from "./member-fields";
@@ -64,8 +64,9 @@ export function parseInterest(type: InterestType, fd: FormData) {
   return r.success ? { ok: true as const, data: { type, ...r.data } as InterestFields } : { ok: false as const, error: r.error.issues[0]?.message ?? "Check the form and try again." };
 }
 
-export async function saveInterest(db: Db, d: InterestFields) {
-  const [row] = await db.insert(acceleratorInterest).values(d).returning({ id: acceleratorInterest.id });
+/** `spam`: the bot guard's reason; a flagged row is saved but sends nothing (and joins no one) until "Not spam". */
+export async function saveInterest(db: Db, d: InterestFields, spam: SpamReason | null = null) {
+  const [row] = await db.insert(acceleratorInterest).values({ ...d, suspectedSpam: Boolean(spam), spamReason: spam }).returning({ id: acceleratorInterest.id });
   return row.id;
 }
 

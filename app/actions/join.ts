@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
 import { countryOf } from "@/lib/location";
 import { upsertMember } from "@/lib/member-join";
+import { savePendingJoin } from "@/lib/pending-joins";
 import { invitedEmail, spendInviteToken } from "@/lib/invite-join";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
@@ -58,16 +59,21 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
 
-  // Bots: fill the honeypot or submit too fast. Show the normal success screen and store nothing (the drop is logged).
   const guard = formGuard("join", d.formToken, d.hp);
-  if (guard === "expired") return { ok: false, error: EXPIRED };
-  if (guard === "drop") return { ok: true, n: null, token: null };
+  if (guard.kind === "expired") return { ok: false, error: EXPIRED };
+  if (guard.kind === "drop") return { ok: true, n: null, token: null };
 
   const db = getDb();
   if (!db) return isLocal ? { ok: true, n: 0, token: null, devNotice: NO_DB } : { ok: false, error: GENERIC };
 
   try {
     if (await rateLimited(db, "join", 8, 600)) return { ok: false, error: "Too many attempts. Please try again in a few minutes." };
+    // A suspected bot never becomes a member: it waits in pending_joins for a super admin
+    // ("Not spam" joins it, with the welcome email). It sees the normal success screen.
+    if (guard.spam) {
+      await savePendingJoin(db, { kind: "join", name: d.name, email: d.email, affiliation: d.affiliation, blocks: [...new Set(d.blocks)], notify: d.notify ? [d.notify] : [], source: d.src ?? null, eventId: null, spamReason: guard.spam });
+      return { ok: true, n: null, token: null };
+    }
     // Re-submitting an email updates that row and keeps its original block number.
     // The response is identical either way, so it never reveals whether an email exists.
     const row = await upsertMember(db, {
