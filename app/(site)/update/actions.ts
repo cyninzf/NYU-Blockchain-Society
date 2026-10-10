@@ -8,6 +8,7 @@ import { z } from "zod";
 import { NOTIFY } from "@/content/events";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { baseUrl } from "@/lib/base-url";
+import { countIsPublic } from "@/lib/chain-stats";
 import { getDb } from "@/lib/db";
 import { members } from "@/lib/db/schema";
 import { emailConfigured, renderEmail, sendEmail } from "@/lib/email";
@@ -39,7 +40,7 @@ export async function requestMemberLink(_prev: LinkState, fd: FormData): Promise
     to: m.email,
     subject: "Update your block",
     ...renderEmail({
-      kicker: `Block #${m.id}`,
+      kicker: (await countIsPublic(db)) ? `Block #${m.id}` : "Your block",
       heading: "Update your block",
       paragraphs: ["Use this button to change your blocks, details and email preferences. It works once and expires in 15 minutes."],
       cta: { label: "Update your block", href: `${baseUrl()}/update/verify?t=${token}` },

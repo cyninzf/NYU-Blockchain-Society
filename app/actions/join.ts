@@ -11,7 +11,8 @@ import { AFFILIATIONS } from "@/lib/db/schema";
 import { countryOf } from "@/lib/location";
 import { sendWelcome } from "@/lib/member-email";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
-import { rateLimited, sign, verify } from "@/lib/security";
+import { countIsPublic } from "@/lib/chain-stats";
+import { rateLimited, seal, sign, unseal, verify } from "@/lib/security";
 
 const MIN_FILL_MS = 3000;
 const MAX_FORM_AGE_MS = 24 * 60 * 60 * 1000;
@@ -88,8 +89,9 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     await db.execute(sql`update contacts set member_id = ${row.id} where lower(email) = lower(${d.email}) and member_id is null`);
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
-    const token = sign(`m.${row.id}.${row.inserted ? 1 : 0}.${Date.now() + EDIT_WINDOW_MS}`);
-    return { ok: true, n: row.id, token };
+    // Encrypted, so it never shows the id; the block number itself only once the count is public.
+    const token = seal(`m.${row.id}.${row.inserted ? 1 : 0}.${Date.now() + EDIT_WINDOW_MS}`);
+    return { ok: true, n: (await countIsPublic(db)) ? row.id : null, token };
   } catch (e) {
     console.error("join failed", e instanceof Error ? e.message : e);
     return { ok: false, error: GENERIC };
@@ -124,7 +126,7 @@ export async function saveDetails(token: string, input: z.input<typeof detailsSc
   const db = getDb();
   if (!db) return isLocal ? { ok: true, devNotice: NO_DB } : { ok: false, error: GENERIC };
 
-  const [kind, id, fresh, exp] = (verify(token) ?? "").split(".");
+  const [kind, id, fresh, exp] = (unseal(token) ?? "").split(".");
   if (kind !== "m" || !Number(id) || Date.now() > Number(exp)) {
     return { ok: false, error: "This link expired. Join again with the same email to add details." };
   }

@@ -6,15 +6,17 @@ import { baseUrl } from "./base-url";
 import type { Db } from "./db";
 import { members } from "./db/schema";
 import { renderEmail, sendEmail, type Message } from "./email";
-import { sign, verify } from "./security";
+import { countIsPublic } from "./chain-stats";
+import { seal, unseal, verify } from "./security";
 
 // Emails to members: every one carries a working unsubscribe link (and the one-click headers
 // mail apps use), and unsubscribed members get nothing at all.
 
-/** Signed, never expires: unsubscribing must always work, with no login. */
-export const unsubscribeToken = (memberId: number) => sign(`u.${memberId}`);
+/** Encrypted (no readable member id), never expires: unsubscribing must always work, with no login. */
+export const unsubscribeToken = (memberId: number) => seal(`u.${memberId}`);
 export function memberFromUnsubscribeToken(t: string): number | null {
-  const [kind, id] = (verify(t) ?? "").split(".");
+  // Older links were signed, not encrypted: still honoured.
+  const [kind, id] = (unseal(t) ?? verify(t) ?? "").split(".");
   const n = Number(id);
   return kind === "u" && Number.isInteger(n) && n > 0 ? n : null;
 }
@@ -43,13 +45,15 @@ const short = boilerplate.find((b) => b.id === "short")!.text;
 export async function sendWelcome(db: Db, memberId: number, notify: string | null) {
   const [m] = await db.select({ email: members.email, unsubscribedAt: members.unsubscribedAt }).from(members).where(eq(members.id, memberId));
   if (!m || m.unsubscribedAt) return;
-  const heading = `Block #${memberId} added. You're on the chain.`;
+  // The block number is join order, so it only appears once the member count is public.
+  const numbered = await countIsPublic(db);
+  const heading = numbered ? `Block #${memberId} added. You're on the chain.` : "Block added. You're on the chain.";
   const note = notify && notify in notifyMessages ? notifyMessages[notify as keyof typeof notifyMessages] : null;
   const msg: Message = {
     to: m.email,
     subject: heading,
     ...renderEmail({
-      kicker: `Block #${memberId}`,
+      kicker: numbered ? `Block #${memberId}` : "Welcome",
       heading,
       paragraphs: [short, ...(note ? [note] : []), "You can add or change your blocks, details and email preferences any time."],
       cta: { label: "Update your block", href: `${baseUrl()}/update` },

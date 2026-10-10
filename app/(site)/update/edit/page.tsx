@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { Suspense } from "react";
+import { countIsPublic } from "@/lib/chain-stats";
 import { getDb } from "@/lib/db";
 import { members } from "@/lib/db/schema";
 import { unsubscribeUrl } from "@/lib/member-email";
@@ -42,7 +43,7 @@ async function Editor() {
   }
   return (
     <>
-      <h1>Block #{id}</h1>
+      <h1>{(await countIsPublic(db!)) ? `Block #${id}` : "Your block"}</h1>
       <p className={s.lede}>Change your blocks, details and what we email you about. Every field is optional.</p>
       <EditBlock b={m} />
       <div className={`${s.small} ${s.actions}`} style={{ marginTop: 28 }}>

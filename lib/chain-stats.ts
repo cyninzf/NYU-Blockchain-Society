@@ -2,13 +2,14 @@ import { sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { chainStatsMinMembers } from "@/content/site";
 import { INDUSTRY_IDS, type IndustryId } from "@/content/industries";
-import { MAX_MEMBER_NODES } from "@/components/backdrop/network";
-import { getDb } from "./db";
+import { getDb, type Db } from "./db";
 import { members } from "./db/schema";
 
-// Anonymous growth: aggregates only. No names, emails or per-member data ever leave here; the
-// public gets a node count for the background and, from `chainStatsMinMembers` members on, the
-// counter with its breakdowns. Cached under the "chain" tag (joins and deletes refresh it).
+// Anonymous growth: aggregates only. No names, emails or per-member data ever leave here, and
+// below `chainStatsMinMembers` members nothing count-like leaves either: no count, no breakdowns,
+// no node count (the background then shows a fixed ambient baseline). From that threshold on,
+// the public gets the counter with its breakdowns, and the background derives its member nodes
+// from the same number. Cached under the "chain" tag (joins and deletes refresh it).
 
 export type ChainStats = {
   members: number;
@@ -18,18 +19,29 @@ export type ChainStats = {
   countries: number | null;
 };
 
-export type ChainPublic = {
-  /** How many member nodes the background adds (capped for performance). */
-  nodes: number;
-  stats: ChainStats | null;
-};
+/** `stats` is null below the threshold: then there is no count of any kind in the response. */
+export type ChainPublic = { stats: ChainStats | null };
+
+/**
+ * Whether the member count is public (at least `chainStatsMinMembers`). Until it is, block numbers
+ * (join order, so a count) are never shown, not even to the member: "Block added." instead of
+ * "Block #12 added.". Read live, not cached, so it can't lag behind a delete.
+ */
+export async function countIsPublic(db: Db): Promise<boolean> {
+  try {
+    const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(members);
+    return r.n >= chainStatsMinMembers;
+  } catch {
+    return false;
+  }
+}
 
 export async function chainPublic(): Promise<ChainPublic> {
   "use cache";
   cacheTag("chain");
   cacheLife("hours");
   const db = getDb();
-  if (!db) return { nodes: 0, stats: null };
+  if (!db) return { stats: null };
   try {
     const [r] = await db.select({
       n: sql<number>`count(*)::int`,
@@ -44,9 +56,9 @@ export async function chainPublic(): Promise<ChainPublic> {
       shares: picks ? Object.fromEntries(INDUSTRY_IDS.map((id) => [id, Math.round((r[id] / picks) * 100)])) as Record<IndustryId, number> : null,
       countries: r.countries || null,
     };
-    return { nodes: Math.min(r.n, MAX_MEMBER_NODES), stats };
+    return { stats };
   } catch (e) {
     console.error("chain stats failed", e instanceof Error ? e.message : e);
-    return { nodes: 0, stats: null };
+    return { stats: null };
   }
 }

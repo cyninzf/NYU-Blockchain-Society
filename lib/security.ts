@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { headers } from "next/headers";
 import { and, eq, gt, lt, sql } from "drizzle-orm";
 import type { Db } from "./db";
@@ -23,6 +23,28 @@ export function verify(token: string): string | null {
   if (i < 1) return null;
   const payload = token.slice(0, i);
   return safeEqual(token.slice(i + 1), hmac(payload)) ? payload : null;
+}
+
+/**
+ * Encrypted, authenticated tokens (AES-256-GCM): like `sign`, but the payload can't be read, so a
+ * token never shows a member id (which would hint at the member count).
+ */
+const sealKey = () => createHash("sha256").update(`seal:${secret()}`).digest();
+export function seal(payload: string): string {
+  const iv = randomBytes(12), c = createCipheriv("aes-256-gcm", sealKey(), iv);
+  const body = Buffer.concat([c.update(payload, "utf8"), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), body]).toString("base64url");
+}
+export function unseal(token: string): string | null {
+  try {
+    const b = Buffer.from(token, "base64url");
+    if (b.length < 29) return null;
+    const d = createDecipheriv("aes-256-gcm", sealKey(), b.subarray(0, 12));
+    d.setAuthTag(b.subarray(12, 28));
+    return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 /** HMAC of the client IP. The raw IP is never stored or logged. */

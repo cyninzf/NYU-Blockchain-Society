@@ -46,14 +46,18 @@ export function startBackdrop(canvas: HTMLCanvasElement) {
   return () => { engine?.destroy(); engine = null; };
 }
 
-/** The member count for the background, from /api/chain (aggregates only), remembered per tab session. */
+/**
+ * The public member count for the background, from /api/chain, remembered per tab session. Null
+ * below the threshold (the endpoint sends no count then): the background shows its baseline.
+ */
 const memberCount = {
-  KEY: "nyubs:chain-nodes",
-  cached(): number { try { return Number(sessionStorage.getItem(this.KEY)) || 0; } catch { return 0; } },
-  load(cb: (n: number) => void) {
-    fetch("/api/chain").then((r) => (r.ok ? r.json() : null)).then((j: { nodes?: number } | null) => {
-      const n = Math.max(0, Math.floor(Number(j?.nodes) || 0));
-      try { sessionStorage.setItem(this.KEY, String(n)); } catch {}
+  KEY: "nyubs:chain-members",
+  cached(): number | null { try { const v = Number(sessionStorage.getItem(this.KEY)); return v > 0 ? v : null; } catch { return null; } },
+  load(cb: (n: number | null) => void) {
+    fetch("/api/chain").then((r) => (r.ok ? r.json() : null)).then((j: { stats?: { members?: number } | null } | null) => {
+      const v = Math.floor(Number(j?.stats?.members));
+      const n = v > 0 ? v : null;
+      try { if (n) sessionStorage.setItem(this.KEY, String(n)); else sessionStorage.removeItem(this.KEY); } catch {}
       cb(n);
     }).catch(() => {});
   },
