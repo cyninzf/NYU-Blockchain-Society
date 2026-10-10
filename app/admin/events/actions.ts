@@ -7,7 +7,7 @@ import { audit, auditRow, requireSuperOr403 } from "@/lib/admin";
 import { baseUrl } from "@/lib/base-url";
 import { recordCheckin } from "@/lib/checkin";
 import { createDisplayLink } from "@/lib/display-links";
-import { adminAudit, displayLinks, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
+import { adminAudit, displayLinks, eventCheckins, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
 import { EventInput, type EventFields } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
 
@@ -144,5 +144,14 @@ export async function revokeDisplayLink(fd: FormData) {
   const [gone] = await db.update(displayLinks).set({ revokedAt: new Date() })
     .where(and(eq(displayLinks.id, linkId), eq(displayLinks.eventId, id), isNull(displayLinks.revokedAt))).returning({ id: displayLinks.id });
   if (gone) await audit(db, actor, "event.display_link.revoke", `Revoked display link #${linkId} for event #${id}`);
+  refresh();
+}
+
+/** Removes this event's test-mode check-ins (never the real ones). */
+export async function clearTestCheckins(fd: FormData) {
+  const id = idOf(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`clear test check-ins of event #${id}`);
+  const gone = await db.delete(eventCheckins).where(and(eq(eventCheckins.eventId, id), eq(eventCheckins.isTest, true))).returning({ id: eventCheckins.id });
+  await audit(db, actor, "event.checkin.clear_tests", `Cleared ${gone.length} test check-ins of event #${id}`);
   refresh();
 }

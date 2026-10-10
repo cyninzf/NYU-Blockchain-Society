@@ -155,6 +155,13 @@
       "when": 1791649168436,
       "tag": "0021_display_links",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791649337759,
+      "tag": "0022_checkin_test_mode",
+      "breakpoints": true
     }
   ]
 }

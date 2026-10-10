@@ -3,17 +3,22 @@ import type { Admin } from "@/lib/admin";
 import { isSuper } from "@/lib/admin";
 import type { Db } from "@/lib/db";
 import { eventCheckins, members } from "@/lib/db/schema";
-import { adminCheckIn } from "../actions";
+import { adminCheckIn, clearTestCheckins } from "../actions";
 import styles from "../../admin.module.css";
 
 const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
 const METHOD = { qr: "QR / link", admin: "By an admin" } as const;
 
-/** Who checked in: count and list for both roles; manual check-in and the CSV export for super admins. */
-export default async function Checkins({ db, eventId, admin, q }: { db: Db; eventId: number; admin: Admin; q: string }) {
-  const rows = await db.select({ id: members.id, name: members.name, at: eventCheckins.checkedInAt, method: eventCheckins.method })
+/**
+ * Who checked in: count and list for both roles; manual check-in and the CSV export for super
+ * admins. Test check-ins (test mode) are listed apart, never counted, and can be cleared.
+ */
+export default async function Checkins({ db, eventId, admin, q, showReal }: { db: Db; eventId: number; admin: Admin; q: string; showReal: boolean }) {
+  const all = await db.select({ id: members.id, name: members.name, at: eventCheckins.checkedInAt, method: eventCheckins.method, test: eventCheckins.isTest })
     .from(eventCheckins).innerJoin(members, eq(members.id, eventCheckins.memberId))
     .where(eq(eventCheckins.eventId, eventId)).orderBy(desc(eventCheckins.checkedInAt));
+  const rows = all.filter((r) => !r.test), tests = all.filter((r) => r.test);
+  if (!showReal) return <TestCheckins tests={tests} eventId={eventId} admin={admin} />;
   const inIds = new Set(rows.map((r) => r.id));
   const like = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : "";
   const found = isSuper(admin) && q
@@ -61,6 +66,25 @@ export default async function Checkins({ db, eventId, admin, q }: { db: Db; even
         </table>
         {!rows.length && <p className={styles.empty}>No one has checked in yet.</p>}
       </div>
+      <TestCheckins tests={tests} eventId={eventId} admin={admin} />
     </section>
+  );
+}
+
+function TestCheckins({ tests, eventId, admin }: { tests: { id: number; name: string; at: Date; method: "qr" | "admin" }[]; eventId: number; admin: Admin }) {
+  if (!tests.length) return null;
+  return (
+    <div className={styles.mix}>
+      <h3>Test check-ins ({tests.length}) <span className={styles.note}>From test mode: never counted, never on the real live screen.</span></h3>
+      <ul className={styles.edit}>
+        {tests.map((r) => <li key={r.id}>{r.name} · #{r.id} · {timeFmt.format(r.at)} · {METHOD[r.method]}</li>)}
+      </ul>
+      {isSuper(admin) && (
+        <form action={clearTestCheckins}>
+          <input type="hidden" name="id" value={eventId} />
+          <button type="submit">Clear test check-ins</button>
+        </form>
+      )}
+    </div>
   );
 }

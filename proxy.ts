@@ -22,14 +22,15 @@ const notFound = (request: NextRequest) => NextResponse.rewrite(new URL("/_not-f
 
 /**
  * Whether /events/<slug> has a public page: published, or cancelled until it would have ended.
- * Never a draft. `publishedOnly`: check-in and the live screen, which cancelled events don't get.
+ * Never a draft. "published": check-in and the live screen, which cancelled events don't get.
+ * "any": test mode (round 12.1), where drafts are allowed too (the pages check the role).
  */
-async function eventIsPublic(slug: string, publishedOnly = false) {
+async function eventIsPublic(slug: string, mode: "page" | "published" | "any" = "page") {
   const db = getDb();
   if (!db) return true; // local builds without a database: the page shows its own not-found
   try {
-    const r = await db.execute(sql`select 1 from events where slug = ${slug} and (status = 'published'
-      or (${!publishedOnly} and status = 'cancelled' and coalesce(ends_at, starts_at) > now())) limit 1`);
+    const r = await db.execute(sql`select 1 from events where slug = ${slug} and (${mode === "any"} or status = 'published'
+      or (${mode === "page"} and status = 'cancelled' and coalesce(ends_at, starts_at) > now())) limit 1`);
     return r.rows.length > 0;
   } catch {
     return true; // never turn a database hiccup into a 404 for a real event
@@ -51,9 +52,16 @@ export async function proxy(request: NextRequest) {
   }
   const slug = /^\/events\/([^/]+)\/?$/.exec(pathname)?.[1];
   if (slug !== undefined) return SLUG_RE.test(slug) && (await eventIsPublic(slug)) ? NextResponse.next() : notFound(request);
-  // Check-in (and its emailed link) and the live screen: published events only.
-  const sub = /^\/events\/([^/]+)\/(?:checkin(?:\/confirm)?|live)\/?$/.exec(pathname)?.[1];
-  if (sub !== undefined) return SLUG_RE.test(sub) && (await eventIsPublic(sub, true)) ? noStore(NextResponse.next()) : notFound(request);
+  // Check-in (and its emailed link) and the live screen: published events only, except test mode
+  // (?test=1) with a signed admin session (the page re-checks for a super admin), and a test
+  // link's confirm page (?test=1 with its token; the token itself decides).
+  const subMatch = /^\/events\/([^/]+)\/(checkin(?:\/confirm)?|live)\/?$/.exec(pathname);
+  if (subMatch) {
+    const [, sub, page] = subMatch;
+    const q = request.nextUrl.searchParams;
+    const testing = q.get("test") === "1" && (Boolean(readSession("admin", request.cookies.get(ADMIN_COOKIE)?.value)) || (page === "checkin/confirm" && Boolean(q.get("t"))));
+    return SLUG_RE.test(sub) && (await eventIsPublic(sub, testing ? "any" : "published")) ? noStore(NextResponse.next()) : notFound(request);
+  }
   // Everything else under an event (share images, calendar.ics) answers for itself.
   if (pathname.startsWith("/events/")) return NextResponse.next();
 

@@ -293,8 +293,11 @@ export const eventCheckins = pgTable(
     memberId: integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
     checkedInAt: timestamp("checked_in_at", { withTimezone: true }).notNull().defaultNow(),
     method: checkinMethod().notNull(),
+    /** Made in test mode (round 12.1): never counted, never on the live screen's real count. */
+    isTest: boolean("is_test").notNull().default(false),
   },
-  (t) => [uniqueIndex("event_checkins_event_member_idx").on(t.eventId, t.memberId), index("event_checkins_event_idx").on(t.eventId, t.checkedInAt)],
+  // One real and one test check-in per member per event: a test never blocks the real one.
+  (t) => [uniqueIndex("event_checkins_event_member_test_idx").on(t.eventId, t.memberId, t.isTest), index("event_checkins_event_idx").on(t.eventId, t.checkedInAt)],
 );
 
 export const SUPPRESSION_REASONS = ["unsubscribe", "bounce", "complaint"] as const;

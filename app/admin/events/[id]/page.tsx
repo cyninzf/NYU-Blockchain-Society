@@ -72,7 +72,16 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
         </section>
       )}
       {isSuper(admin) && e.status === "published" && <DisplayLinks db={db} eventId={e.id} slug={e.slug} />}
-      {e.status !== "draft" && <Checkins db={db} eventId={e.id} admin={admin} q={typeof q === "string" ? q.trim().slice(0, 80) : ""} />}
+      {isSuper(admin) && (
+        <section className={styles.mix} aria-labelledby="test-h">
+          <h2 id="test-h">Test mode <span>Try check-in and the live screen on any event, drafts included, at any time. Test check-ins are marked, never counted, and listed apart below; the test join form creates nothing unless you tick &ldquo;Create a real member&rdquo;.</span></h2>
+          <p className={styles.row}>
+            <a href={`/events/${e.slug}/checkin?test=1`} target="_blank" rel="noopener">Check-in (test mode)</a>
+            <a href={`/events/${e.slug}/live?test=1&count=1`} target="_blank" rel="noopener">Live screen (test mode)</a>
+          </p>
+        </section>
+      )}
+      <Checkins db={db} eventId={e.id} admin={admin} q={typeof q === "string" ? q.trim().slice(0, 80) : ""} showReal={e.status !== "draft"} />
       <EventForm
         readOnly={!isSuper(admin)}
         key={e.updatedAt.toISOString()}

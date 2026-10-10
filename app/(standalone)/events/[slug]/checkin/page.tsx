@@ -9,6 +9,7 @@ import { countIsPublic } from "@/lib/chain-stats";
 import { CLOSES_AFTER_H, checkinEvent, isCheckedIn, OPENS_BEFORE_H } from "@/lib/checkin";
 import { getDb } from "@/lib/db";
 import { members } from "@/lib/db/schema";
+import { getAdmin } from "@/lib/admin";
 import { eventWhen } from "@/lib/event-time";
 import { memberIdFromSession } from "@/lib/member-session";
 
@@ -22,14 +23,16 @@ export default function CheckinPage(props: Props) {
 
 async function Checkin({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { error } = await searchParams;
+  const { error, test: testParam } = await searchParams;
   const db = getDb();
   if (!db) return <p className="ci-local">DATABASE_URL isn&apos;t set, so check-in can&apos;t run here. It works on Vercel deployments.</p>;
-  // Published events only: drafts, cancelled and unknown slugs are a 404.
-  const e = await checkinEvent(db, slug);
+  // Test mode (?test=1): super admins only, on any event (drafts too) and at any time.
+  const test = testParam === "1" && (await getAdmin())?.role === "super_admin";
+  // Otherwise published events only: drafts, cancelled and unknown slugs are a 404.
+  const e = await checkinEvent(db, slug, test);
   if (!e) notFound();
 
-  if (e.window !== "open") {
+  if (!test && e.window !== "open") {
     return (
       <CheckinShell e={e}>
         <div className="ci-step">
@@ -47,14 +50,14 @@ async function Checkin({ params, searchParams }: Props) {
   if (memberId) {
     const [m] = await db.select({ name: members.name }).from(members).where(eq(members.id, memberId));
     if (m) {
-      if (await isCheckedIn(db, e.id, memberId)) return <CheckinShell e={e}><CheckinDone n={(await countIsPublic(db)) ? memberId : null} /></CheckinShell>;
-      return <CheckinShell e={e}><CheckinSelf slug={e.slug} firstName={m.name.trim().split(/\s+/)[0]} /></CheckinShell>;
+      if (await isCheckedIn(db, e.id, memberId, test)) return <CheckinShell e={e} test={test}><CheckinDone n={(await countIsPublic(db)) ? memberId : null} /></CheckinShell>;
+      return <CheckinShell e={e} test={test}><CheckinSelf slug={e.slug} firstName={m.name.trim().split(/\s+/)[0]} test={test} /></CheckinShell>;
     }
   }
   return (
-    <CheckinShell e={e}>
+    <CheckinShell e={e} test={test}>
       {error === "link" && <p className="ci-err" role="alert">That check-in link has expired or was already used. Enter your email for a new one.</p>}
-      <CheckinFlow slug={e.slug} />
+      <CheckinFlow slug={e.slug} test={test} />
     </CheckinShell>
   );
 }

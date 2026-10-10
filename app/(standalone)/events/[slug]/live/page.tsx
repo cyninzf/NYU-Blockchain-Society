@@ -21,8 +21,8 @@ export default function LivePage(props: Props) {
 
 async function Live({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { count, d } = await searchParams;
-  if (typeof d === "string" && d) {
+  const { count, d, test } = await searchParams;
+  if (typeof d === "string" && d && test !== "1") {
     const db = getDb();
     const a = db ? await displayAccess(db, slug, d) : ({ ok: false, reason: "invalid" } as const);
     if (a.ok) return <LiveScreen slug={slug} title={a.title} showCount={count === "1"} displayToken={d} />;
@@ -50,8 +50,10 @@ async function Live({ params, searchParams }: Props) {
       </section>
     );
   }
+  // ?test=1: the test check-ins, on any event (drafts too), for trying the screen before it's real.
+  const isTest = test === "1";
   const db = getDb();
-  const [e] = db ? await db.select({ title: events.title }).from(events).where(and(eq(events.slug, slug), eq(events.status, "published"))) : [];
+  const [e] = db ? await db.select({ title: events.title }).from(events).where(isTest ? eq(events.slug, slug) : and(eq(events.slug, slug), eq(events.status, "published"))) : [];
   if (!e) notFound();
-  return <LiveScreen slug={slug} title={e.title} showCount={count === "1"} />;
+  return <LiveScreen slug={slug} title={e.title} showCount={count === "1"} test={isTest} />;
 }

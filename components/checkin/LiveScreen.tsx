@@ -10,7 +10,7 @@ const POLL_MS = 4000;
  * network per new check-in. Shows the event title small at the bottom; the count only with ?count=1.
  */
 /** `displayToken`: opened through a display link (no sign-in); it's sent with each poll. */
-export default function LiveScreen({ slug, title, showCount, displayToken }: { slug: string; title: string; showCount: boolean; displayToken?: string }) {
+export default function LiveScreen({ slug, title, showCount, displayToken, test = false }: { slug: string; title: string; showCount: boolean; displayToken?: string; test?: boolean }) {
   const [n, setN] = useState<number | null>(null);
   const [lost, setLost] = useState(false);
   const last = useRef<number | null>(null);
@@ -20,7 +20,8 @@ export default function LiveScreen({ slug, title, showCount, displayToken }: { s
     const timers: number[] = [];
     const poll = async () => {
       try {
-        const r = await fetch(`/api/events/${slug}/checkins${displayToken ? `?d=${encodeURIComponent(displayToken)}` : ""}`, { cache: "no-store" });
+        const q = test ? "?test=1" : displayToken ? `?d=${encodeURIComponent(displayToken)}` : "";
+        const r = await fetch(`/api/events/${slug}/checkins${q}`, { cache: "no-store" });
         if (!r.ok) throw new Error(String(r.status));
         const { count } = (await r.json()) as { count: number };
         if (!alive) return;
@@ -37,11 +38,12 @@ export default function LiveScreen({ slug, title, showCount, displayToken }: { s
     };
     poll();
     return () => { alive = false; clearTimeout(timer); timers.forEach(clearTimeout); };
-  }, [slug, displayToken]);
+  }, [slug, displayToken, test]);
 
   return (
     <div className="live">
       <p className="live-title mono" data-bg="solid">{title}</p>
+      {test && <p className="live-test mono" data-bg="solid">Test mode · showing test check-ins only</p>}
       {showCount && n !== null && <p className="live-count" data-bg="solid">{n} checked in tonight</p>}
       {lost && <p className="live-lost mono" role="status">Reconnecting…</p>}
       <button type="button" className="live-fs mono" onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}>Full screen</button>

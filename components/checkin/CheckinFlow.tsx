@@ -9,7 +9,7 @@ const YOU = [["alumni", "Alumni"], ["industry", "Industry professional"], ["facu
 const JOINED_BEFORE = "Joined before with this email? Tap the link we just emailed you to finish checking in.";
 
 /** With a member session: one button. */
-export function CheckinSelf({ slug, firstName }: { slug: string; firstName: string }) {
+export function CheckinSelf({ slug, firstName, test = false }: { slug: string; firstName: string; test?: boolean }) {
   const [res, setRes] = useState<CheckinResult | null>(null);
   const [busy, setBusy] = useState(false);
   if (res?.ok) return <CheckinDone n={res.n} />;
@@ -17,15 +17,18 @@ export function CheckinSelf({ slug, firstName }: { slug: string; firstName: stri
     <div className="ci-step">
       <button className="btn btn-w" disabled={busy} onClick={async () => {
         setBusy(true);
-        try { setRes(await checkInSelf(slug)); } catch { setRes({ ok: false, error: "Couldn't check you in. Please try again." }); } finally { setBusy(false); }
+        try { setRes(await checkInSelf(slug, test)); } catch { setRes({ ok: false, error: "Couldn't check you in. Please try again." }); } finally { setBusy(false); }
       }}>{busy ? "Checking in…" : `Check in as ${firstName}`}</button>
       <p className="ci-err" role="alert">{res && !res.ok ? res.error : ""}</p>
     </div>
   );
 }
 
-/** Without a session: email first (members get a one-tap link), then a short join form for new people. */
-export default function CheckinFlow({ slug }: { slug: string }) {
+/**
+ * Without a session: email first (members get a one-tap link), then a short join form for new
+ * people. `test`: test mode, where the join form creates nothing unless "Create a real member" is ticked.
+ */
+export default function CheckinFlow({ slug, test = false }: { slug: string; test?: boolean }) {
   const [email, setEmail] = useState("");
   const [asked, setAsked] = useState(false);
   const [token, setToken] = useState("");
@@ -40,7 +43,7 @@ export default function CheckinFlow({ slug }: { slug: string }) {
     ev.preventDefault();
     setErr(""); setBusy(true);
     try {
-      const r = await requestCheckin(slug, email);
+      const r = await requestCheckin(slug, email, test);
       if (!r.ok) return setErr(r.error);
       setAsked(true);
     } catch { setErr("Something went wrong. Please try again."); } finally { setBusy(false); }
@@ -54,12 +57,16 @@ export default function CheckinFlow({ slug }: { slug: string }) {
     if (!affiliation) return setErr("Pick the one that fits best.");
     setErr(""); setBusy(true);
     try {
-      const r = await checkinJoin({ slug, formToken: token, website: String(fd.get("website") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation });
+      const r = await checkinJoin({
+        slug, formToken: token, website: String(fd.get("website") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation,
+        test, createReal: test && fd.get("createReal") === "on",
+      });
       if (!r.ok) return setErr(r.error);
       setDone(r);
     } catch { setErr("Something went wrong. Please try again."); } finally { setBusy(false); }
   }
 
+  if (done?.ok && done.fake) return <CheckinDone n={null} note="Test mode: nothing was created and no one was checked in. Tick “Create a real member” to test a real join." />;
   if (done?.ok) return <CheckinDone n={done.n} note={JOINED_BEFORE} />;
 
   if (!asked) {
@@ -85,6 +92,9 @@ export default function CheckinFlow({ slug }: { slug: string }) {
           {YOU.map(([v, label]) => <button key={v} type="submit" name="affiliation" value={v} className="pick" disabled={busy || !token}>{label}</button>)}
         </div>
       </fieldset>
+      {test && (
+        <label className="ci-check"><input type="checkbox" name="createReal" />Create a real member (test mode: off by default, so nothing is created)</label>
+      )}
       <p className="ci-fine">By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.</p>
       <p className="ci-err" role="alert">{err}</p>
     </form>

@@ -553,3 +553,8 @@ footer ul{gap:0 22px}
 .blk .cal{position:relative; z-index:3; font-size:14px}
 .jf-event{display:grid; gap:8px; margin:6px 0 4px; padding:14px 16px; border:1px solid var(--ink-line); border-radius:10px}
 .jf-event p{margin:0}
+/* Check-in test mode (round 12.1) */
+.ci-test{margin:0 0 4px; padding:8px 12px; border:1px dashed #FFB86B; border-radius:8px; color:#FFD9A8; font-size:12px; letter-spacing:.04em}
+.ci-check{display:flex !important; align-items:center; gap:10px; min-height:44px; color:var(--ink-fg) !important}
+.ci-check input{width:20px; height:20px; min-height:0 !important}
+.live-test{position:absolute; top:20px; left:0; right:0; margin:0 auto; width:max-content; padding:6px 12px; border:1px dashed #FFB86B; border-radius:8px; color:#FFD9A8; font-size:12px}
