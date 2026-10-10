@@ -35,7 +35,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--glow); outline-offs
 /* anchor targets clear the fixed nav */
 #chain,#focus,#top,#network,#join{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 72px)}
 .nav ul li.m{display:none}
-@media (max-width:700px){.nav ul li.l{display:none} .nav ul li.m{display:block} .nav ul{gap:8px}}
+/* Below 900px (round 14: four links + Join) the links move into the menu sheet; Join stays visible. */
+@media (max-width:900px){.nav ul li.l{display:none} .nav ul li.m{display:block} .nav ul{gap:8px}}
 .menu-btn{display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border-radius:10px; border:1px solid #6A4590; background:transparent; color:var(--ink-fg); cursor:pointer}
 .menu-btn:hover{border-color:var(--glow)}
 /* mobile menu sheet: links join the chain one by one, a node and an edge each */

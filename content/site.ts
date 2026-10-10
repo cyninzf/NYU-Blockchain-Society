@@ -17,6 +17,13 @@ export const metaDescription = (s: string, max = 159) => {
 export const siteDescription =
   "The official NYU Alumni Club for professionals in blockchain, finance and AI worldwide. Conferences, networking and an accelerator for NYU founders.";
 
+/** The chain's blocks in order (round 14): the nav and the footer mirror "The chain so far". */
+export const navBlocks = [
+  { href: "/conference", label: "Conference" },
+  { href: "/events", label: "Networking" },
+  { href: "/accelerator", label: "Accelerator" },
+] as const;
+
 export const links = {
   x: "https://x.com/NYU_Blockchain",
   linkedin: "https://www.linkedin.com/groups/8652445/",

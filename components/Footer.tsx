@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { links } from "@/content/site";
+import { links, navBlocks } from "@/content/site";
 import OpenJoin from "./OpenJoin";
 
 export default function Footer() {
@@ -12,10 +12,11 @@ export default function Footer() {
           <span>NYU Blockchain Society · Based in New York</span>
         </div>
         <ul>
+          {/* The nav's links (round 14), in block order. */}
+          <li><Link href="/#chain">The chain</Link></li>
+          {navBlocks.map((b) => <li key={b.href}><Link href={b.href}>{b.label}</Link></li>)}
           <li><OpenJoin>Add your block</OpenJoin></li>
           <li><Link href="/update">Update your block</Link></li>
-          <li><Link href="/conference">Conference</Link></li>
-          <li><Link href="/events">Events</Link></li>
           <li><Link href="/media-kit">Media kit</Link></li>
           <li><a href={links.x} target="_blank" rel="noopener">X</a></li>
           <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn</a></li>
