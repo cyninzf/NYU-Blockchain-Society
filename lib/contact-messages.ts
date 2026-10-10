@@ -3,7 +3,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { baseUrl } from "./base-url";
 import type { Db } from "./db";
-import { CONTACT_TOPICS, contactMessages } from "./db/schema";
+import { TOPIC_LABELS } from "@/content/contact";
+import { auditRow } from "./admin";
+import { adminAudit, CONTACT_TOPICS, contactMessages, type ContactStatus } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 import { CONTACT_LINK_TTL_MS, consumeLinkToken, createLinkToken } from "./magic-link";
 
@@ -53,4 +55,48 @@ export async function verifyContactMessage(db: Db, token: string): Promise<boole
   if (!Number.isInteger(id) || id < 1) return false;
   await db.update(contactMessages).set({ verifiedAt: new Date() }).where(and(eq(contactMessages.id, id), isNull(contactMessages.verifiedAt)));
   return true;
+}
+
+/**
+ * One notification per new message to the recovery super admin (round 19), Reply going to the
+ * sender. Counts toward the shared daily email limit like every other email.
+ */
+export async function notifyContactMessage(db: Db, id: number, d: ContactFields) {
+  const to = process.env.SUPER_ADMIN_EMAIL;
+  if (!to) return;
+  const privacy = d.topic !== "general";
+  const r = await sendEmail(db, "contact", {
+    to,
+    replyTo: d.email,
+    subject: `Contact (${TOPIC_LABELS[d.topic]}): ${d.name.replace(/[\r\n]+/g, " ")}`,
+    ...renderEmail({
+      kicker: `Contact message #${id} · ${TOPIC_LABELS[d.topic]}`,
+      heading: privacy ? "A privacy request came in" : "A new message came in",
+      paragraphs: [
+        `From: ${d.name} <${d.email}>`,
+        d.message,
+        ...(privacy ? ["Unverified for now: we've emailed the sender a link to confirm it's them. Act on it only once /admin/inquiries/contact shows it as Verified."] : []),
+      ],
+      note: "Reply to this email to answer them directly. It's also in /admin/inquiries/contact.",
+    }),
+  });
+  if (!r.ok) console.error("contact notification not sent:", r.error);
+}
+
+/** Super admins only (checked by the caller). Logged with old → new. */
+export async function setContactStatus(db: Db, id: number, status: ContactStatus, actor: string): Promise<boolean> {
+  const [old] = await db.select({ status: contactMessages.status }).from(contactMessages).where(eq(contactMessages.id, id));
+  if (!old || old.status === status) return false;
+  await db.batch([
+    db.update(contactMessages).set({ status }).where(eq(contactMessages.id, id)),
+    db.insert(adminAudit).values(auditRow(actor, "contact_message.status", `Contact message #${id}`, { changes: { status: [old.status, status] } })),
+  ]);
+  return true;
+}
+
+/** For removal requests; super admins only (checked by the caller). Permanent. Logged as who, when and which message, never its content. */
+export async function deleteContactMessage(db: Db, id: number, actor: string): Promise<boolean> {
+  const [gone] = await db.delete(contactMessages).where(eq(contactMessages.id, id)).returning({ id: contactMessages.id });
+  if (gone) await db.insert(adminAudit).values(auditRow(actor, "contact_message.delete", `Deleted contact message #${id}`));
+  return Boolean(gone);
 }

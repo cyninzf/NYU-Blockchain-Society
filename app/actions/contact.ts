@@ -3,7 +3,7 @@
 import { getDb } from "@/lib/db";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { ContactInput, saveContactMessage, sendContactVerification, verifyContactMessage } from "@/lib/contact-messages";
+import { ContactInput, notifyContactMessage, saveContactMessage, sendContactVerification, verifyContactMessage } from "@/lib/contact-messages";
 import { reportError } from "@/lib/monitoring";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 
@@ -34,6 +34,8 @@ export async function submitContact(_prev: ContactResult, fd: FormData): Promise
     const id = await saveContactMessage(db, d);
     // Privacy requests: one confirmation email to the address given, after the response.
     if (d.topic !== "general") after(() => sendContactVerification(db, id, d.email).catch((e) => reportError("forms", "contact verification failed", e)));
+    // And one notification to the super admin, Reply going to the sender.
+    after(() => notifyContactMessage(db, id, d).catch((e) => reportError("forms", "contact notification failed", e)));
     return { ok: true, privacy: d.topic !== "general" };
   } catch (e) {
     reportError("forms", "contact message failed", e);
