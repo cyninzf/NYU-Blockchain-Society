@@ -228,10 +228,14 @@ treated as bots: they see the thank-you and nothing is stored).
 
 - [ ] At 1440 px the nav reads The chain · Conference · Accelerator · Join. Conference is
       underlined on `/conference` and `/conference/2024`; Accelerator on `/accelerator`.
-- [ ] At 390 px (and anything up to 900 px) only the brand, Join and the menu button show. With
-      the keyboard: Tab to the menu button, Enter opens the sheet; Tab stays inside it; Esc closes
-      it and focus returns to the button. A screen reader announces "Menu, button, collapsed".
-- [ ] The footer shows The chain, Conference, Networking, Accelerator.
+- [ ] At 390 px (and anything up to 900 px) only the brand, Join and the menu button show. Open the
+      menu: its top row looks exactly like the header (brand, Join in the same place, Close where
+      the menu button was), followed by The chain, Conference, Accelerator only (no Networking,
+      Media kit or "Add your block"). Join from the menu opens the join flow. With the keyboard:
+      Tab to the menu button, Enter opens the sheet; Tab stays inside it; Esc closes it and focus
+      returns to the button. A screen reader announces "Menu, button, collapsed".
+- [ ] The footer shows The chain, Conference, Networking, Accelerator and Media kit (desktop and
+      phone).
 - [ ] Home page, The chain: clicking the title or the text of each card opens its page (Block 00
       → `/conference`, Block 01 → the events page, Block 02 → `/accelerator`), with the pointer
       cursor and glowing edges on hover for all three. Each card ends with the same text link and

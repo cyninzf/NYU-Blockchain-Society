@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { navLinks } from "@/content/site";
+import { joinLabel, navLinks } from "@/content/site";
 import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
@@ -75,7 +75,8 @@ export default function Nav() {
     : current(pathname === href || pathname.startsWith(`${href}/`), "page");
 
   return (
-    <header className={home && !scrolled && !menu ? "nav" : "nav solid"}>
+    // While the menu is open its own header row carries Join, so the page's nav is hidden (Join appears once).
+    <header className={home && !scrolled && !menu ? "nav" : "nav solid"} data-menu={menu || undefined}>
       <div className="wrap">
         <Link className="brand" href="/#top" aria-label="NYU Blockchain Society, home">
           <Image className="mk" src="/brand/mark-node-white.svg" width={30} height={30} alt="" priority />
@@ -84,7 +85,7 @@ export default function Nav() {
         <nav aria-label="Main">
           <ul>
             {navLinks.map((l) => <li className="l" key={l.href}><Link href={l.href} {...isCurrent(l.href)}>{l.label}</Link></li>)}
-            <li><OpenJoin className="btn btn-w">Join</OpenJoin></li>
+            <li><OpenJoin className="btn btn-w">{joinLabel}</OpenJoin></li>
             <li className="m">
               <button ref={menuBtn} className="menu-btn" type="button" aria-expanded={menu} aria-controls="menu-sheet" aria-haspopup="dialog" onClick={() => setMenu(true)}>
                 <Icon name="menu" size={20} /><span className="sr">Menu</span>
@@ -103,14 +104,17 @@ export default function Nav() {
           aria-label="Menu"
           onClick={(e) => { if ((e.target as Element).closest("a")) setMenu(false); }}
         >
+          {/* The header row, as on the page: brand, Join (the only Join while the menu is open) and Close. */}
           <div className="sheet-top wrap">
             <span className="brand"><Image className="mk" src="/brand/mark-node-white.svg" width={30} height={30} alt="" /><span>NYU Blockchain Society</span></span>
-            <button className="menu-btn" type="button" onClick={() => setMenu(false)}><Icon name="close" size={20} /><span className="sr">Close menu</span></button>
+            <span className="sheet-acts">
+              <OpenJoin className="btn btn-w">{joinLabel}</OpenJoin>
+              <button className="menu-btn" type="button" onClick={() => setMenu(false)}><Icon name="close" size={20} /><span className="sr">Close menu</span></button>
+            </span>
           </div>
+          {/* Exactly the desktop links (content/site.ts navLinks). */}
           <ol className="sheet-links wrap">
             {navLinks.map((l, i) => <li style={{ "--i": i } as CSSProperties} key={l.href}><Link href={l.href} {...isCurrent(l.href)}>{l.label}</Link></li>)}
-            <li style={{ "--i": navLinks.length } as CSSProperties}><Link href="/media-kit" {...current(pathname === "/media-kit", "page")}>Media kit</Link></li>
-            <li style={{ "--i": navLinks.length + 1 } as CSSProperties}><OpenJoin className="add">Add your block</OpenJoin></li>
           </ol>
         </div>,
         document.body,

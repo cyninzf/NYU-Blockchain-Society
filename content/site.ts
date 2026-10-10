@@ -17,16 +17,22 @@ export const metaDescription = (s: string, max = 159) => {
 export const siteDescription =
   "The official NYU Alumni Club for professionals in blockchain, finance and AI worldwide. Conferences, networking and an accelerator for NYU founders.";
 
-/** Each chain block's page, in block order. */
-const conference = { href: "/conference", label: "Conference" };
-const networking = { href: "/networking", label: "Networking" };
-const accelerator = { href: "/accelerator", label: "Accelerator" };
-const theChain = { href: "/#chain", label: "The chain" };
-
-/** The top nav (round 15): The chain · Conference · Accelerator, then Join. */
-export const navLinks = [theChain, conference, accelerator];
-/** The footer keeps every block's page, Networking included. */
-export const footerLinks = [theChain, conference, networking, accelerator];
+/**
+ * The site's navigation, one definition for the desktop nav, the mobile menu and the footer
+ * (round 15), so they can't drift apart. Canonical URLs only. `nav: false` = footer only.
+ */
+const siteNav = [
+  { href: "/#chain", label: "The chain", nav: true },
+  { href: "/conference", label: "Conference", nav: true },
+  { href: "/networking", label: "Networking", nav: false },
+  { href: "/accelerator", label: "Accelerator", nav: true },
+] as const;
+/** Desktop nav and mobile menu: The chain · Conference · Accelerator, then the Join button. */
+export const navLinks = siteNav.filter((l) => l.nav);
+/** The same label on desktop and in the mobile menu. */
+export const joinLabel = "Join";
+/** The footer: every block's page, Networking included, in block order. */
+export const footerLinks = siteNav;
 
 export const links = {
   x: "https://x.com/NYU_Blockchain",

@@ -619,3 +619,9 @@ footer ul{gap:0 22px}
 .on-list{position:relative; z-index:3; margin:auto 0 0 !important; color:var(--ink-muted); font-size:15px}
 .blk-acts .on-list{margin:0 !important}
 .on-list a{color:var(--ink-fg); display:inline-flex; align-items:center; min-height:44px}
+/* Mobile menu (round 15): its header row mirrors the nav's, so Join sits where it was */
+.sheet-top{width:100%; box-sizing:border-box}
+.sheet-acts{display:flex; align-items:center; gap:8px}
+.sheet-acts .btn{min-height:44px; padding:0 16px; color:#120A1C}
+@media (max-width:430px){.sheet-acts .btn{padding:0 14px}}
+.nav[data-menu] nav{visibility:hidden}
