@@ -1,0 +1,136 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- the PGlite database stands in for the app's Neon-typed Db */
+// npm run test:db — applies every migration in drizzle/ to an in-memory Postgres (PGlite) and
+// exercises the app's real database code with obviously fake data (example.com). No network,
+// no DATABASE_URL, nothing written anywhere. Run it before every commit that touches the database.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
+import { eq, sql } from "drizzle-orm";
+const P = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
+// Throwaway secrets for token sealing and signing; never real ones.
+process.env.AUTH_SECRET ||= "test-only-auth-secret-not-for-production";
+process.env.FORM_SECRET ||= "test-only-form-secret";
+const schema = await import(`${P}/lib/db/schema.ts`);
+const pg = new PGlite();
+const journal = JSON.parse(readFileSync(`${P}/drizzle/meta/_journal.json`, "utf8"));
+for (const e of journal.entries) {
+  for (const stmt of readFileSync(`${P}/drizzle/${e.tag}.sql`, "utf8").split("--> statement-breakpoint")) if (stmt.trim()) await pg.exec(stmt);
+}
+console.log("migrations applied:", journal.entries.length);
+const db: any = drizzle(pg, { schema });
+db.batch = async (qs: any[]) => { const out = []; for (const q of qs) out.push(await q); return out; };
+let failed = 0;
+const ok = (cond: unknown, msg: string) => { if (!cond) { failed++; console.error("FAIL:", msg); process.exitCode = 1; } else console.log("ok:", msg); };
+
+const { members, contacts, settings, events, inviteCampaigns, eventCheckins, adminAudit } = schema;
+await db.insert(members).values([
+  { name: "Ana Member", email: "ana@example.com", affiliation: "alumni" },
+  { name: "José García", email: "jose@example.com", affiliation: "industry" },
+  { name: "Sam Twin", email: "sam1@example.com", affiliation: "alumni" },
+  { name: "Sam Twin", email: "sam2@example.com", affiliation: "alumni" },
+]);
+await db.insert(contacts).values([
+  { name: "Ana Member", email: "ANA@example.com", source: "luma-2024" },          // 1: email → links to member 1
+  { name: "Bea New", email: "bea@example.com", source: "luma-2024" },            // 2: eligible
+  { name: "Cy Bounce", email: "cy@example.com", source: "luma-2024" },           // 3: bounced
+  { name: "Di Unsub", email: "di@example.com", source: "luma-2024" },            // 4: unsubscribed
+  { name: "Ed Bad", email: "not-an-email", source: "luma-2024" },                // 5: invalid → none
+  { name: "  jose   garcia ", email: null, headline: "VC", source: "linkedin-2026-10" }, // 6: name → member 2
+  { name: "Sam Twin", email: null, headline: "Analyst", source: "linkedin-2026-10" },    // 7: two members → review
+  { name: "Fay Done", email: "fay@example.com", source: "luma-2024", invitedAt: new Date() }, // 8: invited
+]);
+const { emailHash, suppress, queueableWhere, undeliverable } = await import(`${P}/lib/invites.ts`);
+await suppress(db, "Cy@Example.com ", "bounce");
+await suppress(db, "di@example.com", "unsubscribe");
+const [h] = (await pg.query(`select encode(sha256(convert_to('nyubs-suppress:' || lower(trim(' CY@example.com')), 'UTF8')), 'hex') as h`)).rows as any[];
+ok(h.h === emailHash("cy@example.com"), "SQL hash matches JS hash");
+ok((await undeliverable(db, ["cy@example.com", "di@example.com"])).has("cy@example.com") && !(await undeliverable(db, ["di@example.com"])).size, "undeliverable = bounce/complaint only");
+
+const { autoLinkContacts, nameMatches } = await import(`${P}/lib/contact-links.ts`);
+const linked = await autoLinkContacts(db);
+ok(linked.email.length === 1 && linked.email[0].contactId === 1, "auto-link by email (case-insensitive)");
+ok(linked.name.length === 1 && linked.name[0].contactId === 6 && linked.name[0].memberId === 2, "auto-link by normalized name (accents, spaces)");
+const { review } = await nameMatches(db);
+ok(review.length === 1 && review[0].contact.id === 7 && review[0].candidates.length === 2, "ambiguous name goes to Needs a look");
+
+const { listContacts } = await import(`${P}/lib/contacts-query.ts`);
+const rows = await listContacts(db, {});
+const st = Object.fromEntries(rows.map((r: any) => [r.c.id, r.invite]));
+console.log("statuses", st);
+ok(st[1] === "joined" && st[2] === "eligible" && st[3] === "bounced" && st[4] === "unsubscribed" && st[5] === "none" && st[8] === "invited", "invite statuses");
+ok((await listContacts(db, { invite: "eligible" })).length === 1, "invite filter");
+const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(contacts).where(sql`${contacts.source} = 'luma-2024' and ${queueableWhere()}`);
+ok(n === 1, "eligible count (only Bea)");
+
+// Queue: campaign over luma-2024, then a run with a stubbed Resend API.
+await db.insert(settings).values({ key: "postal_address", value: "1 Example Street, New York, NY", updatedBy: "test" });
+const [c] = await db.insert(inviteCampaigns).values({ status: "queued", source: "luma-2024", subject: "An invitation", body: "Hi {first_name},\n\nJoin us.", reason: "You registered for the 2024 NYU Blockchain Conference.", contentHash: "x", createdBy: "test" }).returning();
+const q = await db.execute(sql`insert into invite_queue (campaign_id, contact_id) select ${c.id}, ${contacts.id} from ${contacts} where ${contacts.source} = 'luma-2024' and ${queueableWhere()} on conflict (contact_id) do nothing returning id`);
+ok(q.rows.length === 1, "queued eligible contacts only");
+const again = await db.execute(sql`insert into invite_queue (campaign_id, contact_id) select ${c.id}, ${contacts.id} from ${contacts} where ${contacts.source} = 'luma-2024' and ${queueableWhere()} on conflict (contact_id) do nothing returning id`);
+ok(again.rows.length === 0, "a queued contact can't be queued again");
+process.env.RESEND_API_KEY = "test";
+const sentBodies: any[] = [];
+globalThis.fetch = (async (_u: string, init: any) => { sentBodies.push(JSON.parse(init.body)); return new Response("{}", { status: 200 }); }) as any;
+const { processInvites } = await import(`${P}/lib/invite-queue.ts`);
+const r1 = await processInvites(db);
+console.log("run 1", r1);
+ok(r1.sent === 1, "processInvites sent 1");
+const [bea] = await db.select().from(contacts).where(eq(contacts.id, 2));
+ok(bea.invitedAt, "invited_at set");
+const msg = sentBodies[0][0];
+ok(msg.to[0] === "bea@example.com" && msg.headers["List-Unsubscribe"] && msg.text.includes("1 Example Street") && msg.text.includes("Hi Bea,"), "invite email: recipient, one-click header, postal address, first name");
+const r2 = await processInvites(db);
+ok(r2.sent === 0, "second run sends nothing (once ever)");
+const [camp] = await db.select().from(inviteCampaigns).where(eq(inviteCampaigns.id, c.id));
+ok(camp.status === "done", "campaign done");
+const st2 = Object.fromEntries((await listContacts(db, {})).map((r: any) => [r.c.id, r.invite]));
+ok(st2[2] === "invited", "Bea now invited");
+
+// Invite token: pre-fill and link on join.
+const { inviteToken } = await import(`${P}/lib/invite-email.ts`);
+const { invitedEmail, spendInviteToken } = await import(`${P}/lib/invite-join.ts`);
+const t = inviteToken(2);
+ok((await invitedEmail(db, t)) === "bea@example.com", "token pre-fills the invited email");
+const [m5] = await db.insert(members).values({ name: "Bea New", email: "bea.other@example.com", affiliation: "alumni" }).returning();
+ok(await spendInviteToken(db, t, m5.id), "token links the contact on join (other address)");
+ok(!(await spendInviteToken(db, t, m5.id)) && (await invitedEmail(db, t)) === null, "token is single-use");
+
+// Check-in window and record.
+const { checkinEvent, recordCheckin, isCheckedIn } = await import(`${P}/lib/checkin.ts`);
+await db.insert(events).values([
+  { title: "Now", slug: "now", startsAt: new Date(Date.now() + 60 * 60 * 1000), status: "published", createdBy: "t" },
+  { title: "Later", slug: "later", startsAt: new Date(Date.now() + 5 * 3600 * 1000), status: "published", createdBy: "t" },
+  { title: "Draft", slug: "draft", startsAt: new Date(), status: "draft", createdBy: "t" },
+]);
+ok((await checkinEvent(db, "now"))?.window === "open", "check-in open 1h before");
+ok((await checkinEvent(db, "later"))?.window === "before", "check-in not open 5h before");
+ok((await checkinEvent(db, "draft")) === null, "drafts have no check-in");
+const ev = await checkinEvent(db, "now");
+ok(await recordCheckin(db, ev.id, 1, "qr"), "check-in recorded");
+ok(!(await recordCheckin(db, ev.id, 1, "qr")) && (await isCheckedIn(db, ev.id, 1)), "check-in once per member");
+const audits = await db.select().from(adminAudit);
+ok(audits.some((a: any) => a.action === "event.checkin" && a.actor === "system"), "check-in audited as system");
+
+// Round 12.1: test check-ins apart from real ones; display links.
+ok(await recordCheckin(db, ev.id, 1, "qr", "system", true), "test check-in recorded beside the real one");
+ok(await isCheckedIn(db, ev.id, 1, true) && await isCheckedIn(db, ev.id, 1, false), "real and test check-ins are separate");
+const [{ real }] = await db.select({ real: sql<number>`count(*) filter (where not ${eventCheckins.isTest})::int` }).from(eventCheckins);
+ok(real === 1, "real count excludes test check-ins");
+const draftEv = await checkinEvent(db, "draft", true);
+ok(draftEv && draftEv.status === "draft", "test mode finds a draft");
+const { createDisplayLink, displayAccess } = await import(`${P}/lib/display-links.ts`);
+const link = await createDisplayLink(db, ev.id, "test");
+ok((await displayAccess(db, "now", link.token)).ok, "display link opens its event while open");
+ok(!(await displayAccess(db, "later", link.token)).ok, "display link refuses another event");
+const laterEv = await checkinEvent(db, "later");
+const l2 = await createDisplayLink(db, laterEv.id, "test");
+const a2 = await displayAccess(db, "later", l2.token);
+ok(!a2.ok && a2.reason === "closed", "display link closed outside the window");
+await db.update(schema.displayLinks).set({ revokedAt: new Date() }).where(eq(schema.displayLinks.id, link.id));
+const a3 = await displayAccess(db, "now", link.token);
+ok(!a3.ok && a3.reason === "invalid", "revoked display link refused");
+ok(!(await displayAccess(db, "now", "x".repeat(43))).ok, "unknown token refused");
+await pg.close();
+console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
