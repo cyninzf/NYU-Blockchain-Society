@@ -368,3 +368,21 @@ export const inviteQueue = pgTable(
   (t) => [uniqueIndex("invite_queue_contact_idx").on(t.contactId), index("invite_queue_campaign_idx").on(t.campaignId, t.status)],
 );
 
+/**
+ * Display links for an event's live screen (round 12.1): a signed URL a TV can open without
+ * signing in. Only a SHA-256 of the token is stored. Valid only for that event's live screen,
+ * only while check-in is open, and until revoked; it never sets a cookie or opens anything else.
+ */
+export const displayLinks = pgTable(
+  "display_links",
+  {
+    id: serial().primaryKey(),
+    eventId: integer("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("display_links_hash_idx").on(t.tokenHash), index("display_links_event_idx").on(t.eventId)],
+);
+

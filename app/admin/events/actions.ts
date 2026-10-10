@@ -1,11 +1,13 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit, auditRow, requireSuperOr403 } from "@/lib/admin";
+import { baseUrl } from "@/lib/base-url";
 import { recordCheckin } from "@/lib/checkin";
-import { adminAudit, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
+import { createDisplayLink } from "@/lib/display-links";
+import { adminAudit, displayLinks, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
 import { EventInput, type EventFields } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
 
@@ -118,5 +120,29 @@ export async function adminCheckIn(fd: FormData) {
   const [e] = await db.select({ id: events.id }).from(events).where(eq(events.id, id));
   if (!e) throw new Error(`No event #${id}.`);
   await recordCheckin(db, id, memberId, "admin", actor);
+  refresh();
+}
+
+export type DisplayLinkResult = { ok: true; url: string } | { ok: false; error: string } | null;
+
+/** A signed live-screen URL for a TV, shown once (only its hash is stored). Published events only. */
+export async function makeDisplayLink(_prev: DisplayLinkResult, fd: FormData): Promise<DisplayLinkResult> {
+  const id = idOf(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`create a display link for event #${id}`);
+  const [e] = await db.select({ slug: events.slug, status: events.status }).from(events).where(eq(events.id, id));
+  if (!e) return { ok: false, error: `No event #${id}.` };
+  if (e.status !== "published") return { ok: false, error: "Publish the event first: display links only work for published events." };
+  const link = await createDisplayLink(db, id, actor);
+  await audit(db, actor, "event.display_link.create", `Created display link #${link.id} for event #${id}`);
+  refresh();
+  return { ok: true, url: `${baseUrl()}/events/${e.slug}/live?d=${link.token}` };
+}
+
+export async function revokeDisplayLink(fd: FormData) {
+  const id = idOf(fd.get("id")), linkId = idOf(fd.get("linkId"));
+  const { db, actor } = await requireSuperOr403(`revoke display link #${linkId}`);
+  const [gone] = await db.update(displayLinks).set({ revokedAt: new Date() })
+    .where(and(eq(displayLinks.id, linkId), eq(displayLinks.eventId, id), isNull(displayLinks.revokedAt))).returning({ id: displayLinks.id });
+  if (gone) await audit(db, actor, "event.display_link.revoke", `Revoked display link #${linkId} for event #${id}`);
   refresh();
 }

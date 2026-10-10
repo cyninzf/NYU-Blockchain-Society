@@ -10,6 +10,7 @@ import EventForm from "../EventForm";
 import ShareLink from "../ShareLink";
 import StatusActions, { STATUS_LABELS } from "../StatusActions";
 import Checkins from "./Checkins";
+import DisplayLinks from "./DisplayLinks";
 import { checkinUrl, qrSvg } from "@/lib/qr";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
@@ -70,6 +71,7 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
           </div>
         </section>
       )}
+      {isSuper(admin) && e.status === "published" && <DisplayLinks db={db} eventId={e.id} slug={e.slug} />}
       {e.status !== "draft" && <Checkins db={db} eventId={e.id} admin={admin} q={typeof q === "string" ? q.trim().slice(0, 80) : ""} />}
       <EventForm
         readOnly={!isSuper(admin)}

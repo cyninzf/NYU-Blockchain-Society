@@ -9,7 +9,8 @@ const POLL_MS = 4000;
  * The live screen's overlay: polls the check-in count and adds one node to the background
  * network per new check-in. Shows the event title small at the bottom; the count only with ?count=1.
  */
-export default function LiveScreen({ slug, title, showCount }: { slug: string; title: string; showCount: boolean }) {
+/** `displayToken`: opened through a display link (no sign-in); it's sent with each poll. */
+export default function LiveScreen({ slug, title, showCount, displayToken }: { slug: string; title: string; showCount: boolean; displayToken?: string }) {
   const [n, setN] = useState<number | null>(null);
   const [lost, setLost] = useState(false);
   const last = useRef<number | null>(null);
@@ -19,7 +20,7 @@ export default function LiveScreen({ slug, title, showCount }: { slug: string; t
     const timers: number[] = [];
     const poll = async () => {
       try {
-        const r = await fetch(`/api/events/${slug}/checkins`, { cache: "no-store" });
+        const r = await fetch(`/api/events/${slug}/checkins${displayToken ? `?d=${encodeURIComponent(displayToken)}` : ""}`, { cache: "no-store" });
         if (!r.ok) throw new Error(String(r.status));
         const { count } = (await r.json()) as { count: number };
         if (!alive) return;
@@ -36,7 +37,7 @@ export default function LiveScreen({ slug, title, showCount }: { slug: string; t
     };
     poll();
     return () => { alive = false; clearTimeout(timer); timers.forEach(clearTimeout); };
-  }, [slug]);
+  }, [slug, displayToken]);
 
   return (
     <div className="live">
