@@ -27,11 +27,12 @@ export async function createSession(db: Db, kind: Kind, subject: string, ttlMs: 
 
 /** Who a cookie belongs to, if its signature is valid and its session is live (not revoked or expired). */
 export async function sessionSubject(db: Db | null, kind: Kind, cookie: string | undefined): Promise<string | null> {
+  // Only inside a real request (round 18; moved first in round 20): during a prerender this never
+  // resolves, so neither the expiry check (Date.now() in readSession) nor the query runs there.
+  // In server actions and route handlers it resolves at once.
+  await connection();
   const s = readSession(kind, cookie);
   if (!s || !db) return null;
-  // Only inside a real request (round 18): during a prerender this never resolves, so the query
-  // never starts there. In server actions and route handlers it resolves at once.
-  await connection();
   try {
     const [row] = await db.select({ subject: authSessions.subject }).from(authSessions)
       .where(and(eq(authSessions.tokenHash, hash(s.subject)), eq(authSessions.kind, kind), isNull(authSessions.revokedAt), gt(authSessions.expiresAt, sql`now()`)));
