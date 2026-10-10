@@ -639,3 +639,4 @@ footer ul{gap:0 22px}
 .privacy-note a{color:inherit; text-decoration:underline; text-underline-offset:3px}
 .privacy li a{color:var(--ink-fg)}
 .privacy .privacy-contact a{color:var(--ink-fg)}
+.iq-topics{flex-direction:column; align-items:flex-start}

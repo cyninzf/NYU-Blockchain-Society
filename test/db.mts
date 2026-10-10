@@ -187,5 +187,15 @@ ok(await deleteInterest(db, fid, "super@example.com"), "accelerator row deleted"
 const delAudit = (await db.select().from(adminAudit)).filter((a: any) => a.action === "inquiry.delete" || a.action === "accelerator.delete");
 ok(delAudit.length === 2 && delAudit.every((a: any) => a.actor === "super@example.com" && a.createdAt && !/example\.com|sponsor the 2027|Example Labs|Fay|Gus/i.test(a.detail ?? "") && Object.keys(a.changes ?? {}).length === 0), "deletes logged with who, when and which, no content");
 ok(delAudit.some((a: any) => a.detail === `Deleted conference inquiry #${iq}`) && delAudit.some((a: any) => a.detail === `Deleted accelerator founder #${fid}`), "audit names the inquiry");
+// Round 19: contact messages.
+const { ContactInput, saveContactMessage } = await import(`${P}/lib/contact-messages.ts`);
+const cIn = ContactInput.parse({ name: "Pat Private", email: "pat@example.com", topic: "privacy_delete", message: "Please delete everything you hold about me." });
+ok(!ContactInput.safeParse({ ...cIn, topic: "sales" }).success, "unknown contact topic refused");
+ok(!ContactInput.safeParse({ ...cIn, message: "hi" }).success, "too-short contact message refused");
+const cid = await saveContactMessage(db, cIn);
+const [cRow] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, cid));
+ok(cRow.status === "new" && cRow.verifiedAt === null && cRow.topic === "privacy_delete", "contact message stored new and unverified");
+const [{ cMembers }] = await db.select({ cMembers: sql<number>`count(*)::int` }).from(members).where(eq(members.email, "pat@example.com"));
+ok(cMembers === 0, "a contact message makes nobody a member");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

@@ -461,3 +461,30 @@ export const acceleratorInterest = pgTable(
 );
 
 export type AcceleratorInterest = typeof acceleratorInterest.$inferSelect;
+export const CONTACT_TOPICS = ["general", "privacy_access", "privacy_delete"] as const;
+export type ContactTopic = (typeof CONTACT_TOPICS)[number];
+export const CONTACT_STATUSES = ["new", "replied", "closed"] as const;
+export type ContactStatus = (typeof CONTACT_STATUSES)[number];
+
+/**
+ * Messages from /contact (round 19), the society's only public way in (there's no public email
+ * address). Privacy requests (access, delete) are verified by an emailed link before anyone acts
+ * on them: `verified_at` is set when the sender clicks it. Not contacts and not members.
+ */
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: serial().primaryKey(),
+    name: text().notNull(),
+    email: text().notNull(),
+    topic: text().$type<ContactTopic>().notNull(),
+    message: text().notNull(),
+    /** Privacy requests only: when the sender confirmed the address. Null = unverified (or not needed). */
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    status: text().$type<ContactStatus>().notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("contact_messages_status_idx").on(t.status, t.createdAt)],
+);
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
