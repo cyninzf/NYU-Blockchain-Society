@@ -13,6 +13,8 @@ export type Edition = {
   venue?: string;
   address?: string;
   status: EditionStatus;
+  /** Shown instead of the generic status label, e.g. "Planning underway". */
+  statusText?: string;
   stats?: { registrations: number; speakers: number; panels: number; fireside: boolean };
   program?: Session[];
   /** Firms speakers came from (text only, never logos). */
@@ -36,9 +38,17 @@ export const editions: Edition[] = [
     program: program2024,
     firms: firms2024,
   },
-  // Next edition: no year until it's announced. Set status "announced", year, date and
-  // lumaUrl when it is; the home chain and /conference pick it up from here.
-  { status: "planning" },
+  // The next edition (round 13): /conference is its hub and Block 00 points to it. Only the year
+  // and the status text are public so far. Fill in date and venue (and address, lumaUrl) when
+  // they're confirmed: they appear on /conference only once set. Set status "announced" with a
+  // lumaUrl when registration opens. Never invent a month, venue or speakers here.
+  {
+    year: 2027,
+    status: "planning",
+    statusText: "Planning underway",
+    date: undefined,
+    venue: undefined,
+  },
 ];
 
 export const pastEditions = editions.filter((e): e is Edition & { year: number } => e.year !== undefined && e.status === "done");
@@ -46,6 +56,10 @@ export const nextEdition = editions.find((e) => e.status !== "done");
 export const editionByYear = (year: number) => editions.find((e) => e.year === year);
 
 export const editionTitle = (e: Edition) => (e.year ? `${series.name} ${e.year}` : "Next edition");
+/** "Planning underway", or the generic label. */
+export const editionStatus = (e: Edition) => e.statusText ?? statusLabel[e.status];
+/** The join source for "Get notified" on /conference, e.g. conference-2027. */
+export const nextEditionSource = nextEdition?.year ? `conference-${nextEdition.year}` : "conference";
 export const statusLabel: Record<EditionStatus, string> = { done: "Done", announced: "Announced", planning: "Planning" };
 export const statsLine = (s: NonNullable<Edition["stats"]>) =>
   `${s.registrations} registrations · ${s.speakers} speakers and moderators · ${s.panels} panels${s.fireside ? " + a fireside" : ""}`;

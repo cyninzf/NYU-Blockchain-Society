@@ -558,3 +558,12 @@ footer ul{gap:0 22px}
 .ci-check{display:flex !important; align-items:center; gap:10px; min-height:44px; color:var(--ink-fg) !important}
 .ci-check input{width:20px; height:20px; min-height:0 !important}
 .live-test{position:absolute; top:20px; left:0; right:0; margin:0 auto; width:max-content; padding:6px 12px; border:1px dashed #FFB86B; border-radius:8px; color:#FFD9A8; font-size:12px}
+
+/* /conference: the next edition's hub (round 13) */
+.conf-when{margin:12px 0 0; color:var(--ink-muted)}
+.conf-notify{display:grid; justify-items:start; gap:12px; margin-top:28px; max-width:56ch}
+.conf-member{margin:0; color:var(--ink-muted); font-size:15px}
+.conf-member a{color:var(--ink-fg)}
+.conf-proof-h{margin:clamp(48px,6vw,80px) 0 0; font-weight:550; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em}
+.series .ed-chain{margin-top:20px}
+.conf-proof-t{margin:6px 0 0; font-weight:600; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em; line-height:1.15}

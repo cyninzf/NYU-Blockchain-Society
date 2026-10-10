@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
+import { editionStatus, nextEdition, pastEditions } from "@/content/conferences";
 import { chainBlocks, type BlockStatus, type NextEvent } from "@/content/chain";
 import { chainIntro } from "@/content/site";
 import { baseUrl } from "@/lib/base-url";
@@ -7,7 +7,6 @@ import { calendarLinks } from "@/lib/calendar";
 import { eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import { publicEvents, type PublicEvent } from "@/lib/events";
-import NextEditionLink from "./conference/NextEditionLink";
 import DrawIn from "./DrawIn";
 import CalendarButtons from "./events/CalendarButtons";
 import Icon from "./Icon";
@@ -80,9 +79,10 @@ export default async function Chain() {
                     ))}
                     {nextEdition && (
                       <li>
-                        <NextEditionLink className="ed next">
-                          {nextEdition.year ?? "Next edition"} <span className="mono">· {statusLabel[nextEdition.status]}</span>
-                        </NextEditionLink>
+                        {/* The next edition's hub is /conference (round 13). */}
+                        <Link className="ed next" href="/conference">
+                          Next: {nextEdition.year ?? "next edition"} <span className="mono">· {editionStatus(nextEdition)}</span>
+                        </Link>
                       </li>
                     )}
                   </ol>
