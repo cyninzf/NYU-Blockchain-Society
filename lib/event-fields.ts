@@ -5,7 +5,7 @@ import { nyInputToDate } from "./event-time";
 
 /** Lowercase letters, numbers and dashes, at most 34, so ?src=event-<slug> fits the 40-character source limit. */
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,32}[a-z0-9])?$/;
-/** Static routes under /events. */
+/** Static routes under /networking. */
 const RESERVED = new Set(["preview"]);
 
 /** "Fall Mixer at KPMG!" → "fall-mixer-at-kpmg". */
@@ -44,3 +44,8 @@ export type EventFields = z.output<typeof EventInput>;
 
 /** The join source an event's share link carries: ?src=event-<slug> (stored in members.source on join). */
 export const eventSource = (slug: string) => `event-${slug}`;
+
+/** Block 01's canonical page (round 15; /events and /events/* 308-redirect here, next.config.ts). */
+export const NETWORKING_PATH = "/networking";
+/** An event's canonical page; its check-in, live screen and calendar file live under it. */
+export const eventPath = (slug: string) => `${NETWORKING_PATH}/${slug}`;

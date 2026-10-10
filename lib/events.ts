@@ -4,7 +4,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { siteName, siteUrl } from "@/content/site";
 import { getDb } from "./db";
 import { events, type EventRow } from "./db/schema";
-import { SLUG_RE } from "./event-fields";
+import { SLUG_RE, eventPath } from "./event-fields";
 import { eventOver } from "./event-time";
 
 // Public events: published and cancelled ones, never drafts. Cached under the "events" tag
@@ -70,7 +70,7 @@ export function eventJsonLd(e: PublicEvent, nested = false) {
     ...(nested ? {} : { "@context": "https://schema.org" }),
     "@type": "Event",
     name: e.title,
-    url: `${siteUrl}/events/${e.slug}`,
+    url: `${siteUrl}${eventPath(e.slug)}`,
     startDate: e.startsAt.toISOString(),
     ...(e.endsAt ? { endDate: e.endsAt.toISOString() } : {}),
     eventStatus: e.status === "cancelled" ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",

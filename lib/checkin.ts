@@ -9,6 +9,7 @@ import { eventWhen } from "./event-time";
 import { createLinkToken } from "./magic-link";
 import { unsubscribeHeaders, unsubscribeUrl } from "./member-email";
 
+import { eventPath } from "./event-fields";
 // Event check-in (round 11). Open for published events from 3 hours before the start until
 // 2 hours after the end (or the start, without an end). Every check-in is logged.
 
@@ -71,7 +72,7 @@ export async function sendCheckinLink(db: Db, email: string, e: Pick<EventRow, "
       kicker: test ? "Test mode · Check-in" : "Check-in",
       heading: e.title,
       paragraphs: [eventWhen(e.startsAt, e.endsAt), "Tap the button to check in. It works once and expires in 15 minutes."],
-      cta: { label: "Check in", href: `${baseUrl()}/events/${e.slug}/checkin/confirm?t=${token}${test ? "&test=1" : ""}` },
+      cta: { label: "Check in", href: `${baseUrl()}${eventPath(e.slug)}/checkin/confirm?t=${token}${test ? "&test=1" : ""}` },
       note: "If you didn't ask for this, ignore this email: nothing happens without the button.",
       unsubscribeUrl: unsubscribeUrl(m.id),
     }),

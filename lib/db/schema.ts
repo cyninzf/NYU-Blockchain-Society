@@ -247,7 +247,7 @@ export const eventStatus = pgEnum("event_status", EVENT_STATUSES);
 /**
  * Events, managed at /admin/events (round 10). Times are stored in UTC and entered and shown in
  * America/New_York (lib/event-time.ts). Drafts are never public; cancelled events show as
- * cancelled until they end, then disappear. `slug` names the public page (/events/<slug>) and
+ * cancelled until they end, then disappear. `slug` names the public page (/networking/<slug>) and
  * the share link's ?src=event-<slug>.
  */
 export const events = pgTable(
@@ -283,7 +283,7 @@ export const checkinMethod = pgEnum("checkin_method", CHECKIN_METHODS);
 
 /**
  * Who came to an event (round 11). One row per member per event. "qr": the member checked in
- * themselves at /events/<slug>/checkin; "admin": a super admin checked them in by hand.
+ * themselves at /networking/<slug>/checkin; "admin": a super admin checked them in by hand.
  */
 export const eventCheckins = pgTable(
   "event_checkins",

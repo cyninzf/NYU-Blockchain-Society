@@ -15,6 +15,7 @@ import { checkinUrl, qrSvg } from "@/lib/qr";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 
+import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
 export const metadata: Metadata = {
   title: "Edit event · Admin",
   robots: { index: false, follow: false },
@@ -46,8 +47,8 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
       {created === "1" && <p className={styles.note} role="status">Draft created. Preview it, then publish when it&apos;s ready.</p>}
       <div className={styles.row}>
         <span className={styles.badge}>{STATUS_LABELS[e.status]}</span>
-        <a href={`/events/preview?id=${e.id}`} target="_blank" rel="noopener">Preview as it will appear</a>
-        {e.status !== "draft" && <a href={`/events/${e.slug}`} target="_blank" rel="noopener">Public page</a>}
+        <a href={`${NETWORKING_PATH}/preview?id=${e.id}`} target="_blank" rel="noopener">Preview as it will appear</a>
+        {e.status !== "draft" && <a href={eventPath(e.slug)} target="_blank" rel="noopener">Public page</a>}
       </div>
       {e.status === "published" && (
         <section className={styles.mix} aria-labelledby="share-h">
@@ -76,8 +77,8 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
         <section className={styles.mix} aria-labelledby="test-h">
           <h2 id="test-h">Test mode <span>Try check-in and the live screen on any event, drafts included, at any time. Test check-ins are marked, never counted, and listed apart below; the test join form creates nothing unless you tick &ldquo;Create a real member&rdquo;.</span></h2>
           <p className={styles.row}>
-            <a href={`/events/${e.slug}/checkin?test=1`} target="_blank" rel="noopener">Check-in (test mode)</a>
-            <a href={`/events/${e.slug}/live?test=1&count=1`} target="_blank" rel="noopener">Live screen (test mode)</a>
+            <a href={`${eventPath(e.slug)}/checkin?test=1`} target="_blank" rel="noopener">Check-in (test mode)</a>
+            <a href={`${eventPath(e.slug)}/live?test=1&count=1`} target="_blank" rel="noopener">Live screen (test mode)</a>
           </p>
         </section>
       )}

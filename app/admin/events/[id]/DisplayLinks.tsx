@@ -5,6 +5,7 @@ import { revokeDisplayLink } from "../actions";
 import DisplayLinkForm from "./DisplayLinkForm";
 import styles from "../../admin.module.css";
 
+import { eventPath } from "@/lib/event-fields";
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" });
 
 /** Super admins, published events: create and revoke display links for the live screen. */
@@ -12,7 +13,7 @@ export default async function DisplayLinks({ db, eventId, slug }: { db: Db; even
   const links = await db.select().from(displayLinks).where(eq(displayLinks.eventId, eventId)).orderBy(desc(displayLinks.id));
   return (
     <section className={styles.mix} aria-labelledby="dl-h">
-      <h2 id="dl-h">Live screen <span>Signed in as a super admin, open <a href={`/events/${slug}/live`} target="_blank" rel="noopener">/events/{slug}/live</a>. For a TV that shouldn&apos;t sign in, create a display link: it works without signing in, only for this live screen, only from 3 hours before the start until 2 hours after the end, and until revoked. It never signs anyone in.</span></h2>
+      <h2 id="dl-h">Live screen <span>Signed in as a super admin, open <a href={`${eventPath(slug)}/live`} target="_blank" rel="noopener">{eventPath(slug)}/live</a>. For a TV that shouldn&apos;t sign in, create a display link: it works without signing in, only for this live screen, only from 3 hours before the start until 2 hours after the end, and until revoked. It never signs anyone in.</span></h2>
       <DisplayLinkForm id={eventId} />
       {links.length > 0 && (
         <ul className={styles.edit}>

@@ -13,6 +13,7 @@ import { getAdmin } from "@/lib/admin";
 import { eventWhen } from "@/lib/event-time";
 import { memberIdFromSession } from "@/lib/member-session";
 
+import { eventPath } from "@/lib/event-fields";
 export const metadata: Metadata = { title: "Check in", robots: { index: false, follow: false } };
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -40,7 +41,7 @@ async function Checkin({ params, searchParams }: Props) {
           <p>{e.window === "before"
             ? <>It opens {OPENS_BEFORE_H} hours before the start ({eventWhen(e.startsAt, e.endsAt)}). See you there.</>
             : <>Check-in closed {CLOSES_AFTER_H} hours after the event. Thanks for coming.</>}</p>
-          <p><a className="ev-link" href={`/events/${e.slug}`}>Event details</a></p>
+          <p><a className="ev-link" href={eventPath(e.slug)}>Event details</a></p>
         </div>
       </CheckinShell>
     );

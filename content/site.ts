@@ -19,7 +19,7 @@ export const siteDescription =
 
 /** Each chain block's page, in block order. */
 const conference = { href: "/conference", label: "Conference" };
-const networking = { href: "/events", label: "Networking" };
+const networking = { href: "/networking", label: "Networking" };
 const accelerator = { href: "/accelerator", label: "Accelerator" };
 const theChain = { href: "/#chain", label: "The chain" };
 

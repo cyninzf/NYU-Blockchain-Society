@@ -51,7 +51,7 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     title: "Networking",
     text: "Mixers, workshops, roundtables and more, for NYU alumni wherever they are.",
     ...(next ? { next } : {}),
-    page: { label: "See all events", href: "/events" },
+    page: { label: "See all events", href: "/networking" },
     notify: "networking",
     src: "chain-networking",
   },

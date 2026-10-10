@@ -1,6 +1,6 @@
 "use server";
 
-// Event check-in at /events/<slug>/checkin. Three ways in, none of which reveals whether an
+// Event check-in at /networking/<slug>/checkin. Three ways in, none of which reveals whether an
 // email belongs to a member:
 // - a member session (from "Update your block" or an earlier check-in link): one button;
 // - an email: if it's a member's, they get a one-tap check-in link (same rules as /update), and
@@ -21,7 +21,7 @@ import { checkinEvent, recordCheckin, sendCheckinLink, type CheckinEvent } from 
 import { getDb, type Db } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
 import { emailConfigured } from "@/lib/email";
-import { eventSource } from "@/lib/event-fields";
+import { eventPath, eventSource } from "@/lib/event-fields";
 import { consumeLinkToken } from "@/lib/magic-link";
 import { upsertMember } from "@/lib/member-join";
 import { memberIdFromSession } from "@/lib/member-session";
@@ -133,7 +133,7 @@ export async function confirmCheckin(fd: FormData) {
   const [memberId, eventId, flag] = (subject ?? "").split(":");
   const test = flag === "t";
   const e = db && subject ? await checkinEvent(db, slug, test) : null;
-  const back = `/events/${encodeURIComponent(slug)}/checkin${test ? "?test=1" : ""}`;
+  const back = `${eventPath(encodeURIComponent(slug))}/checkin${test ? "?test=1" : ""}`;
   if (!db || !e || Number(eventId) !== e.id || !Number(memberId) || (!test && e.window !== "open")) redirect(`${back}${test ? "&" : "?"}error=link`);
   await recordCheckin(db, e.id, Number(memberId), "qr", "system", test);
   // Signed in for the day, like "Update your block", so the page shows them as checked in.

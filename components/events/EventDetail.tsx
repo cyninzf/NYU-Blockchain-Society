@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { EventStatus } from "@/lib/db/schema";
 import { baseUrl } from "@/lib/base-url";
 import { calendarLinks } from "@/lib/calendar";
-import { eventSource } from "@/lib/event-fields";
+import { NETWORKING_PATH, eventPath, eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import Icon from "../Icon";
 import OpenJoin from "../OpenJoin";
@@ -19,7 +19,7 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
   const cancelled = e.status === "cancelled";
   return (
     <section className="conf page-top" aria-labelledby="ev-h">
-      <div className="wrap crumbs mono" data-bg="dim"><Link href="/events"><Icon name="arrow-left" /> All events</Link></div>
+      <div className="wrap crumbs mono" data-bg="dim"><Link href={NETWORKING_PATH}><Icon name="arrow-left" /> Networking</Link></div>
       <div className="wrap">
       <div className="ev-detail">
         {banner}
@@ -29,7 +29,7 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
         {(e.venueName || e.address) && <p className="ev-where" data-bg="solid">{[e.venueName, e.address].filter(Boolean).join(" · ")}</p>}
         {e.cohost && <p className="ev-cohost" data-bg="solid">Co-hosted with {e.cohost}</p>}
         {e.description && <p className="ev-desc" data-bg="solid">{e.description}</p>}
-        {!cancelled && !over && <CalendarButtons links={calendarLinks({ ...e, pageUrl: `${baseUrl()}/events/${e.slug}` })} />}
+        {!cancelled && !over && <CalendarButtons links={calendarLinks({ ...e, pageUrl: `${baseUrl()}${eventPath(e.slug)}` })} />}
         {cancelled ? (
           <p className="ev-note" data-bg="solid">This event was cancelled. <OpenJoin className="ev-link" notify="networking">Hear about the next one</OpenJoin></p>
         ) : over ? null : e.registrationUrl ? (

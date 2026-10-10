@@ -8,7 +8,7 @@ import { baseUrl } from "@/lib/base-url";
 import { recordCheckin } from "@/lib/checkin";
 import { createDisplayLink } from "@/lib/display-links";
 import { adminAudit, displayLinks, eventCheckins, events, type AuditChanges, type EventRow, type EventStatus } from "@/lib/db/schema";
-import { EventInput, type EventFields } from "@/lib/event-fields";
+import { type EventFields, EventInput, eventPath } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
 
 // Events: super admins only (round 10.2). Admins can view /admin/events and the preview, but
@@ -135,7 +135,7 @@ export async function makeDisplayLink(_prev: DisplayLinkResult, fd: FormData): P
   const link = await createDisplayLink(db, id, actor);
   await audit(db, actor, "event.display_link.create", `Created display link #${link.id} for event #${id}`);
   refresh();
-  return { ok: true, url: `${baseUrl()}/events/${e.slug}/live?d=${link.token}` };
+  return { ok: true, url: `${baseUrl()}${eventPath(e.slug)}/live?d=${link.token}` };
 }
 
 export async function revokeDisplayLink(fd: FormData) {

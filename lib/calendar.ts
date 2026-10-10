@@ -5,10 +5,11 @@
 
 import { EVENT_TZ } from "./event-time";
 
+import { eventPath } from "./event-fields";
 export type CalendarEvent = {
   title: string; slug: string; startsAt: Date; endsAt: Date | null;
   venueName: string | null; address: string | null; description: string | null;
-  /** The event page, e.g. https://www.nyublockchainsociety.com/events/fall-mixer */
+  /** The event page, e.g. https://www.nyublockchainsociety.com/networking/fall-mixer */
   pageUrl: string;
 };
 export type CalendarLinks = { google: string; outlook: string; ics: string };
@@ -28,7 +29,7 @@ export function calendarLinks(e: CalendarEvent): CalendarLinks {
   return {
     google: `https://calendar.google.com/calendar/render?${g}`,
     outlook: `https://outlook.live.com/calendar/0/deeplink/compose?${o}`,
-    ics: `/events/${e.slug}/calendar.ics`,
+    ics: `${eventPath(e.slug)}/calendar.ics`,
   };
 }
 

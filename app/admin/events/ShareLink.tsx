@@ -1,6 +1,6 @@
 import CopyButton from "@/components/CopyButton";
 import { baseUrl } from "@/lib/base-url";
-import { eventSource } from "@/lib/event-fields";
+import { eventPath, eventSource } from "@/lib/event-fields";
 import styles from "../admin.module.css";
 
 /**
@@ -8,7 +8,7 @@ import styles from "../admin.module.css";
  * landing from it (in the same tab session) has that source stored on their member row.
  */
 export default function ShareLink({ slug }: { slug: string }) {
-  const url = `${baseUrl()}/events/${slug}?src=${eventSource(slug)}`;
+  const url = `${baseUrl()}${eventPath(slug)}?src=${eventSource(slug)}`;
   return (
     <div className={styles.share}>
       <code>{url}</code>

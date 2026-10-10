@@ -37,7 +37,7 @@ export default function EventForm({ e, readOnly = false }: { e: EventFormValues;
       <label className={styles.field}>Registration link<input name="registrationUrl" type="url" defaultValue={e.registrationUrl} maxLength={500} autoComplete="off" placeholder="https://lu.ma/…" /></label>
       <label className={styles.field}>Co-host (optional, text only)<input name="cohost" defaultValue={e.cohost} maxLength={80} autoComplete="off" placeholder="e.g. KPMG" /></label>
       <label className={styles.field}>Link name (optional)<input name="slug" defaultValue={e.slug} maxLength={34} autoComplete="off" placeholder="made from the title if empty" pattern="[a-z0-9-]*" /></label>
-      <p className={styles.note}>The link name sets the event page (/events/<i>link-name</i>) and the share link (?src=event-<i>link-name</i>). Changing it after sharing breaks those links.</p>
+      <p className={styles.note}>The link name sets the event page (/networking/<i>link-name</i>) and the share link (?src=event-<i>link-name</i>). Changing it after sharing breaks those links.</p>
       </fieldset>
       {!readOnly && (
         <div className={styles.row}>

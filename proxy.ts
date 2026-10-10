@@ -21,7 +21,7 @@ const noStore = (res: NextResponse) => {
 const notFound = (request: NextRequest) => NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
 
 /**
- * Whether /events/<slug> has a public page: published, or cancelled until it would have ended.
+ * Whether /networking/<slug> has a public page: published, or cancelled until it would have ended.
  * Never a draft. "published": check-in and the live screen, which cancelled events don't get.
  * "any": test mode (round 12.1), where drafts are allowed too (the pages check the role).
  */
@@ -47,15 +47,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // Events: drafts and unknown slugs get a real 404 status; the preview is for admins only.
-  if (pathname === "/events/preview" || pathname === "/events/preview/") {
+  if (pathname === "/networking/preview" || pathname === "/networking/preview/") {
     return readSession("admin", request.cookies.get(ADMIN_COOKIE)?.value) ? admin(NextResponse.next()) : notFound(request);
   }
-  const slug = /^\/events\/([^/]+)\/?$/.exec(pathname)?.[1];
+  const slug = /^\/networking\/([^/]+)\/?$/.exec(pathname)?.[1];
   if (slug !== undefined) return SLUG_RE.test(slug) && (await eventIsPublic(slug)) ? NextResponse.next() : notFound(request);
   // Check-in (and its emailed link) and the live screen: published events only, except test mode
   // (?test=1) with a signed admin session (the page re-checks for a super admin), and a test
   // link's confirm page (?test=1 with its token; the token itself decides).
-  const subMatch = /^\/events\/([^/]+)\/(checkin(?:\/confirm)?|live)\/?$/.exec(pathname);
+  const subMatch = /^\/networking\/([^/]+)\/(checkin(?:\/confirm)?|live)\/?$/.exec(pathname);
   if (subMatch) {
     const [, sub, page] = subMatch;
     const q = request.nextUrl.searchParams;
@@ -63,7 +63,7 @@ export async function proxy(request: NextRequest) {
     return SLUG_RE.test(sub) && (await eventIsPublic(sub, testing ? "any" : "published")) ? noStore(NextResponse.next()) : notFound(request);
   }
   // Everything else under an event (share images, calendar.ics) answers for itself.
-  if (pathname.startsWith("/events/")) return NextResponse.next();
+  if (pathname.startsWith("/networking/")) return NextResponse.next();
 
   // Sign-in pages are open (they never show admin data).
   if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) return admin(NextResponse.next());
@@ -75,4 +75,4 @@ export async function proxy(request: NextRequest) {
   return new NextResponse("Authentication required.", { status: 401, headers: { "X-Robots-Tag": "noindex, nofollow" } });
 }
 
-export const config = { matcher: ["/admin", "/admin/:path*", "/conference/:year", "/events/:slug", "/events/:slug/:path*"] };
+export const config = { matcher: ["/admin", "/admin/:path*", "/conference/:year", "/networking/:slug", "/networking/:slug/:path*"] };

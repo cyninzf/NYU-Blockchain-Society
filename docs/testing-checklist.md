@@ -51,17 +51,17 @@ is by email link only (basic auth was removed in round 10).
       kind), and the home page has no "blocks on the chain" section.
 - [ ] No member names appear on any public page.
 
-## 6. Events: `/admin/events`, `/events`, Block 01
+## 6. Events: `/admin/events`, `/networking`, Block 01
 
 Use an obviously fake test event (e.g. "Test event", venue "Example Venue") dated a few days
 ahead, and delete it at the end.
 
 - [ ] `/admin/events` → "New event": title, label "Networking evening", start and end time, venue,
       no registration link → "Create draft". The edit page says "Draft".
-- [ ] While it's a draft: `/events` doesn't list it, `/events/<link name>` is a 404, and the home
+- [ ] While it's a draft: `/networking` doesn't list it, `/networking/<link name>` is a 404, and the home
       page's Block 01 doesn't show it. "Preview as it will appear" shows it with the preview banner;
       signed out, the preview URL is a 404.
-- [ ] "Publish". `/events/<link name>` shows "Networking evening" above the title, the date and time
+- [ ] "Publish". `/networking/<link name>` shows "Networking evening" above the title, the date and time
       in ET, the venue, "Registration opens soon" and "Join the society to get the invite"; no
       background lines or blocks run behind the text (check at 390 px and on a laptop).
 - [ ] Home page, The chain: Block 01 shows the event with "Registration opens soon" and "Join the
@@ -71,9 +71,9 @@ ahead, and delete it at the end.
 - [ ] Copy the share link from `/admin/events` and open it in a private window. Join with an
       address you own: in `/admin`, that member's source is `event-<link name>`, and the events
       list shows "Joined from the share link: 1". Delete the test member afterwards.
-- [ ] "Cancel event": the event page and `/events` say "Cancelled"; Block 01 shows it marked
+- [ ] "Cancel event": the event page and `/networking` say "Cancelled"; Block 01 shows it marked
       "Cancelled" with "Get notified" (or the next published event, if there is one).
-- [ ] `/sitemap.xml` lists `/events/<link name>` while it's public.
+- [ ] `/sitemap.xml` lists `/networking/<link name>` while it's public.
 - [ ] `/admin/audit` lists `event.create`, `event.edit`, `event.publish` and `event.cancel`.
 - [ ] Sign in as an Admin (not a super admin) on another device: `/admin/events` lists the
       events with "View" links and a "View only" note, and has no "New event", Publish, Cancel or
@@ -81,7 +81,7 @@ ahead, and delete it at the end.
       works; `/admin/events/new` says it's for super admins. An event change sent anyway (e.g. a
       replayed request) gets a 403 "Not allowed", and the Admin's `/admin/audit` shows a `denied`
       row for it.
-- [ ] As a super admin, "Delete" the test event; it's gone from `/events` and `/admin/events`, and
+- [ ] As a super admin, "Delete" the test event; it's gone from `/networking` and `/admin/events`, and
       `event.delete` is in the audit log.
 
 ## 7. Check-in, QR, live screen, calendar and share previews
@@ -90,8 +90,8 @@ Everything here runs on a **draft** test event in test mode, so nothing is publi
 fake draft (e.g. "Test event", venue "Example Venue"), any date. Test check-ins are stored apart,
 never counted, and cleared at the end.
 
-- [ ] While it's a draft and you're signed out (private window): `/events/<link name>/checkin`,
-      `/events/<link name>/checkin?test=1` and `/events/<link name>/live` are 404s.
+- [ ] While it's a draft and you're signed out (private window): `/networking/<link name>/checkin`,
+      `/networking/<link name>/checkin?test=1` and `/networking/<link name>/live` are 404s.
 - [ ] Signed in as a super admin, `/admin/events/<id>` shows "Test mode" with "Check-in (test
       mode)" and "Live screen (test mode)". Open check-in in test mode: "Test mode" banner, and
       check-in works even though it's a draft and outside the window.
@@ -112,8 +112,8 @@ never counted, and cleared at the end.
 - [ ] Calendar and share preview (draft-safe): the "Preview as it will appear" page shows "Add to
       calendar" (Google and Outlook open with the title, time in ET, address and description).
       The share image and `.ics` only exist once published, so check them on the real event:
-      paste `/events/<link name>` into a link preview checker (or an unposted LinkedIn / X draft)
-      and download `/events/<link name>/calendar.ics`.
+      paste `/networking/<link name>` into a link preview checker (or an unposted LinkedIn / X draft)
+      and download `/networking/<link name>/calendar.ics`.
 - [ ] QR and display link (once the real event is published): `/admin/events/<id>` shows the QR
       (scan it: it opens check-in), PNG / SVG downloads and the printable page. "Create display
       link" shows a URL once: on the TV, it opens the live screen without signing in, only from
@@ -249,3 +249,18 @@ treated as bots: they see the thank-you and nothing is stored).
       each block shows "You're on the list for …" with "Update your block" for programs you
       picked, and "You're a member. Add … to your updates" for ones you didn't, instead of
       "Get notified".
+
+## 11. Canonical URLs: `/networking` (round 15)
+
+- [ ] `/networking` is headed "Networking" with "Upcoming" (and "Past" once there are past
+      events). Block 01's card and "See all events", and the footer's "Networking", open it.
+- [ ] Old links redirect permanently (308) with the query kept: `/events` → `/networking`;
+      `/events/<slug>?src=event-<slug>` → `/networking/<slug>?src=event-<slug>` (join from there:
+      source `event-<slug>`); `/events/<slug>/checkin`, `/events/<slug>/live?d=<display token>`,
+      `/events/<slug>/calendar.ics` and an old check-in email link all land on the `/networking`
+      version and work.
+- [ ] In `/admin/events/<id>`: "Public page", "Preview", the share link, "Check-in (test mode)",
+      "Live screen (test mode)", a new display link and the QR (scan it) all use `/networking/…`.
+      The check-in email's button links to `/networking/<slug>/checkin/confirm`.
+- [ ] `/sitemap.xml` lists `/networking` and `/networking/<slug>` only (no `/events`). An event
+      page's canonical tag, og:url and JSON-LD url are `/networking/<slug>`; its share image loads.

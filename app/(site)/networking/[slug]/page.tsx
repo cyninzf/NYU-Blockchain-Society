@@ -5,6 +5,7 @@ import { metaDescription, siteName } from "@/content/site";
 import { eventWhen } from "@/lib/event-time";
 import { eventJsonLd, publicEvent, publicSlugs } from "@/lib/events";
 
+import { eventPath } from "@/lib/event-fields";
 // A published or cancelled event. Drafts and unknown slugs are a 404 (checked in proxy.ts too,
 // for a real 404 status). Pages exist for every event that was public at build time; newer
 // ones render on first request.
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!e) return { title: "Event not found", robots: { index: false } };
   const title = e.status === "cancelled" ? `${e.title} (cancelled)` : e.title;
   const description = metaDescription([eventWhen(e.startsAt, e.endsAt), e.venueName, e.cohost && `Co-hosted with ${e.cohost}`].filter(Boolean).join(" · ") + (e.description ? `. ${e.description}` : ""));
-  const url = `/events/${e.slug}`;
+  const url = eventPath(e.slug);
   return {
     title,
     description,

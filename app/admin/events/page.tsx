@@ -5,7 +5,7 @@ import { asc, sql } from "drizzle-orm";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { events, members, type EventRow } from "@/lib/db/schema";
-import { eventSource } from "@/lib/event-fields";
+import { NETWORKING_PATH, eventPath, eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import ShareLink from "./ShareLink";
 import StatusActions, { STATUS_LABELS } from "./StatusActions";
@@ -21,7 +21,7 @@ export default function EventsPage() {
   return (
     <>
       <h1>Events</h1>
-      <p className={styles.lede}>Networking events for the site: the next published one shows in Block 01 on the home page, and every published event gets a page under /events and a share link that tracks joins from it (?src=event-&lt;link name&gt;). New events start as drafts, which are never public; preview one before publishing. Times are New York time.</p>
+      <p className={styles.lede}>Networking events for the site: the next published one shows in Block 01 on the home page, and every published event gets a page under /networking and a share link that tracks joins from it (?src=event-&lt;link name&gt;). New events start as drafts, which are never public; preview one before publishing. Times are New York time.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Events admin={admin} />}</Guard>
       </Suspense>
@@ -76,8 +76,8 @@ function List({ title, rows, admin, joined, empty }: { title: string; rows: Even
                 <td>
                   <div className={styles.row}>
                     <Link href={`/admin/events/${e.id}`}>{isSuper(admin) ? "Edit" : "View"}</Link>
-                    <a href={`/events/preview?id=${e.id}`} target="_blank" rel="noopener">Preview</a>
-                    {e.status !== "draft" && <a href={`/events/${e.slug}`} target="_blank" rel="noopener">Public page</a>}
+                    <a href={`${NETWORKING_PATH}/preview?id=${e.id}`} target="_blank" rel="noopener">Preview</a>
+                    {e.status !== "draft" && <a href={eventPath(e.slug)} target="_blank" rel="noopener">Public page</a>}
                   </div>
                   {isSuper(admin) && <StatusActions id={e.id} status={e.status} />}
                 </td>
