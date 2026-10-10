@@ -15,10 +15,11 @@ export function reportError(area: Area, label: string, e: unknown) {
 export type FormName = "join" | "checkin" | "inquiry" | "accelerator" | "contact";
 
 /**
- * A submission treated as a bot and dropped (round 20): one log line and a Sentry breadcrumb
- * with the form and the reason only, never the person's details. Search the logs for "dropped:".
+ * A submission the bot guard flagged as suspected spam (round 20): it is saved, never dropped.
+ * One log line and a Sentry breadcrumb with the form and the reason only, never the person's
+ * details. Search the logs for "flagged:".
  */
-export function recordDrop(form: FormName, reason: "honeypot" | "too_fast") {
-  console.warn(`${form} dropped: ${reason}`);
-  Sentry.addBreadcrumb({ category: "form", level: "info", message: `${form} dropped: ${reason}` });
+export function recordFlag(form: FormName, reason: "honeypot" | "too_fast") {
+  console.warn(`${form} flagged: ${reason}`);
+  Sentry.addBreadcrumb({ category: "form", level: "info", message: `${form} flagged: ${reason}` });
 }

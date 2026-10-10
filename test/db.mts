@@ -235,7 +235,7 @@ ok(kind(formGuard("contact", tokenAt(300), "")) === "ok:too_fast", "an instant s
 ok(kind(formGuard("inquiry", tokenAt(10_000), "http://spam.example")) === "ok:honeypot", "a filled honeypot is kept, flagged");
 ok(kind(formGuard("contact", tokenAt(25 * 3600e3), "")) === "expired" && kind(formGuard("contact", "forged.token", "")) === "expired", "an old or forged token is refused");
 console.warn = warn;
-ok(drops.join("|") === "contact dropped: too_fast|inquiry dropped: honeypot", "each drop is logged with the form and reason only");
+ok(drops.join("|") === "contact flagged: too_fast|inquiry flagged: honeypot", "each flag is logged as \"<form> flagged: <reason>\" only");
 ok(MIN_FILL_MS <= 2000 && !/web|site|url|mail|name|phone|tel|mobile|hp|company|org|addr|city|zip|post|country|card/i.test(HONEYPOT_FIELD), "the honeypot name matches none of Chrome's autofill words (hp = phone) and the minimum time is 2 s at most");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

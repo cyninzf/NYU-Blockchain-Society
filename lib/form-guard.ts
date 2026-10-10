@@ -1,12 +1,12 @@
 import "server-only";
 import type { SpamReason } from "./db/schema";
-import { recordDrop, type FormName } from "./monitoring";
+import { recordFlag, type FormName } from "./monitoring";
 import { verify } from "./security";
 
 // Bot protection shared by every public form (round 20): join, check-in, the conference inquiry,
 // both accelerator forms and contact. Nothing is ever silently discarded: a suspected bot is saved
 // flagged as suspected spam (no emails, no member) for a super admin to review, and sees the normal
-// success. Each flag is recorded with its reason only (recordDrop).
+// success. Each flag is recorded with its reason only (recordFlag).
 
 /**
  * Minimum time from the form's token (issued when the form appears) to submit. 2 seconds: no
@@ -24,8 +24,8 @@ export function formGuard(form: FormName, formToken: string, honeypot: string): 
   const age = Date.now() - issued;
   if (!issued || age > MAX_FORM_AGE_MS) return { kind: "expired" };
   // Autofill can fill the honeypot for a real person, so it only flags: saved, reviewed by a person.
-  if (honeypot) { recordDrop(form, "honeypot"); return { kind: "ok", spam: "honeypot" }; }
+  if (honeypot) { recordFlag(form, "honeypot"); return { kind: "ok", spam: "honeypot" }; }
   // Too fast to be typed: also only flagged, never dropped (round 20, item 2).
-  if (age < MIN_FILL_MS) { recordDrop(form, "too_fast"); return { kind: "ok", spam: "too_fast" }; }
+  if (age < MIN_FILL_MS) { recordFlag(form, "too_fast"); return { kind: "ok", spam: "too_fast" }; }
   return { kind: "ok", spam: null };
 }
