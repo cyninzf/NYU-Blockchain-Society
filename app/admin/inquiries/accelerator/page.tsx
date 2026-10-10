@@ -8,7 +8,8 @@ import { FOUNDER_STAGES, INTEREST_STATUSES, type InterestStatus } from "@/lib/db
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 import InquiryTabs from "../InquiryTabs";
-import { changeInterestStatus, removeInterest } from "./actions";
+import { changeInterestStatus, notSpamInterest, removeInterest } from "./actions";
+import { NotSpamButton, SpamBadge, SpamFilter, spamFilterOf } from "../../Spam";
 
 export const metadata: Metadata = { title: "Accelerator interest · Admin", robots: { index: false, follow: false } };
 
@@ -64,6 +65,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
             {INTEREST_STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
           </select>
         </label>
+        <SpamFilter value={spamFilterOf(f.spam)} />
         <button type="submit">Filter</button>
         {isSuper(admin)
           ? <a className={styles.export} href={`/admin/inquiries/accelerator/export${qs ? `?${qs}` : ""}`}>Export CSV</a>
@@ -96,6 +98,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
                   )}
                 </td>
                 <td>
+                  {r.suspectedSpam && <><SpamBadge reason={r.spamReason} />{isSuper(admin) && <NotSpamButton action={notSpamInterest} id={r.id} what="accelerator interest" />}</>}
                   {isSuper(admin) ? (
                     <form action={changeInterestStatus} className={styles.row}>
                       <input type="hidden" name="id" value={r.id} />

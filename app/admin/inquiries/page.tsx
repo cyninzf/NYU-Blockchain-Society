@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { conferenceInquiries, INQUIRY_STATUSES, type InquiryStatus } from "@/lib/db/schema";
 import { INTEREST_LABELS } from "@/lib/inquiries";
-import { changeInquiryStatus, removeInquiry } from "./actions";
+import { changeInquiryStatus, notSpamInquiry, removeInquiry } from "./actions";
+import { NotSpamButton, SpamBadge, SpamFilter, spamFilterOf } from "../Spam";
 import Guard from "../Guard";
 import InquiryTabs from "./InquiryTabs";
 import styles from "../admin.module.css";
@@ -35,7 +36,8 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const sp = await searchParams;
   const status = INQUIRY_STATUSES.find((s) => s === sp.status);
-  const rows = await db.select().from(conferenceInquiries).where(status ? eq(conferenceInquiries.status, status) : undefined).orderBy(desc(conferenceInquiries.id)).limit(300);
+  const spam = spamFilterOf(sp.spam);
+  const rows = await db.select().from(conferenceInquiries).where(and(status ? eq(conferenceInquiries.status, status) : undefined, spam === undefined ? undefined : eq(conferenceInquiries.suspectedSpam, spam))).orderBy(desc(conferenceInquiries.id)).limit(300);
   return (
     <>
       <form className={styles.filters} method="get">
@@ -45,6 +47,7 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
             {INQUIRY_STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
           </select>
         </label>
+        <SpamFilter value={spam} />
         <button type="submit">Filter</button>
         {!isSuper(admin) && <span className={styles.note}>Read-only: super admins change the status and delete.</span>}
       </form>
@@ -60,6 +63,7 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
                 <td>{INTEREST_LABELS[r.interest]}</td>
                 <td style={{ whiteSpace: "pre-line", maxWidth: 420 }}>{r.message}</td>
                 <td>
+                  {r.suspectedSpam && <><SpamBadge reason={r.spamReason} />{isSuper(admin) && <NotSpamButton action={notSpamInquiry} id={r.id} what="inquiry" />}</>}
                   {isSuper(admin) ? (
                     <form action={changeInquiryStatus} className={styles.row}>
                       <input type="hidden" name="id" value={r.id} />
@@ -84,7 +88,7 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
             ))}
           </tbody>
         </table>
-        {!rows.length && <p className={styles.empty}>No inquiries{status ? ` marked ${LABEL[status].toLowerCase()}` : " yet"}.</p>}
+        {!rows.length && <p className={styles.empty}>No inquiries{status || spam !== undefined ? " for these filters" : " yet"}.</p>}
       </div>
     </>
   );

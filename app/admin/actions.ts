@@ -5,7 +5,7 @@ import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
-import { audit, auditRow, requireAdmin } from "@/lib/admin";
+import { audit, auditRow, requireAdmin, requireSuperOr403 } from "@/lib/admin";
 import { autoLinkContacts } from "@/lib/contact-links";
 import { countryOf } from "@/lib/location";
 import { memberColumns } from "@/lib/members-query";
@@ -13,6 +13,7 @@ import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { adminAudit, AFFILIATIONS, contacts, members, type AuditChanges } from "@/lib/db/schema";
 
 import { reportError } from "@/lib/monitoring";
+import { approvePendingJoin, deletePendingJoin } from "@/lib/pending-joins";
 const idOf = (fd: FormData) => {
   const id = Number(fd.get("id"));
   if (!Number.isInteger(id) || id < 1) throw new Error("Bad id");
@@ -132,4 +133,23 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
   updateTag("chain");
   refresh();
   return { ok: true, message: linked ? `Saved. ${linked === 1 ? "A matching contact is" : `${linked} matching contacts are`} now linked to this member.` : "Saved." };
+}
+
+/** Pending joins (round 20): "Not spam" joins the person (welcome email, block number); super admins only. */
+export async function approvePending(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`approve pending join #${id}`);
+  if (!Number.isInteger(id) || id < 1) throw new Error("Bad request");
+  await approvePendingJoin(db, id, actor);
+  updateTag("chain");
+  refresh();
+}
+
+/** Pending joins: delete after the confirm step; super admins only, logged without personal data. */
+export async function removePending(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`delete pending join #${id}`);
+  if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
+  await deletePendingJoin(db, id, actor);
+  refresh();
 }

@@ -86,3 +86,4 @@
 }
 .mailPreview{width:100%; height:560px; border:1px solid var(--line); border-radius:10px; background:#F5F1F9}
 .subtabs{margin:-6px 0 18px}
+.spam{border-color:#C0392B; color:#C0392B}

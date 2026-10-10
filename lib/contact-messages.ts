@@ -101,3 +101,18 @@ export async function deleteContactMessage(db: Db, id: number, actor: string): P
   if (gone) await db.insert(adminAudit).values(auditRow(actor, "contact_message.delete", `Deleted contact message #${id}`));
   return Boolean(gone);
 }
+
+/**
+ * "Not spam" (round 20; super admins, checked by the caller): back to normal, then what was
+ * skipped: the sender's confirmation link for a privacy request and the notification. Claimed with
+ * one update, so it happens once. Logged without content.
+ */
+export async function markContactNotSpam(db: Db, id: number, actor: string): Promise<boolean> {
+  const [r] = await db.update(contactMessages).set({ suspectedSpam: false })
+    .where(and(eq(contactMessages.id, id), eq(contactMessages.suspectedSpam, true))).returning();
+  if (!r) return false;
+  await db.insert(adminAudit).values(auditRow(actor, "contact_message.not_spam", `Marked contact message #${id} not spam`));
+  if (r.topic !== "general") await sendContactVerification(db, id, r.email);
+  await notifyContactMessage(db, id, { name: r.name, email: r.email, topic: r.topic, message: r.message });
+  return true;
+}

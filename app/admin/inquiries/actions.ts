@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { requireSuperOr403 } from "@/lib/admin";
 import { INQUIRY_STATUSES, type InquiryStatus } from "@/lib/db/schema";
-import { deleteInquiry, setInquiryStatus } from "@/lib/inquiries";
+import { deleteInquiry, setInquiryStatus, markInquiryNotSpam } from "@/lib/inquiries";
 
 /** Super admins only (admins read); every change is in the audit log. */
 export async function changeInquiryStatus(fd: FormData) {
@@ -20,5 +20,14 @@ export async function removeInquiry(fd: FormData) {
   const { db, actor } = await requireSuperOr403(`delete inquiry #${id}`);
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
   await deleteInquiry(db, id, actor);
+  refresh();
+}
+
+/** Suspected spam → normal (round 20): super admins only; sends the email it skipped, once. Logged without content. */
+export async function notSpamInquiry(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`mark #${id} not spam`);
+  if (!Number.isInteger(id) || id < 1) throw new Error("Bad request");
+  await markInquiryNotSpam(db, id, actor);
   refresh();
 }

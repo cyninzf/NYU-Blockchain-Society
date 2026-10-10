@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { requireSuperOr403 } from "@/lib/admin";
-import { deleteContactMessage, setContactStatus } from "@/lib/contact-messages";
+import { deleteContactMessage, setContactStatus, markContactNotSpam } from "@/lib/contact-messages";
 import { CONTACT_STATUSES, type ContactStatus } from "@/lib/db/schema";
 
 /** Super admins only (admins read); every change is in the audit log. */
@@ -20,5 +20,14 @@ export async function removeContactMessage(fd: FormData) {
   const { db, actor } = await requireSuperOr403(`delete contact message #${id}`);
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
   await deleteContactMessage(db, id, actor);
+  refresh();
+}
+
+/** Suspected spam → normal (round 20): super admins only; sends the email it skipped, once. Logged without content. */
+export async function notSpamContact(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`mark #${id} not spam`);
+  if (!Number.isInteger(id) || id < 1) throw new Error("Bad request");
+  await markContactNotSpam(db, id, actor);
   refresh();
 }

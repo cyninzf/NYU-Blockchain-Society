@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { deleteInterest, setInterestStatus } from "@/lib/accelerator-interest";
+import { deleteInterest, setInterestStatus, markInterestNotSpam } from "@/lib/accelerator-interest";
 import { requireSuperOr403 } from "@/lib/admin";
 import { INTEREST_STATUSES, type InterestStatus } from "@/lib/db/schema";
 
@@ -20,5 +20,14 @@ export async function removeInterest(fd: FormData) {
   const { db, actor } = await requireSuperOr403(`delete accelerator interest #${id}`);
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
   await deleteInterest(db, id, actor);
+  refresh();
+}
+
+/** Suspected spam → normal (round 20): super admins only; sends the email it skipped, once. Logged without content. */
+export async function notSpamInterest(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`mark #${id} not spam`);
+  if (!Number.isInteger(id) || id < 1) throw new Error("Bad request");
+  await markInterestNotSpam(db, id, actor);
   refresh();
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
-import { acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
+import { type AcceleratorInterest, acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
 import { optText } from "./member-fields";
@@ -110,12 +110,12 @@ export async function notifyInterest(db: Db, id: number, d: InterestFields) {
   if (!r.ok) console.error("accelerator notification not sent:", r.error);
 }
 
-export type InterestFilters = { type?: InterestType; status?: InterestStatus; stage?: (typeof FOUNDER_STAGES)[number]; focus?: (typeof FOCUS)[number] };
+export type InterestFilters = { type?: InterestType; status?: InterestStatus; stage?: (typeof FOUNDER_STAGES)[number]; focus?: (typeof FOCUS)[number]; spam?: "1" | "0" };
 
 /** Filters from the query string; anything unknown is ignored. */
 export function parseInterestFilters(sp: Record<string, string | string[] | undefined>): InterestFilters {
   const pick = <T extends string>(v: unknown, all: readonly T[]) => all.find((x) => x === v);
-  return { type: pick(sp.type, INTEREST_TYPES), status: pick(sp.status, INTEREST_STATUSES), stage: pick(sp.stage, FOUNDER_STAGES), focus: pick(sp.focus, FOCUS) };
+  return { type: pick(sp.type, INTEREST_TYPES), status: pick(sp.status, INTEREST_STATUSES), stage: pick(sp.stage, FOUNDER_STAGES), focus: pick(sp.focus, FOCUS), spam: pick(sp.spam, ["1", "0"] as const) };
 }
 
 /** Newest first. Stage and focus only ever match founders. */
@@ -125,6 +125,7 @@ export function listInterest(db: Db, f: InterestFilters, limit?: number) {
     f.status ? eq(acceleratorInterest.status, f.status) : undefined,
     f.stage ? eq(acceleratorInterest.stage, f.stage) : undefined,
     f.focus ? arrayContains(acceleratorInterest.focus, [f.focus]) : undefined,
+    f.spam ? eq(acceleratorInterest.suspectedSpam, f.spam === "1") : undefined,
   );
   const q = db.select().from(acceleratorInterest).where(where).orderBy(desc(acceleratorInterest.id));
   return limit ? q.limit(limit) : q;
@@ -149,4 +150,27 @@ export async function deleteInterest(db: Db, id: number, actor: string): Promise
   const [gone] = await db.delete(acceleratorInterest).where(eq(acceleratorInterest.id, id)).returning({ type: acceleratorInterest.type });
   if (gone) await db.insert(adminAudit).values(auditRow(actor, "accelerator.delete", `Deleted accelerator ${gone.type} #${id}`));
   return Boolean(gone);
+}
+
+/** A stored row back into the form's fields (for the notification and the member join). */
+function fieldsOf(r: AcceleratorInterest): InterestFields {
+  return r.type === "founder"
+    ? { type: "founder", name: r.name, email: r.email, affiliation: r.affiliation!, company: r.company ?? "", oneLiner: r.oneLiner ?? "", stage: r.stage!, focus: r.focus as FounderFields["focus"], website: r.website, addMember: r.addMember }
+    : { type: "supporter", name: r.name, email: r.email, organization: r.organization ?? "", help: r.help as SupporterFields["help"], message: r.message };
+}
+
+/**
+ * "Not spam" (round 20; super admins, checked by the caller): back to normal, then what was
+ * skipped: the member join for a founder who ticked "Also add me as a member" (with its welcome
+ * email) and the notification. Claimed with one update, so it happens once. Logged without content.
+ */
+export async function markInterestNotSpam(db: Db, id: number, actor: string): Promise<boolean> {
+  const [r] = await db.update(acceleratorInterest).set({ suspectedSpam: false })
+    .where(and(eq(acceleratorInterest.id, id), eq(acceleratorInterest.suspectedSpam, true))).returning();
+  if (!r) return false;
+  await db.insert(adminAudit).values(auditRow(actor, "accelerator.not_spam", `Marked accelerator ${r.type} #${id} not spam`));
+  const d = fieldsOf(r);
+  if (d.type === "founder" && d.addMember) await joinFounder(db, d);
+  await notifyInterest(db, id, d);
+  return true;
 }

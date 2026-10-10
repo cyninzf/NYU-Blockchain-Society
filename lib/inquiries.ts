@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
@@ -63,4 +63,17 @@ export async function deleteInquiry(db: Db, id: number, actor: string): Promise<
   const [gone] = await db.delete(conferenceInquiries).where(eq(conferenceInquiries.id, id)).returning({ id: conferenceInquiries.id });
   if (gone) await db.insert(adminAudit).values(auditRow(actor, "inquiry.delete", `Deleted conference inquiry #${id}`));
   return Boolean(gone);
+}
+
+/**
+ * "Not spam" (round 20; super admins, checked by the caller): back to normal, and the skipped
+ * notification goes out. Claimed with one update, so it can only happen once. Logged without content.
+ */
+export async function markInquiryNotSpam(db: Db, id: number, actor: string): Promise<boolean> {
+  const [r] = await db.update(conferenceInquiries).set({ suspectedSpam: false })
+    .where(and(eq(conferenceInquiries.id, id), eq(conferenceInquiries.suspectedSpam, true))).returning();
+  if (!r) return false;
+  await db.insert(adminAudit).values(auditRow(actor, "inquiry.not_spam", `Marked conference inquiry #${id} not spam`));
+  await notifyInquiry(db, id, { name: r.name, email: r.email, company: r.company, interest: r.interest, message: r.message }, r.edition);
+  return true;
 }

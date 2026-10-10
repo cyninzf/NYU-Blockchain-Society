@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { isPrivacyTopic, TOPIC_LABELS } from "@/content/contact";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
@@ -8,7 +8,8 @@ import { CONTACT_STATUSES, contactMessages, type ContactMessage, type ContactSta
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 import InquiryTabs from "../InquiryTabs";
-import { changeContactStatus, removeContactMessage } from "./actions";
+import { changeContactStatus, notSpamContact, removeContactMessage } from "./actions";
+import { NotSpamButton, SpamBadge, SpamFilter, spamFilterOf } from "../../Spam";
 
 export const metadata: Metadata = { title: "Contact messages · Admin", robots: { index: false, follow: false } };
 
@@ -40,7 +41,8 @@ async function Messages({ admin, searchParams }: { admin: Admin; searchParams: S
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const sp = await searchParams;
   const status = CONTACT_STATUSES.find((s) => s === sp.status);
-  const rows = await db.select().from(contactMessages).where(status ? eq(contactMessages.status, status) : undefined).orderBy(desc(contactMessages.id)).limit(300);
+  const spam = spamFilterOf(sp.spam);
+  const rows = await db.select().from(contactMessages).where(and(status ? eq(contactMessages.status, status) : undefined, spam === undefined ? undefined : eq(contactMessages.suspectedSpam, spam))).orderBy(desc(contactMessages.id)).limit(300);
   return (
     <>
       <form className={styles.filters} method="get">
@@ -50,6 +52,7 @@ async function Messages({ admin, searchParams }: { admin: Admin; searchParams: S
             {CONTACT_STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
           </select>
         </label>
+        <SpamFilter value={spam} />
         <button type="submit">Filter</button>
         {!isSuper(admin) && <span className={styles.note}>Read-only: super admins change the status and delete.</span>}
       </form>
@@ -66,6 +69,7 @@ async function Messages({ admin, searchParams }: { admin: Admin; searchParams: S
                 <td>{verified(r)}{r.verifiedAt && <div className={styles.note}>{dateFmt.format(r.verifiedAt)}</div>}</td>
                 <td style={{ whiteSpace: "pre-line", maxWidth: 420 }}>{r.message}</td>
                 <td>
+                  {r.suspectedSpam && <><SpamBadge reason={r.spamReason} />{isSuper(admin) && <NotSpamButton action={notSpamContact} id={r.id} what="contact message" />}</>}
                   {isSuper(admin) ? (
                     <form action={changeContactStatus} className={styles.row}>
                       <input type="hidden" name="id" value={r.id} />
@@ -90,7 +94,7 @@ async function Messages({ admin, searchParams }: { admin: Admin; searchParams: S
             ))}
           </tbody>
         </table>
-        {!rows.length && <p className={styles.empty}>No messages{status ? ` marked ${LABEL[status].toLowerCase()}` : " yet"}.</p>}
+        {!rows.length && <p className={styles.empty}>No messages{status || spam !== undefined ? " for these filters" : " yet"}.</p>}
       </div>
     </>
   );
