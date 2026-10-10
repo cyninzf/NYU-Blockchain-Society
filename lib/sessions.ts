@@ -1,6 +1,8 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
+import { unstable_rethrow } from "next/navigation";
+import { connection } from "next/server";
 import type { Db } from "./db";
 import { authSessions } from "./db/schema";
 import { readSession, signSession } from "./session-token";
@@ -27,11 +29,16 @@ export async function createSession(db: Db, kind: Kind, subject: string, ttlMs: 
 export async function sessionSubject(db: Db | null, kind: Kind, cookie: string | undefined): Promise<string | null> {
   const s = readSession(kind, cookie);
   if (!s || !db) return null;
+  // Only inside a real request (round 18): during a prerender this never resolves, so the query
+  // never starts there. In server actions and route handlers it resolves at once.
+  await connection();
   try {
     const [row] = await db.select({ subject: authSessions.subject }).from(authSessions)
       .where(and(eq(authSessions.tokenHash, hash(s.subject)), eq(authSessions.kind, kind), isNull(authSessions.revokedAt), gt(authSessions.expiresAt, sql`now()`)));
     return row?.subject ?? null;
   } catch (e) {
+    // Next.js's own control-flow errors (e.g. a prerender ending) aren't failures: let Next handle them.
+    unstable_rethrow(e);
     reportError("admin", "session lookup failed", e);
     return null;
   }

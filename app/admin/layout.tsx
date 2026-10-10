@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { getAdmin, ROLE_LABELS } from "@/lib/admin";
 import { getDb } from "@/lib/db";
@@ -6,7 +7,16 @@ import AdminNav from "./AdminNav";
 import { signOut } from "./login/actions";
 import styles from "./admin.module.css";
 
-export default function AdminLayout({ children }: LayoutProps<"/admin">) {
+// Every /admin route renders per request, never prerendered (round 18): with Cache Components and
+// Partial Prefetching, a prerender pass (a prefetch, or the re-render after a server action) could
+// start the session lookup and have its database fetch cut off when the prerender ended. So no
+// static shell (`instant = false`), no prefetching of admin segments, and `connection()` first:
+// nothing below runs until there is a real request.
+export const instant = false;
+export const prefetch = "force-disabled";
+
+export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
+  await connection();
   return (
     <main className={styles.page}>
       <Suspense fallback={null}><Header /></Suspense>

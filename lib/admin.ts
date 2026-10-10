@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { forbidden } from "next/navigation";
+import { forbidden, unstable_rethrow } from "next/navigation";
 import { getDb, type Db } from "./db";
 import { adminAudit, adminUsers, type AdminRole, type AuditChanges } from "./db/schema";
 import { ADMIN_COOKIE } from "./session-token";
@@ -34,6 +34,7 @@ export async function roleFor(db: Db | null, email: string): Promise<AdminRole |
       .where(and(eq(sql`lower(${adminUsers.email})`, norm(email)), isNull(adminUsers.removedAt)));
     return u?.role ?? null;
   } catch (e) {
+    unstable_rethrow(e);
     reportError("admin", "admin_users lookup failed", e);
     return null;
   }
