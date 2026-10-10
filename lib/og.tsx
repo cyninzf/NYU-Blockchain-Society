@@ -10,8 +10,11 @@ async function loadMark() {
   return readFile(join(process.cwd(), "public/brand/mark-node-white.svg"), "base64");
 }
 
-/** The site's share image: brand mark, a large title and a muted line. */
-export async function ogImage({ title, subtitle }: { title: string; subtitle: string }) {
+/**
+ * The site's share image: brand mark, a large title and a muted line. Events add a small
+ * `kicker` above the title (e.g. "Networking evening") and a `footnote` (the co-host, as text).
+ */
+export async function ogImage({ title, subtitle, kicker, footnote }: { title: string; subtitle: string; kicker?: string; footnote?: string }) {
   const mark = await loadMark();
   return new ImageResponse(
     (
@@ -33,8 +36,10 @@ export async function ogImage({ title, subtitle }: { title: string; subtitle: st
           <span style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-0.01em" }}>{siteName}</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-          <span style={{ fontSize: title.length > 26 ? 76 : 92, lineHeight: 1.02, letterSpacing: "-0.05em", maxWidth: 1040 }}>{title}</span>
+          {kicker && <span style={{ fontSize: 26, letterSpacing: "0.08em", textTransform: "uppercase", color: "#D8C2F0" }}>{kicker}</span>}
+          <span style={{ fontSize: title.length > 40 ? 64 : title.length > 26 ? 76 : 92, lineHeight: 1.02, letterSpacing: "-0.05em", maxWidth: 1040 }}>{title}</span>
           <span style={{ fontSize: 32, lineHeight: 1.35, color: "#B9A3D0", maxWidth: 980 }}>{subtitle}</span>
+          {footnote && <span style={{ fontSize: 26, color: "#D8C2F0" }}>{footnote}</span>}
         </div>
       </div>
     ),
