@@ -279,9 +279,9 @@ Privacy links
 - [ ] "See our privacy policy." appears under: the join flow (every step), `/update` (the email
       form and the edit form), check-in (the email step and the join step), the conference
       inquiry form and both accelerator forms. Each link opens `/privacy`.
-- [ ] Under "Your choices and rights", `/privacy` shows "For access or deletion requests you can
-      also write to <the reply-to address>." and the address opens a new email to it. (It's the
-      `REPLY_TO_EMAIL` value at deploy time: after changing it in Vercel, redeploy.)
+- [ ] Under "Your choices and rights", `/privacy` says to use our contact form for access or
+      deletion requests and that they're confirmed by email first; "our contact form" (there and
+      in the EU/UK section) opens `/contact`. No email address appears on the page.
 
 Deleting inquiries (round 17)
 - [ ] As an Admin, `/admin/inquiries` and its Accelerator tab show no Delete.
@@ -316,3 +316,28 @@ Analytics (after enabling Web Analytics in Vercel and redeploying)
       a conference inquiry and each accelerator form → `inquiry_submitted` with its type; a real
       check-in (not test mode) → `checkin_completed` with the event slug. No event carries a name
       or email.
+
+## 13. Contact form and privacy requests: `/contact`, `/admin/inquiries/contact` (round 19)
+
+Use an address you own. Wait a few seconds after the page loads before sending.
+
+- [ ] The footer shows "Contact" next to "Privacy"; `/contact` shows the form with three topics
+      and "See our privacy policy." No email address appears on `/contact`, `/privacy` or the
+      footer.
+- [ ] General question: "Thank you… will reply by email." on screen. No email to you. The super
+      admin inbox gets "Contact (General question): <name>"; Reply addresses you. In
+      `/admin/inquiries/contact` the row shows Verified "Not needed".
+- [ ] Privacy request: access my data: the thank-you says to check your inbox. You get exactly one
+      email, "Confirm your privacy request"; the super admin gets the notification, which says
+      it's unverified. Admin shows "Unverified".
+- [ ] Open the link: `/contact/verify` shows "Confirm my request" (nothing happens on load). Press
+      it: "your request is confirmed", the address bar no longer has the token, and admin shows
+      "Verified" with the time. Open the same link again: "expired or was already used".
+- [ ] Privacy request: delete my data: same as access; leave the link unclicked and check the row
+      stays "Unverified" (the link stops working after 48 hours).
+- [ ] As an Admin: the Contact tab is read-only (no Save, no Delete).
+- [ ] As a super admin: set a message to "Replied" (`/admin/audit`: `contact_message.status` new →
+      replied), then delete each test message ("Delete" → "Delete #<id> permanently");
+      `/admin/audit` shows `contact_message.delete` "Deleted contact message #<id>" with your email
+      and the time, and nothing from the message.
+- [ ] More than 5 sends in an hour from one network shows "Too many messages from here".
