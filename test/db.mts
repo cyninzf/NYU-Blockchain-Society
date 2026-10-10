@@ -231,7 +231,7 @@ const warn = console.warn; const drops: string[] = []; console.warn = (m: string
 const kind = (g: any) => (g.kind === "ok" ? `ok:${g.spam ?? "clean"}` : g.kind);
 ok(kind(formGuard("contact", tokenAt(MIN_FILL_MS + 500), "")) === "ok:clean", "a normal submit after a few seconds is kept");
 ok(kind(formGuard("contact", tokenAt(60_000), "")) === "ok:clean", "a slow submit is kept");
-ok(kind(formGuard("contact", tokenAt(300), "")) === "drop", "an instant submit is dropped as a bot");
+ok(kind(formGuard("contact", tokenAt(300), "")) === "ok:too_fast", "an instant submit is kept, flagged");
 ok(kind(formGuard("inquiry", tokenAt(10_000), "http://spam.example")) === "ok:honeypot", "a filled honeypot is kept, flagged");
 ok(kind(formGuard("contact", tokenAt(25 * 3600e3), "")) === "expired" && kind(formGuard("contact", "forged.token", "")) === "expired", "an old or forged token is refused");
 console.warn = warn;

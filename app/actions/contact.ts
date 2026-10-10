@@ -21,7 +21,6 @@ export async function submitContact(_prev: ContactResult, fd: FormData): Promise
   const guard = formGuard("contact", String(fd.get("formToken") ?? ""), String(fd.get(HONEYPOT_FIELD) ?? ""));
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
   const parsed = ContactInput.safeParse(Object.fromEntries(fd));
-  if (guard.kind === "drop") return { ok: true, privacy: parsed.success && parsed.data.topic !== "general" };
   // Suspected bots are saved flagged (no confirmation, no notification) and see the normal thank-you.
   const spam = guard.spam;
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };

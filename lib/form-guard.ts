@@ -16,8 +16,8 @@ export const MIN_FILL_MS = 2000;
 export const MAX_FORM_AGE_MS = 24 * 60 * 60 * 1000;
 export const EXPIRED = "This form expired. Please reload the page and try again.";
 
-/** "expired": the form token is missing, forged or older than a day (an error is shown). */
-export type GuardResult = { kind: "expired" } | { kind: "drop" } | { kind: "ok"; spam: SpamReason | null };
+/** "expired": the form token is missing, forged or older than a day (an error is shown). Otherwise saved, flagged when `spam` is set. */
+export type GuardResult = { kind: "expired" } | { kind: "ok"; spam: SpamReason | null };
 
 export function formGuard(form: FormName, formToken: string, honeypot: string): GuardResult {
   const issued = Number(verify(formToken)?.split(".")[1]);
@@ -25,6 +25,7 @@ export function formGuard(form: FormName, formToken: string, honeypot: string): 
   if (!issued || age > MAX_FORM_AGE_MS) return { kind: "expired" };
   // Autofill can fill the honeypot for a real person, so it only flags: saved, reviewed by a person.
   if (honeypot) { recordDrop(form, "honeypot"); return { kind: "ok", spam: "honeypot" }; }
-  if (age < MIN_FILL_MS) { recordDrop(form, "too_fast"); return { kind: "drop" }; }
+  // Too fast to be typed: also only flagged, never dropped (round 20, item 2).
+  if (age < MIN_FILL_MS) { recordDrop(form, "too_fast"); return { kind: "ok", spam: "too_fast" }; }
   return { kind: "ok", spam: null };
 }

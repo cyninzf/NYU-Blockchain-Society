@@ -21,7 +21,6 @@ const GENERIC = "Something went wrong on our side. Please try again in a moment.
 export async function submitInquiry(_prev: InquiryResult, fd: FormData): Promise<InquiryResult> {
   const guard = formGuard("inquiry", String(fd.get("formToken") ?? ""), String(fd.get(HONEYPOT_FIELD) ?? ""));
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
-  if (guard.kind === "drop") return { ok: true };
   // Suspected bots are saved flagged (no notification) and see the normal thank-you.
   const spam = guard.spam;
   const parsed = InquiryInput.safeParse(Object.fromEntries(fd));

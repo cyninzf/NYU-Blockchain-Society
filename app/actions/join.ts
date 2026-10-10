@@ -61,7 +61,6 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
 
   const guard = formGuard("join", d.formToken, d.hp);
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
-  if (guard.kind === "drop") return { ok: true, n: null, token: null };
 
   const db = getDb();
   if (!db) return isLocal ? { ok: true, n: 0, token: null, devNotice: NO_DB } : { ok: false, error: GENERIC };

@@ -106,7 +106,6 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
   // Test mode skips the bot checks so super admins can test quickly.
   const guard: GuardResult = test ? (verify(d.formToken) ? { kind: "ok", spam: null } : { kind: "expired" }) : formGuard("checkin", d.formToken, d.hp);
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
-  if (guard.kind === "drop") return { ok: true, n: null, viaJoin: true };
   const o = await openEvent(d.slug, test);
   if (!o) return { ok: false, error: CLOSED };
   // Test mode, by default: the form is checked and nothing at all is created.
