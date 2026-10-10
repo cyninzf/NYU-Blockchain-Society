@@ -41,7 +41,7 @@ export const recipients = (db: Db, f: AnnouncementFilters) =>
 /** Blank-line separated paragraphs, as typed. */
 const paragraphs = (body: string) => body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 
-export function announcementEmail(c: z.infer<typeof Content>, to: string, memberId: number | null): Message {
+export function announcementEmail(c: z.infer<typeof Content>, to: string, memberId: number | null, postalAddress: string | null = null): Message {
   return {
     to,
     subject: memberId === null ? `[Test] ${c.subject}` : c.subject,
@@ -54,6 +54,7 @@ export function announcementEmail(c: z.infer<typeof Content>, to: string, member
         : "You're getting this as a member of NYU Blockchain Society.",
       // A test has no member, so its link only shows where the real one goes.
       unsubscribeUrl: memberId === null ? `${baseUrl()}/unsubscribe` : unsubscribeUrl(memberId),
+      postalAddress,
     }),
     ...(memberId === null ? {} : { headers: unsubscribeHeaders(memberId) }),
   };

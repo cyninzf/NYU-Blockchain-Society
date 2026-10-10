@@ -7,6 +7,7 @@ import { announcementEmail, Content, contentHash, Filters, recipients, recipient
 import { isProduction } from "@/lib/base-url";
 import { adminAudit, announcements, members, type AnnouncementFilters } from "@/lib/db/schema";
 import { DAILY_EMAIL_LIMIT, remainingToday, sendBatch, sendEmail } from "@/lib/email";
+import { postalAddress } from "@/lib/settings";
 
 // Both roles may draft, test and send. Every test and send is logged (announcements and
 // admin_audit) with the admin's email.
@@ -41,7 +42,7 @@ export async function sendTest(d: Draft): Promise<SendResult> {
   const filters = parseFilters(d.filters);
   if (!c.success) return { ok: false, error: c.error.issues[0]?.message ?? "Check the announcement." };
   if (!filters) return { ok: false, error: "Check the filters." };
-  const r = await sendEmail(db, "announcement-test", announcementEmail(c.data, admin.email, null));
+  const r = await sendEmail(db, "announcement-test", announcementEmail(c.data, admin.email, null, await postalAddress(db)));
   if (!r.ok) return { ok: false, error: r.error };
   const hash = contentHash(c.data);
   await db.batch([
@@ -79,7 +80,8 @@ export async function sendAnnouncement(d: Draft, expected: number): Promise<Send
     return { ok: false, error: `This would send ${list.length} emails, but only ${remaining} of today's ${DAILY_EMAIL_LIMIT} are left. Narrow the filters or send later.` };
   }
 
-  const r = await sendBatch(db, "announcement", list.map((m) => announcementEmail(c.data, m.email, m.id)));
+  const address = await postalAddress(db);
+  const r = await sendBatch(db, "announcement", list.map((m) => announcementEmail(c.data, m.email, m.id, address)));
   const status = r.ok ? "sent" : r.sent ? "partial" : "failed";
   await db.batch([
     db.insert(announcements).values({ status, ...c.data, contentHash: hash, filters, recipientCount: list.length, sentCount: r.sent, sentBy: actor }),

@@ -314,3 +314,11 @@ export const inviteSuppressions = pgTable(
   (t) => [uniqueIndex("invite_suppressions_hash_idx").on(t.emailHash)],
 );
 
+/** Site settings edited by super admins at /admin/settings (round 12), e.g. "postal_address". */
+export const settings = pgTable("settings", {
+  key: text().primaryKey(),
+  value: text().notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+

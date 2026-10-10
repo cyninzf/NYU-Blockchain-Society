@@ -15,6 +15,7 @@ const TABS = [
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/team", label: "Team", superOnly: true },
   { href: "/admin/media-kit-preview", label: "Media kit preview", superOnly: true },
+  { href: "/admin/settings", label: "Settings", superOnly: true },
 ] as const;
 
 export default function AdminNav({ role }: { role: AdminRole }) {

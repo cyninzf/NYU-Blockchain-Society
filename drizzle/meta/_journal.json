@@ -127,6 +127,13 @@
       "when": 1791647831023,
       "tag": "0017_invite_suppressions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791647956658,
+      "tag": "0018_settings",
+      "breakpoints": true
     }
   ]
 }
