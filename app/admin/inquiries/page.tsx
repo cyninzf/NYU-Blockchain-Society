@@ -7,6 +7,7 @@ import { conferenceInquiries, INQUIRY_STATUSES, type InquiryStatus } from "@/lib
 import { INTEREST_LABELS } from "@/lib/inquiries";
 import { changeInquiryStatus } from "./actions";
 import Guard from "../Guard";
+import InquiryTabs from "./InquiryTabs";
 import styles from "../admin.module.css";
 
 export const metadata: Metadata = { title: "Inquiries · Admin", robots: { index: false, follow: false } };
@@ -17,6 +18,7 @@ export default function InquiriesPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Inquiries</h1>
+      <InquiryTabs current="conference" />
       <p className={styles.lede}>Sponsor and speaker inquiries from /conference. Each one also went by email to the recovery super admin, with Reply going to the inquirer. Inquirers aren&apos;t contacts or members unless they join themselves.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Inquiries admin={admin} searchParams={searchParams} />}</Guard>

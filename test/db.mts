@@ -168,5 +168,14 @@ ok(pm.ok && (pm as any).data.addMember && asM.affiliation === "alumni" && asM.no
 ok(founderAsMember((pf as any).data).affiliation === "industry", "\"Other\" joins as an industry professional");
 const [{ accMembers }] = await db.select({ accMembers: sql<number>`count(*)::int` }).from(members).where(sql`email in ('fay@example.com', 'sid@example.com')`);
 ok(accMembers === 0, "accelerator interest alone makes nobody a member");
+const { setInterestStatus, listInterest, parseInterestFilters } = await import(`${P}/lib/accelerator-interest.ts`);
+ok(await setInterestStatus(db, fid, "contacted", "admin@example.com"), "accelerator status changed");
+ok(!(await setInterestStatus(db, fid, "contacted", "admin@example.com")), "same accelerator status is a no-op");
+const accAudit = (await db.select().from(adminAudit)).filter((a: any) => a.action === "accelerator.status");
+ok(accAudit.length === 1 && accAudit[0].changes.status.join() === "new,contacted", "accelerator status change logged with old and new");
+const flt = parseInterestFilters({ type: "founder", focus: "ai", stage: "nope" });
+ok(flt.type === "founder" && flt.focus === "ai" && flt.stage === undefined, "unknown filter values ignored");
+ok((await listInterest(db, flt)).length === 1 && (await listInterest(db, { focus: "blockchain" })).length === 0, "focus filter matches founders' focus");
+ok((await listInterest(db, { type: "supporter", status: "new" })).length === 1, "type and status filters");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

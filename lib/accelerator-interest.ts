@@ -1,8 +1,10 @@
 import "server-only";
+import { and, arrayContains, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
+import { auditRow } from "./admin";
 import type { Db } from "./db";
-import { acceleratorInterest, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, SUPPORT_KINDS, type InterestType } from "./db/schema";
+import { acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType } from "./db/schema";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
 import { optText } from "./member-fields";
@@ -105,4 +107,35 @@ export async function notifyInterest(db: Db, id: number, d: InterestFields) {
     }),
   });
   if (!r.ok) console.error("accelerator notification not sent:", r.error);
+}
+
+export type InterestFilters = { type?: InterestType; status?: InterestStatus; stage?: (typeof FOUNDER_STAGES)[number]; focus?: (typeof FOCUS)[number] };
+
+/** Filters from the query string; anything unknown is ignored. */
+export function parseInterestFilters(sp: Record<string, string | string[] | undefined>): InterestFilters {
+  const pick = <T extends string>(v: unknown, all: readonly T[]) => all.find((x) => x === v);
+  return { type: pick(sp.type, INTEREST_TYPES), status: pick(sp.status, INTEREST_STATUSES), stage: pick(sp.stage, FOUNDER_STAGES), focus: pick(sp.focus, FOCUS) };
+}
+
+/** Newest first. Stage and focus only ever match founders. */
+export function listInterest(db: Db, f: InterestFilters, limit?: number) {
+  const where = and(
+    f.type ? eq(acceleratorInterest.type, f.type) : undefined,
+    f.status ? eq(acceleratorInterest.status, f.status) : undefined,
+    f.stage ? eq(acceleratorInterest.stage, f.stage) : undefined,
+    f.focus ? arrayContains(acceleratorInterest.focus, [f.focus]) : undefined,
+  );
+  const q = db.select().from(acceleratorInterest).where(where).orderBy(desc(acceleratorInterest.id));
+  return limit ? q.limit(limit) : q;
+}
+
+/** Super admins only (checked by the caller). Logged with old → new. */
+export async function setInterestStatus(db: Db, id: number, status: InterestStatus, actor: string): Promise<boolean> {
+  const [old] = await db.select({ status: acceleratorInterest.status, type: acceleratorInterest.type }).from(acceleratorInterest).where(eq(acceleratorInterest.id, id));
+  if (!old || old.status === status) return false;
+  await db.batch([
+    db.update(acceleratorInterest).set({ status }).where(eq(acceleratorInterest.id, id)),
+    db.insert(adminAudit).values(auditRow(actor, "accelerator.status", `Accelerator ${old.type} #${id}`, { changes: { status: [old.status, status] } })),
+  ]);
+  return true;
 }
