@@ -1,7 +1,7 @@
 # Testing checklist
 
 Run on production (https://www.nyublockchainsociety.com) after a deploy that touches email,
-sign-in or members. Use your own inbox; never test with real members' addresses. Admin sign-in
+sign-in, members or events. Use your own inbox; never test with real members' addresses. Admin sign-in
 is by email link only (basic auth was removed in round 10).
 
 ## 1. Admin sign-in and team: `/admin/login`, `/admin/team`
@@ -50,3 +50,30 @@ is by email link only (basic auth was removed in round 10).
 - [ ] `/api/chain` returns `{"stats":null}` while there are fewer than 50 members (no count of any
       kind), and the home page has no "blocks on the chain" section.
 - [ ] No member names appear on any public page.
+
+## 6. Events: `/admin/events`, `/events`, Block 01
+
+Use an obviously fake test event (e.g. "Test event", venue "Example Venue") dated a few days
+ahead, and delete it at the end.
+
+- [ ] `/admin/events` → "New event": title, label "Networking evening", start and end time, venue,
+      no registration link → "Create draft". The edit page says "Draft".
+- [ ] While it's a draft: `/events` doesn't list it, `/events/<link name>` is a 404, and the home
+      page's Block 01 doesn't show it. "Preview as it will appear" shows it with the preview banner;
+      signed out, the preview URL is a 404.
+- [ ] "Publish". `/events/<link name>` shows "Networking evening" above the title, the date and time
+      in ET, the venue, "Registration opens soon" and "Join the society to get the invite"; no
+      background lines or blocks run behind the text (check at 390 px and on a laptop).
+- [ ] Home page, The chain: Block 01 shows the event with "Registration opens soon" and "Join the
+      society to get the invite". Clearing the label in the admin form makes the page say "Event".
+- [ ] Add a registration link (https://lu.ma/…) and save: the event page and Block 01 now show
+      "Register", opening that link in a new tab.
+- [ ] Copy the share link from `/admin/events` and open it in a private window. Join with an
+      address you own: in `/admin`, that member's source is `event-<link name>`, and the events
+      list shows "Joined from the share link: 1". Delete the test member afterwards.
+- [ ] "Cancel event": the event page and `/events` say "Cancelled"; Block 01 shows it marked
+      "Cancelled" with "Get notified" (or the next published event, if there is one).
+- [ ] `/sitemap.xml` lists `/events/<link name>` while it's public.
+- [ ] `/admin/audit` lists `event.create`, `event.edit`, `event.publish` and `event.cancel`.
+- [ ] As a super admin, "Delete" the test event; it's gone from `/events` and `/admin/events`, and
+      `event.delete` is in the audit log. As an Admin, there's no Delete button.
