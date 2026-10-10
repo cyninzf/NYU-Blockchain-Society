@@ -2,7 +2,7 @@ import "server-only";
 import { inflateRawSync } from "node:zlib";
 
 // Reads the first worksheet of an .xlsx file into rows of strings, in memory only: the upload
-// is never written to disk. Just enough of the format for a roster export (shared strings,
+// is never written to disk. Just enough of the format for a contacts export such as the LinkedIn group's (shared strings,
 // inline strings, plain values); formulas, styles and dates as dates aren't needed.
 
 const MAX_PART = 20 * 1024 * 1024; // per unzipped part: a guard against zip bombs

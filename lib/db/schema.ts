@@ -113,34 +113,6 @@ export const adminAudit = pgTable(
 
 export type AdminAudit = typeof adminAudit.$inferSelect;
 
-export const groupRole = pgEnum("linkedin_group_role", ["owner", "manager"]);
-
-/**
- * The LinkedIn group roster, imported by an admin from the group's member export. Only name,
- * headline and group role are kept: no email, no "Open to work", nothing else. These are not
- * members; `memberId` is set only by an admin's manual "Link to member", never automatically.
- */
-export const linkedinGroupMembers = pgTable(
-  "linkedin_group_members",
-  {
-    id: serial().primaryKey(),
-    name: text().notNull(),
-    headline: text().notNull().default(""),
-    /** Null for ordinary group members. */
-    groupRole: groupRole("group_role"),
-    /** Import label, e.g. "linkedin-group-2026-10". */
-    source: text().notNull(),
-    importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
-    memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
-  },
-  (t) => [
-    uniqueIndex("linkedin_group_members_name_headline_idx").on(sql`lower(${t.name})`, sql`lower(${t.headline})`),
-    index("linkedin_group_members_member_idx").on(t.memberId),
-  ],
-);
-
-export type LinkedinGroupMember = typeof linkedinGroupMembers.$inferSelect;
-
 /**
  * Every email sent through Resend, as counts only (no addresses, no content): the daily quota
  * check for announcements counts all of them, since welcome emails and sign-in links use it too.

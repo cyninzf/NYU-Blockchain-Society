@@ -31,8 +31,7 @@ export async function listSources(db: Db) {
 /** Header numbers for /admin. Contacts are never counted as members. */
 export async function adminCounts(db: Db) {
   const [[m], [c]] = await Promise.all([
-    // `src`: members who joined from a link with ?src=linkedin-group (or a dated variant)
-    db.select({ n: sql<number>`count(*)::int`, linkedin: sql<number>`count(*) filter (where ${members.source} like 'linkedin-group%')::int` }).from(members),
+    db.select({ n: sql<number>`count(*)::int` }).from(members),
     db.select({
       n: sql<number>`count(*)::int`,
       converted: sql<number>`count(${contacts.memberId})::int`,
@@ -40,5 +39,5 @@ export async function adminCounts(db: Db) {
       checkedIn: sql<number>`count(*) filter (where ${contacts.checkedIn})::int`,
     }).from(contacts),
   ]);
-  return { members: m.n, viaLinkedin: m.linkedin, contacts: c.n, converted: c.converted, checkedIn: c.known ? c.checkedIn : null };
+  return { members: m.n, contacts: c.n, converted: c.converted, checkedIn: c.known ? c.checkedIn : null };
 }
