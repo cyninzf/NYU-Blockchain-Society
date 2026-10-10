@@ -108,7 +108,8 @@ export const contactLinkBlocks = pgTable(
 export type AuditChanges = Record<string, [string | null, string | null]>;
 
 /**
- * Every admin action: who (the admin's email; "basic:<user>" under the shared-password fallback),
+ * Every admin action: who (the admin's email; "system" for automatic contact links; rows from
+ * before round 10 may read "basic:<user>", the removed shared-password fallback),
  * when, what. Member edits carry old → new values in `changes`; other actions (deletes, imports,
  * exports, sends, team changes) describe themselves in `detail`. A member's rows go with the
  * member when it's deleted (they hold old emails); the delete itself is logged without a member.

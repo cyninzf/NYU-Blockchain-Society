@@ -23,9 +23,9 @@ async function Header() {
     <header className={styles.head}>
       <AdminNav role={admin.role} />
       <div className={styles.who}>
-        <span>Signed in as <b>{admin.email ?? "shared password"}</b></span>
+        <span>Signed in as <b>{admin.email}</b></span>
         <span className={styles.badge}>{ROLE_LABELS[admin.role]}</span>
-        {admin.via === "email" && <form action={signOut}><button type="submit">Sign out</button></form>}
+        <form action={signOut}><button type="submit">Sign out</button></form>
       </div>
       <Counts />
     </header>

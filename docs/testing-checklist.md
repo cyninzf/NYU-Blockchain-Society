@@ -1,8 +1,8 @@
 # Testing checklist
 
 Run on production (https://www.nyublockchainsociety.com) after a deploy that touches email,
-sign-in or members. Use your own inbox; never test with real members' addresses. Basic auth
-stays available as a fallback (`/admin/basic`) until all three organizers can sign in by email.
+sign-in or members. Use your own inbox; never test with real members' addresses. Admin sign-in
+is by email link only (basic auth was removed in round 10).
 
 ## 1. Admin sign-in and team: `/admin/login`, `/admin/team`
 

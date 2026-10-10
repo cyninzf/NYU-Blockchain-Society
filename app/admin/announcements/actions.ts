@@ -9,7 +9,7 @@ import { adminAudit, announcements, members, type AnnouncementFilters } from "@/
 import { DAILY_EMAIL_LIMIT, remainingToday, sendBatch, sendEmail } from "@/lib/email";
 
 // Both roles may draft, test and send. Every test and send is logged (announcements and
-// admin_audit) with the admin's email; sending needs a personal sign-in, not the shared password.
+// admin_audit) with the admin's email.
 
 export type Draft = { subject: string; body: string; filters: AnnouncementFilters };
 export type CountResult = { ok: true; recipients: number; remaining: number; limit: number } | { ok: false; error: string };
@@ -37,7 +37,6 @@ export async function countRecipients(f: AnnouncementFilters): Promise<CountResu
 /** Sends the draft to the signed-in admin's own email, marked as a test. */
 export async function sendTest(d: Draft): Promise<SendResult> {
   const { db, admin, actor } = await requireAdmin();
-  if (!admin.email) return { ok: false, error: "Sign in with your own email to send announcements (the shared password has no inbox)." };
   const c = Content.safeParse(d);
   const filters = parseFilters(d.filters);
   if (!c.success) return { ok: false, error: c.error.issues[0]?.message ?? "Check the announcement." };
@@ -54,13 +53,12 @@ export async function sendTest(d: Draft): Promise<SendResult> {
 }
 
 /**
- * The real send. Refused unless: signed in by email, in production (previews hold copies of real
+ * The real send. Refused unless: in production (previews hold copies of real
  * members), the same text was test-sent in the last 24 hours, it wasn't already sent today, and
  * the recipients fit in what's left of the daily email limit.
  */
 export async function sendAnnouncement(d: Draft, expected: number): Promise<SendResult> {
-  const { db, admin, actor } = await requireAdmin();
-  if (!admin.email) return { ok: false, error: "Sign in with your own email to send announcements (the shared password has no inbox)." };
+  const { db, actor } = await requireAdmin();
   if (!isProduction()) return { ok: false, error: "Announcements only go out from the production site. Test sends work here." };
   const c = Content.safeParse(d);
   const filters = parseFilters(d.filters);

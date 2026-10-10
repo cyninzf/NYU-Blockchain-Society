@@ -7,9 +7,9 @@ import type { AnnouncementFilters } from "@/lib/db/schema";
 import { countRecipients, sendAnnouncement, sendTest, type CountResult, type SendResult } from "./actions";
 import styles from "../admin.module.css";
 
-type Props = { affiliations: [string, string][]; countries: string[]; canSend: boolean };
+type Props = { affiliations: [string, string][]; countries: string[] };
 
-export default function Composer({ affiliations, countries, canSend }: Props) {
+export default function Composer({ affiliations, countries }: Props) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [f, setF] = useState<AnnouncementFilters>({});
@@ -80,11 +80,10 @@ export default function Composer({ affiliations, countries, canSend }: Props) {
       {over && <p className={styles.err}>That&apos;s more than today&apos;s remaining limit. Narrow the filters or send later.</p>}
       <div className={styles.row}>
         <button type="button" onClick={test} disabled={pending || !subject.trim() || !body.trim()}>Send a test to me</button>
-        <button type="button" className={styles.primary} onClick={send} disabled={pending || !canSend || !n || over || !subject.trim() || !body.trim()}>
+        <button type="button" className={styles.primary} onClick={send} disabled={pending || !n || over || !subject.trim() || !body.trim()}>
           {pending ? "Working…" : `Send to ${n} member${n === 1 ? "" : "s"}`}
         </button>
       </div>
-      {!canSend && <p className={styles.note}>Sign in with your own email to test and send (the shared password has no inbox).</p>}
       <p className={result?.ok === false ? styles.err : styles.note} role="status">{result ? (result.ok ? result.message : result.error) : "Send yourself a test of the final text first; the send button checks for it."}</p>
     </div>
   );

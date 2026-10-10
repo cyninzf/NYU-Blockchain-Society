@@ -1,7 +1,6 @@
 import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import { cookies, headers } from "next/headers";
-import { isAdminAuthorized } from "./admin-auth";
+import { cookies } from "next/headers";
 import { getDb, type Db } from "./db";
 import { adminAudit, adminUsers, type AdminRole, type AuditChanges } from "./db/schema";
 import { ADMIN_COOKIE } from "./session-token";
@@ -11,12 +10,10 @@ import { sessionSubject } from "./sessions";
 // action and route (proxy.ts only keeps strangers out): hiding a button is never the guard.
 
 export type Admin = {
-  /** Null under the shared-password fallback. */
-  email: string | null;
+  email: string;
   role: AdminRole;
-  /** What admin_audit records: the email, or "basic:<user>" under the fallback. */
+  /** What admin_audit records: the admin's email. (Rows from before round 10 may read "basic:<user>".) */
   actor: string;
-  via: "email" | "basic";
 };
 
 export const ROLE_LABELS: Record<AdminRole, string> = { super_admin: "Super admin", admin: "Admin" };
@@ -40,7 +37,7 @@ export async function roleFor(db: Db | null, email: string): Promise<AdminRole |
   }
 }
 
-/** The signed-in admin (session cookie first, then the basic-auth fallback), or null. */
+/** The signed-in admin (a live magic-link session), or null. There is no other way in. */
 export async function getAdmin(): Promise<Admin | null> {
   const db = getDb();
   // A live server-side session (not signed out or revoked), and the role re-checked on every
@@ -48,13 +45,7 @@ export async function getAdmin(): Promise<Admin | null> {
   const email = await sessionSubject(db, "admin", (await cookies()).get(ADMIN_COOKIE)?.value);
   if (email) {
     const role = await roleFor(db, email);
-    if (role) return { email, role, actor: email, via: "email" };
-  }
-  const auth = (await headers()).get("authorization");
-  if (isAdminAuthorized(auth)) {
-    // Shared password: the fallback until everyone signs in with their own email.
-    const decoded = atob(auth!.slice(6));
-    return { email: null, role: "super_admin", actor: `basic:${decoded.slice(0, decoded.indexOf(":"))}`, via: "basic" };
+    if (role) return { email, role, actor: email };
   }
   return null;
 }

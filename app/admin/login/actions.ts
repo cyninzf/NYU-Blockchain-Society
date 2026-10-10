@@ -24,7 +24,7 @@ export async function requestAdminLink(_prev: LinkState, fd: FormData): Promise<
   if (!email.success) return { sent: false, error: "Enter a valid email address." };
   const db = getDb();
   if (!db || !process.env.AUTH_SECRET || !emailConfigured()) {
-    return { sent: false, error: "Email sign-in isn't set up for this environment. Use the shared password below." };
+    return { sent: false, error: "Email sign-in isn't set up for this environment." };
   }
   // Per IP and per email, counted before anything depends on whether the email is an admin.
   if (await rateLimited(db, "admin-link", 5, 600)) return LIMITED;

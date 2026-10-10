@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { pastEditions } from "@/content/conferences";
-import { ADMIN_CHALLENGE, isAdminAuthorized } from "@/lib/admin-auth";
 import { ADMIN_COOKIE, readSession } from "@/lib/session-token";
 
 const YEARS = new Set(pastEditions.map((e) => String(e.year)));
@@ -23,14 +22,9 @@ export function proxy(request: NextRequest) {
   // Sign-in pages are open (they never show admin data).
   if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) return admin(NextResponse.next());
 
-  const basic = isAdminAuthorized(request.headers.get("authorization"));
-  // The shared-password fallback: this path asks the browser for it, then goes to /admin.
-  if (pathname === "/admin/basic") {
-    return basic ? admin(NextResponse.redirect(new URL("/admin", request.url))) : new NextResponse("Authentication required.", ADMIN_CHALLENGE);
-  }
-
-  // Only keeps strangers out: pages, actions and routes re-check the admin and their role.
-  if (readSession("admin", request.cookies.get(ADMIN_COOKIE)?.value) || basic) return admin(NextResponse.next());
+  // Only keeps strangers out (a signed magic-link session cookie): pages, actions and routes
+  // re-check the session is live and the admin's role.
+  if (readSession("admin", request.cookies.get(ADMIN_COOKIE)?.value)) return admin(NextResponse.next());
   if (request.method === "GET") return admin(NextResponse.redirect(new URL("/admin/login", request.url)));
   return new NextResponse("Authentication required.", { status: 401, headers: { "X-Robots-Tag": "noindex, nofollow" } });
 }

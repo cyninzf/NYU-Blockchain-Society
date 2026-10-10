@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { desc } from "drizzle-orm";
 import { Suspense } from "react";
-import { describeFilters, type Admin } from "@/lib/admin";
+import { describeFilters } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS, announcements } from "@/lib/db/schema";
 import { AFFILIATION_LABELS, membersByCountry } from "@/lib/members-query";
@@ -20,7 +20,7 @@ export default function AnnouncementsPage() {
       <h1>Announcements</h1>
       <p className={styles.lede}>Write a plain email to members, pick who gets it, send yourself a test, then send. Unsubscribed members are always left out. Resend&apos;s free plan allows 100 emails a day, counting welcome emails and sign-in links.</p>
       <Suspense fallback={<p>Loading…</p>}>
-        <Guard>{(admin) => <Announcements admin={admin} />}</Guard>
+        <Guard>{() => <Announcements />}</Guard>
       </Suspense>
     </>
   );
@@ -28,7 +28,7 @@ export default function AnnouncementsPage() {
 
 const timeFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" });
 
-async function Announcements({ admin }: { admin: Admin }) {
+async function Announcements() {
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const [log, countries] = await Promise.all([
@@ -40,7 +40,6 @@ async function Announcements({ admin }: { admin: Admin }) {
       <Composer
         affiliations={AFFILIATIONS.map((a) => [a, AFFILIATION_LABELS[a]])}
         countries={countries.flatMap((c) => (c.country ? [c.country] : []))}
-        canSend={Boolean(admin.email)}
       />
       <h2 className={styles.h2}>Log</h2>
       <div className={styles.scroll}>
