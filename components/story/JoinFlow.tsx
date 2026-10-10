@@ -16,6 +16,7 @@ import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
 import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
+import Honeypot from "../Honeypot";
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const YOU: [Exclude<Affiliation, "friend">, string][] = [
@@ -99,7 +100,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     try {
       const res = await join({
         formToken: (await formToken.current) ?? "",
-        website: honeypot.current?.value ?? "",
+        hp: honeypot.current?.value ?? "",
         blocks: [...sel].sort().map((i) => industries[i].id),
         name: name.trim(),
         email: email.trim(),
@@ -134,9 +135,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       </div>
 
       {/* Real people never see this field; bots that fill it get a fake success. */}
-      <div className="hp" aria-hidden="true">
-        <label>Website<input ref={honeypot} name="website" tabIndex={-1} autoComplete="off" /></label>
-      </div>
+      <Honeypot ref={honeypot} />
 
       <div className="jf-step-body" ref={stepRef} key={id}>
         {id === "blocks" && forNotify && <p className="jf-intro" id="jf-intro">{notifyIntro[forNotify]}</p>}

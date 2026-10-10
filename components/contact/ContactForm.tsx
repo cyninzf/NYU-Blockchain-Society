@@ -7,6 +7,7 @@ import { TOPIC_LABELS } from "@/content/contact";
 import type { ContactTopic } from "@/lib/db/schema";
 import PrivacyNote from "../PrivacyNote";
 
+import Honeypot from "../Honeypot";
 const TOPICS = Object.entries(TOPIC_LABELS) as [ContactTopic, string][];
 
 /** /contact: name, email, topic, message (1,000 characters). */
@@ -30,7 +31,7 @@ export default function ContactForm() {
     <form action={action} className="iq-form" noValidate>
       <input type="hidden" name="formToken" value={token} />
       {/* Real people never see this field; bots that fill it get a fake thank-you. */}
-      <input className="hp" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+      <Honeypot />
       <div className="iq-two">
         <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
         <label>Email<input name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} /></label>

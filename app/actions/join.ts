@@ -11,11 +11,10 @@ import { upsertMember } from "@/lib/member-join";
 import { invitedEmail, spendInviteToken } from "@/lib/invite-join";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
-import { rateLimited, seal, sign, unseal, verify } from "@/lib/security";
+import { EXPIRED, formGuard } from "@/lib/form-guard";
+import { rateLimited, seal, sign, unseal } from "@/lib/security";
 
 import { reportError } from "@/lib/monitoring";
-const MIN_FILL_MS = 3000;
-const MAX_FORM_AGE_MS = 24 * 60 * 60 * 1000;
 const EDIT_WINDOW_MS = 2 * 60 * 60 * 1000;
 // Local (Codespaces) builds have no database; deployments always do.
 const isLocal = !process.env.VERCEL;
@@ -42,7 +41,7 @@ export async function startJoin(): Promise<string> {
 
 const joinSchema = z.object({
   formToken: z.string().max(200),
-  website: z.string().max(200), // honeypot: real people never see it
+  hp: z.string().max(200), // the honeypot field (lib/honeypot.ts): real people never see it
   blocks: z.array(z.enum(INDUSTRY_IDS)).max(3),
   name: z.string().trim().min(1, "Add your name.").max(120),
   email: z.email("Enter an email we can reach you at, like name@example.com.").trim().max(254),
@@ -59,12 +58,10 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
 
-  // Bots: fill the honeypot or submit too fast. Show the normal success screen and store nothing.
-  const issued = Number(verify(d.formToken)?.split(".")[1]);
-  const age = Date.now() - issued;
-  if (!issued) return { ok: false, error: "This form expired. Please reload the page and try again." };
-  if (d.website || age < MIN_FILL_MS) return { ok: true, n: null, token: null };
-  if (age > MAX_FORM_AGE_MS) return { ok: false, error: "This form expired. Please reload the page and try again." };
+  // Bots: fill the honeypot or submit too fast. Show the normal success screen and store nothing (the drop is logged).
+  const guard = formGuard("join", d.formToken, d.hp);
+  if (guard === "expired") return { ok: false, error: EXPIRED };
+  if (guard === "drop") return { ok: true, n: null, token: null };
 
   const db = getDb();
   if (!db) return isLocal ? { ok: true, n: 0, token: null, devNotice: NO_DB } : { ok: false, error: GENERIC };

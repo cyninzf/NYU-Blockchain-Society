@@ -25,6 +25,7 @@ import { eventPath, eventSource } from "@/lib/event-fields";
 import { consumeLinkToken } from "@/lib/magic-link";
 import { upsertMember } from "@/lib/member-join";
 import { memberIdFromSession } from "@/lib/member-session";
+import { EXPIRED, formGuard } from "@/lib/form-guard";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 import { cookieOptions, MEMBER_COOKIE, MEMBER_SESSION_MS } from "@/lib/session-token";
 import { createSession } from "@/lib/sessions";
@@ -37,7 +38,6 @@ export type EmailStep = { ok: true } | { ok: false; error: string };
 const GENERIC = "Something went wrong on our side. Please try again in a moment.";
 const LIMITED = "Too many attempts. Please try again in a few minutes.";
 const CLOSED = "Check-in isn't open for this event right now.";
-const MIN_FILL_MS = 3000;
 const SLUG = /^[a-z0-9-]{1,40}$/;
 
 /** The event if check-in may happen now: published and open, or, in test mode, any event for a super admin. */
@@ -83,7 +83,7 @@ export async function requestCheckin(slug: string, email: string, test = false):
 const JoinInput = z.object({
   slug: z.string().regex(SLUG),
   formToken: z.string().max(200),
-  website: z.string().max(200), // honeypot
+  hp: z.string().max(200), // the honeypot field (lib/honeypot.ts)
   name: z.string().trim().min(1, "Add your name.").max(120),
   email: Email,
   affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
@@ -102,10 +102,11 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
   const test = Boolean(d.test);
-  const issued = Number(verify(d.formToken)?.split(".")[1]);
-  if (!issued) return { ok: false, error: "This form expired. Please reload the page and try again." };
-  // Bots: the honeypot or an instant submit get the normal answer and nothing is stored.
-  if (!test && (d.website || Date.now() - issued < MIN_FILL_MS)) return { ok: true, n: null, viaJoin: true };
+  // Bots: the honeypot or an instant submit get the normal answer and nothing is stored (the drop
+  // is logged). Test mode skips the bot checks so super admins can test quickly.
+  const guard = test ? (verify(d.formToken) ? "ok" : "expired") : formGuard("checkin", d.formToken, d.hp);
+  if (guard === "expired") return { ok: false, error: EXPIRED };
+  if (guard === "drop") return { ok: true, n: null, viaJoin: true };
   const o = await openEvent(d.slug, test);
   if (!o) return { ok: false, error: CLOSED };
   // Test mode, by default: the form is checked and nothing at all is created.

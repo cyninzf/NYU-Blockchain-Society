@@ -6,6 +6,8 @@ import { startJoin } from "@/app/actions/join";
 import CheckinDone from "./CheckinDone";
 
 import PrivacyNote from "../PrivacyNote";
+import Honeypot from "../Honeypot";
+import { HONEYPOT_FIELD } from "@/lib/honeypot";
 const YOU = [["alumni", "Alumni"], ["industry", "Industry professional"], ["faculty_staff", "Faculty/Staff"], ["student", "Student"]] as const;
 const JOINED_BEFORE = "Joined before with this email? Tap the link we just emailed you to finish checking in.";
 
@@ -59,7 +61,7 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
     setErr(""); setBusy(true);
     try {
       const r = await checkinJoin({
-        slug, formToken: token, website: String(fd.get("website") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation,
+        slug, formToken: token, hp: String(fd.get(HONEYPOT_FIELD) ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation,
         test, createReal: test && fd.get("createReal") === "on",
       });
       if (!r.ok) return setErr(r.error);
@@ -85,7 +87,7 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
     <form className="ci-step" onSubmit={onJoin} noValidate>
       <p className="ci-note" role="status">Already a member? Check your inbox: we&apos;ve emailed you a one-tap check-in link. New here? Add your block to check in.</p>
       {/* Real people never see this field; bots that fill it get a fake success. */}
-      <input className="hp" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+      <Honeypot />
       <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
       <label>Email<input name="email" type="email" autoComplete="email" required defaultValue={email} /></label>
       <fieldset>

@@ -7,6 +7,7 @@ import { AFFILIATION_LABELS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/c
 
 import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
+import Honeypot from "../Honeypot";
 const entries = <K extends string>(r: Record<K, string>) => Object.entries(r) as [K, string][];
 
 /** The signed minimum-fill-time token, as for the join form, and the honeypot. */
@@ -23,7 +24,7 @@ function Shell({ type, action, token, pending, state, fine, children }: { type: 
     <form action={action} className="iq-form" noValidate>
       <input type="hidden" name="formToken" value={token} />
       {/* Real people never see this field; bots that fill it get a fake thank-you. */}
-      <input className="hp" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+      <Honeypot />
       {children}
       <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">{fine}</p>
@@ -63,7 +64,7 @@ export function FounderForm() {
       <Picks legend="NYU affiliation" name="affiliation" options={entries(AFFILIATION_LABELS)} />
       <div className="iq-two">
         <label>Company name<input name="company" autoComplete="organization" required maxLength={120} /></label>
-        {/* Not "website": that name is the honeypot. */}
+        {/* "url", not "website": keeps it clearly apart from the honeypot. */}
         <label><span>Website <span className="iq-hint">optional</span></span><input name="url" type="url" inputMode="url" autoComplete="url" maxLength={200} placeholder="example.com" /></label>
       </div>
       <label>One-line description<input name="oneLiner" required maxLength={160} placeholder="What you're building, in a sentence" /></label>

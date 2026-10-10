@@ -222,5 +222,19 @@ ok(await deleteContactMessage(db, cid, "super@example.com"), "contact message de
 ok(!(await deleteContactMessage(db, cid, "super@example.com")), "deleting it again is a no-op");
 const cDel = (await db.select().from(adminAudit)).filter((a: any) => a.action === "contact_message.delete");
 ok(cDel.length === 1 && cDel[0].actor === "super@example.com" && cDel[0].detail === `Deleted contact message #${cid}` && Object.keys(cDel[0].changes ?? {}).length === 0, "contact delete logged with who, when and which, no content");
+// Round 20: the shared bot guard. A real person filling a form normally is always kept.
+const { formGuard, MIN_FILL_MS } = await import(`${P}/lib/form-guard.ts`);
+const { sign } = await import(`${P}/lib/security.ts`);
+const { HONEYPOT_FIELD } = await import(`${P}/lib/honeypot.ts`);
+const tokenAt = (msAgo: number) => sign(`f.${Date.now() - msAgo}`);
+const warn = console.warn; const drops: string[] = []; console.warn = (m: string) => drops.push(m);
+ok(formGuard("contact", tokenAt(MIN_FILL_MS + 500), "") === "ok", "a normal submit after a few seconds is kept");
+ok(formGuard("contact", tokenAt(60_000), "") === "ok", "a slow submit is kept");
+ok(formGuard("contact", tokenAt(300), "") === "drop", "an instant submit is dropped as a bot");
+ok(formGuard("inquiry", tokenAt(10_000), "http://spam.example") === "drop", "a filled honeypot is dropped");
+ok(formGuard("contact", tokenAt(25 * 3600e3), "") === "expired" && formGuard("contact", "forged.token", "") === "expired", "an old or forged token is refused, not dropped");
+console.warn = warn;
+ok(drops.join("|") === "contact dropped: too_fast|inquiry dropped: honeypot", "each drop is logged with the form and reason only");
+ok(MIN_FILL_MS <= 2000 && !/website|url|email|name|phone|company/i.test(HONEYPOT_FIELD), "the honeypot name isn't an autofill target and the minimum time is 2 s at most");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
