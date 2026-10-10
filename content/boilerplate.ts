@@ -9,7 +9,7 @@ export const boilerplate = [
   {
     id: "one-liner",
     label: "One-liner",
-    text: "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI.",
+    text: "An official NYU Alumni Club, NYU Blockchain Society is the professional network for NYU alumni worldwide at the intersection of blockchain, finance, and AI.",
   },
   {
     id: "short",

@@ -6,6 +6,13 @@ export const siteUrl = "https://www.nyublockchainsociety.com";
 export const siteName = "NYU Blockchain Society";
 /** The home page <title>; other pages are "<Page> · NYU Blockchain Society". */
 export const homeTitle = `${siteName} · Official NYU Alumni Club`;
+/** Meta descriptions stay under 160 characters: cut at a word boundary with an ellipsis when longer (event pages). */
+export const metaDescription = (s: string, max = 159) => {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 40)).replace(/[\s,.;:·-]+$/, "")}…`;
+};
+
 /** Meta, og: and twitter: description, and the JSON-LD description. Keep it under 160 characters. */
 export const siteDescription =
   "The official NYU Alumni Club for professionals in blockchain, finance and AI worldwide. Conferences, networking and an accelerator for NYU founders.";
