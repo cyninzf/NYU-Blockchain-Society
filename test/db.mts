@@ -177,5 +177,15 @@ const flt = parseInterestFilters({ type: "founder", focus: "ai", stage: "nope" }
 ok(flt.type === "founder" && flt.focus === "ai" && flt.stage === undefined, "unknown filter values ignored");
 ok((await listInterest(db, flt)).length === 1 && (await listInterest(db, { focus: "blockchain" })).length === 0, "focus filter matches founders' focus");
 ok((await listInterest(db, { type: "supporter", status: "new" })).length === 1, "type and status filters");
+// Round 17: deleting inquiries (removal requests), logged without content.
+const { deleteInquiry } = await import(`${P}/lib/inquiries.ts`);
+const { deleteInterest } = await import(`${P}/lib/accelerator-interest.ts`);
+ok(await deleteInquiry(db, iq, "super@example.com"), "conference inquiry deleted");
+ok((await db.select().from(schema.conferenceInquiries).where(eq(schema.conferenceInquiries.id, iq))).length === 0, "inquiry row gone");
+ok(!(await deleteInquiry(db, iq, "super@example.com")), "deleting it again is a no-op");
+ok(await deleteInterest(db, fid, "super@example.com"), "accelerator row deleted");
+const delAudit = (await db.select().from(adminAudit)).filter((a: any) => a.action === "inquiry.delete" || a.action === "accelerator.delete");
+ok(delAudit.length === 2 && delAudit.every((a: any) => a.actor === "super@example.com" && a.createdAt && !/example\.com|sponsor the 2027|Example Labs|Fay|Gus/i.test(a.detail ?? "") && Object.keys(a.changes ?? {}).length === 0), "deletes logged with who, when and which, no content");
+ok(delAudit.some((a: any) => a.detail === `Deleted conference inquiry #${iq}`) && delAudit.some((a: any) => a.detail === `Deleted accelerator founder #${fid}`), "audit names the inquiry");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

@@ -139,3 +139,13 @@ export async function setInterestStatus(db: Db, id: number, status: InterestStat
   ]);
   return true;
 }
+
+/**
+ * For removal requests (round 17); super admins only (checked by the caller). Permanent. Logged
+ * as who, when and which row (founder or supporter), never its content.
+ */
+export async function deleteInterest(db: Db, id: number, actor: string): Promise<boolean> {
+  const [gone] = await db.delete(acceleratorInterest).where(eq(acceleratorInterest.id, id)).returning({ type: acceleratorInterest.type });
+  if (gone) await db.insert(adminAudit).values(auditRow(actor, "accelerator.delete", `Deleted accelerator ${gone.type} #${id}`));
+  return Boolean(gone);
+}

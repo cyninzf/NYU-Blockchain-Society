@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { setInterestStatus } from "@/lib/accelerator-interest";
+import { deleteInterest, setInterestStatus } from "@/lib/accelerator-interest";
 import { requireSuperOr403 } from "@/lib/admin";
 import { INTEREST_STATUSES, type InterestStatus } from "@/lib/db/schema";
 
@@ -11,5 +11,14 @@ export async function changeInterestStatus(fd: FormData) {
   const { db, actor } = await requireSuperOr403(`change the status of accelerator interest #${id}`);
   if (!Number.isInteger(id) || id < 1 || !INTEREST_STATUSES.includes(status)) throw new Error("Bad request");
   await setInterestStatus(db, id, status, actor);
+  refresh();
+}
+
+/** For removal requests (round 17): super admins only, after the confirm step; logged without content. */
+export async function removeInterest(fd: FormData) {
+  const id = Number(fd.get("id"));
+  const { db, actor } = await requireSuperOr403(`delete accelerator interest #${id}`);
+  if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
+  await deleteInterest(db, id, actor);
   refresh();
 }

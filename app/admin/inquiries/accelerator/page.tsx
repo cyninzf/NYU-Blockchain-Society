@@ -8,7 +8,7 @@ import { FOUNDER_STAGES, INTEREST_STATUSES, type InterestStatus } from "@/lib/db
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 import InquiryTabs from "../InquiryTabs";
-import { changeInterestStatus } from "./actions";
+import { changeInterestStatus, removeInterest } from "./actions";
 
 export const metadata: Metadata = { title: "Accelerator interest · Admin", robots: { index: false, follow: false } };
 
@@ -67,7 +67,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
         <button type="submit">Filter</button>
         {isSuper(admin)
           ? <a className={styles.export} href={`/admin/inquiries/accelerator/export${qs ? `?${qs}` : ""}`}>Export CSV</a>
-          : <span className={styles.note}>Read-only: super admins change the status and export.</span>}
+          : <span className={styles.note}>Read-only: super admins change the status, export and delete.</span>}
       </form>
       {(f.stage || f.focus) && <p className={styles.note}>Stage and focus apply to founders only.</p>}
       <div className={styles.scroll}>
@@ -105,6 +105,16 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
                       <button type="submit">Save</button>
                     </form>
                   ) : <span className={styles.badge}>{LABEL[r.status]}</span>}
+                  {isSuper(admin) && (
+                    <details className={styles.del}>
+                      <summary>Delete</summary>
+                      <form action={removeInterest}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="confirm" value="yes" />
+                        <button type="submit">Delete #{r.id} permanently</button>
+                      </form>
+                    </details>
+                  )}
                 </td>
               </tr>
             ))}

@@ -53,3 +53,13 @@ export async function setInquiryStatus(db: Db, id: number, status: InquiryStatus
   ]);
   return true;
 }
+
+/**
+ * For removal requests (round 17); super admins only (checked by the caller). Permanent. Logged
+ * as who, when and which inquiry, never its content.
+ */
+export async function deleteInquiry(db: Db, id: number, actor: string): Promise<boolean> {
+  const [gone] = await db.delete(conferenceInquiries).where(eq(conferenceInquiries.id, id)).returning({ id: conferenceInquiries.id });
+  if (gone) await db.insert(adminAudit).values(auditRow(actor, "inquiry.delete", `Deleted conference inquiry #${id}`));
+  return Boolean(gone);
+}

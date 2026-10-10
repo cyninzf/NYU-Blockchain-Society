@@ -5,7 +5,7 @@ import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { conferenceInquiries, INQUIRY_STATUSES, type InquiryStatus } from "@/lib/db/schema";
 import { INTEREST_LABELS } from "@/lib/inquiries";
-import { changeInquiryStatus } from "./actions";
+import { changeInquiryStatus, removeInquiry } from "./actions";
 import Guard from "../Guard";
 import InquiryTabs from "./InquiryTabs";
 import styles from "../admin.module.css";
@@ -46,7 +46,7 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
           </select>
         </label>
         <button type="submit">Filter</button>
-        {!isSuper(admin) && <span className={styles.note}>Read-only: super admins change the status.</span>}
+        {!isSuper(admin) && <span className={styles.note}>Read-only: super admins change the status and delete.</span>}
       </form>
       <div className={styles.scroll}>
         <table className={styles.table}>
@@ -69,6 +69,16 @@ async function Inquiries({ admin, searchParams }: { admin: Admin; searchParams: 
                       <button type="submit">Save</button>
                     </form>
                   ) : <span className={styles.badge}>{LABEL[r.status]}</span>}
+                  {isSuper(admin) && (
+                    <details className={styles.del}>
+                      <summary>Delete</summary>
+                      <form action={removeInquiry}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="confirm" value="yes" />
+                        <button type="submit">Delete #{r.id} permanently</button>
+                      </form>
+                    </details>
+                  )}
                 </td>
               </tr>
             ))}
