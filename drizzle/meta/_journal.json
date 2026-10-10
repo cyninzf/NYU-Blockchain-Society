@@ -141,6 +141,13 @@
       "when": 1791648034809,
       "tag": "0019_contact_invite_used",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791648247805,
+      "tag": "0020_invite_campaigns",
+      "breakpoints": true
     }
   ]
 }

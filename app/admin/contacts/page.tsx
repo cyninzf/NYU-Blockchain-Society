@@ -71,6 +71,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
         <button type="submit">Filter</button>
         <a href="/admin/contacts">Clear</a>
         {isSuper(admin) && <Link className={`${styles.button} ${styles.primary}`} href="/admin/contacts/import">Import</Link>}
+        {isSuper(admin) && <Link className={styles.button} href="/admin/contacts/invite">Invite</Link>}
         {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
       </form>
 

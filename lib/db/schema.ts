@@ -324,3 +324,47 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Invite campaigns (round 12): every test ("test") and every real send ("queued" → "done",
+ * or "paused" by a super admin). `contentHash` ties a send to an earlier test of the same invite.
+ */
+export const inviteCampaigns = pgTable(
+  "invite_campaigns",
+  {
+    id: serial().primaryKey(),
+    /** test | queued | paused | done */
+    status: text().notNull(),
+    source: text().notNull(),
+    eventId: integer("event_id").references(() => events.id, { onDelete: "set null" }),
+    subject: text().notNull(),
+    body: text().notNull(),
+    reason: text().notNull(),
+    contentHash: text("content_hash").notNull(),
+    total: integer().notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("invite_campaigns_hash_idx").on(t.contentHash, t.createdAt)],
+);
+
+export type InviteCampaign = typeof inviteCampaigns.$inferSelect;
+
+/**
+ * One row per contact ever queued for an invite. Unique on contact_id: a contact can be in one
+ * campaign only, so it's invited at most once, ever. queued → sending (claimed) → sent | failed,
+ * or skipped when it stopped being eligible before its turn.
+ */
+export const inviteQueue = pgTable(
+  "invite_queue",
+  {
+    id: serial().primaryKey(),
+    campaignId: integer("campaign_id").notNull().references(() => inviteCampaigns.id, { onDelete: "cascade" }),
+    contactId: integer("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+    status: text().notNull().default("queued"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("invite_queue_contact_idx").on(t.contactId), index("invite_queue_campaign_idx").on(t.campaignId, t.status)],
+);
+

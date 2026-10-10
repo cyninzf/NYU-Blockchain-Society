@@ -13,7 +13,7 @@ export const DAILY_EMAIL_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT) || 100;
 /** Resend's batch endpoint takes at most 100 emails per request. */
 const BATCH_MAX = 100;
 
-export type EmailKind = "welcome" | "admin-link" | "member-link" | "checkin-link" | "announcement" | "announcement-test";
+export type EmailKind = "welcome" | "admin-link" | "member-link" | "checkin-link" | "announcement" | "announcement-test" | "invite" | "invite-test";
 export type Message = { to: string; subject: string; html: string; text: string; headers?: Record<string, string> };
 export type SendResult = { ok: true; sent: number } | { ok: false; error: string };
 

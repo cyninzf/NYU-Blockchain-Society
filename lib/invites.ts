@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { and, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
-import { contacts, inviteSuppressions, type SuppressionReason } from "./db/schema";
+import { contacts, inviteQueue, inviteSuppressions, type SuppressionReason } from "./db/schema";
 
 // One-time invites to contacts (round 12). The rules, enforced here and nowhere else:
 // - eligible: a valid email, not linked to a member, never invited (contacts.invited_at is set
@@ -25,6 +25,9 @@ export const suppressedSql = sql`exists (select 1 from ${inviteSuppressions} s w
 
 /** Contacts that may be invited, now. */
 export const eligibleWhere = (): SQL => and(isNotNull(contacts.email), VALID, isNull(contacts.memberId), isNull(contacts.invitedAt), sql`not ${suppressedSql}`)!;
+
+/** Eligible and not already queued in a campaign: who a new campaign would add. */
+export const queueableWhere = (): SQL => and(eligibleWhere(), sql`not exists (select 1 from ${inviteQueue} q where q.contact_id = ${contacts.id})`)!;
 
 /** Adds an address to the suppression list (the first reason is kept). */
 export async function suppress(db: Db, email: string, reason: SuppressionReason) {
