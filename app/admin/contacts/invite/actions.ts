@@ -13,6 +13,7 @@ import { processInvites } from "@/lib/invite-queue";
 import { queueableWhere } from "@/lib/invites";
 import { postalAddress } from "@/lib/settings";
 
+import { reportError } from "@/lib/monitoring";
 // Invites to contacts: super admins only, every action refused (403, logged) for anyone else.
 // A real send needs a postal address, production, a test of exactly the same invite in the last
 // 24 hours, and the eligible count the admin confirmed.
@@ -105,7 +106,7 @@ export async function startInviteCampaign(d: InviteInput, expected: number): Pro
     db.update(inviteCampaigns).set({ total, ...(total ? {} : { status: "done" }) }).where(eq(inviteCampaigns.id, c.id)),
     db.insert(adminAudit).values(auditRow(actor, "invite.campaign", `Campaign #${c.id} "${p.draft.subject}": ${total} contacts from ${p.source} queued${p.eventId ? ` (featuring event #${p.eventId})` : ""}`)),
   ]);
-  after(() => processInvites(db).catch((e) => console.error("invite run failed", e instanceof Error ? e.message : e)));
+  after(() => processInvites(db).catch((e) => reportError("invite", "invite run failed", e)));
   refresh();
   return { ok: true, message: `Campaign #${c.id}: ${total} invites queued. Today's share goes out now; the daily run sends the rest.` };
 }
@@ -118,7 +119,7 @@ export async function setCampaignPaused(fd: FormData) {
   const [c] = await db.update(inviteCampaigns).set({ status: pause ? "paused" : "queued", updatedAt: new Date() })
     .where(and(eq(inviteCampaigns.id, id), inArray(inviteCampaigns.status, pause ? ["queued"] : ["paused"]))).returning({ id: inviteCampaigns.id });
   if (c) await db.insert(adminAudit).values(auditRow(actor, pause ? "invite.pause" : "invite.resume", `${pause ? "Paused" : "Resumed"} campaign #${id}`));
-  if (c && !pause) after(() => processInvites(db).catch((e) => console.error("invite run failed", e instanceof Error ? e.message : e)));
+  if (c && !pause) after(() => processInvites(db).catch((e) => reportError("invite", "invite run failed", e)));
   refresh();
 }
 

@@ -7,6 +7,7 @@ import type { Affiliation } from "./db/schema";
 import { autoLinkQuietly } from "./contact-links";
 import { sendWelcome } from "./member-email";
 
+import { reportError } from "./monitoring";
 export type NewMember = { name: string; email: string; affiliation: Affiliation; blocks: string[]; notify: string[]; src: string | null };
 
 /**
@@ -37,7 +38,7 @@ export async function upsertMember(db: Db, d: NewMember, welcomeNotify: string |
   if (row.inserted) {
     // Re-submits update a row (inserted = false): no email, so nothing reveals an existing email.
     revalidateTag("chain", "max");
-    after(() => sendWelcome(db, row.id, welcomeNotify).catch((e) => console.error("welcome failed", e instanceof Error ? e.message : e)));
+    after(() => sendWelcome(db, row.id, welcomeNotify).catch((e) => reportError("join", "welcome failed", e)));
   }
   // Someone we already knew as a contact may have joined: link by email or a clear name match.
   after(() => autoLinkQuietly(db));

@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { InquiryInput, notifyInquiry, saveInquiry } from "@/lib/inquiries";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 
+import { reportError } from "@/lib/monitoring";
 export type InquiryResult = { ok: true } | { ok: false; error: string } | null;
 
 const MIN_FILL_MS = 3000;
@@ -32,10 +33,10 @@ export async function submitInquiry(_prev: InquiryResult, fd: FormData): Promise
     if (await rateLimitedEmail(db, "inquiry", parsed.data.email, 3, 86400)) return { ok: false, error: "We already have your messages. We'll be in touch." };
     const edition = String(nextEdition?.year ?? "next");
     const id = await saveInquiry(db, parsed.data, edition);
-    after(() => notifyInquiry(db, id, parsed.data, edition).catch((e) => console.error("inquiry email failed", e instanceof Error ? e.message : e)));
+    after(() => notifyInquiry(db, id, parsed.data, edition).catch((e) => reportError("forms", "inquiry email failed", e)));
     return { ok: true };
   } catch (e) {
-    console.error("inquiry failed", e instanceof Error ? e.message : e);
+    reportError("forms", "inquiry failed", e);
     return { ok: false, error: GENERIC };
   }
 }

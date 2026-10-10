@@ -5,6 +5,7 @@ import type { Db } from "./db";
 import { authSessions } from "./db/schema";
 import { readSession, signSession } from "./session-token";
 
+import { reportError } from "./monitoring";
 // Server-side sessions: the cookie is a signed random id; the row says who it is and whether it
 // still counts. Revoking a row (sign-out, admin removed) ends the session at once.
 
@@ -31,7 +32,7 @@ export async function sessionSubject(db: Db | null, kind: Kind, cookie: string |
       .where(and(eq(authSessions.tokenHash, hash(s.subject)), eq(authSessions.kind, kind), isNull(authSessions.revokedAt), gt(authSessions.expiresAt, sql`now()`)));
     return row?.subject ?? null;
   } catch (e) {
-    console.error("session lookup failed", e instanceof Error ? e.message : e);
+    reportError("admin", "session lookup failed", e);
     return null;
   }
 }

@@ -4,6 +4,7 @@ import type { Db } from "./db";
 import { adminAudit, contactLinkBlocks, contacts, members } from "./db/schema";
 import { auditRow } from "./admin";
 
+import { reportError } from "./monitoring";
 // Automatic contact linking, so admins don't link by hand. Runs after every join, every admin
 // member edit and every contacts import:
 // - by email: a contact whose email matches a member's (any case) is linked ("auto (email)");
@@ -78,4 +79,4 @@ export async function autoLinkContacts(db: Db): Promise<{ email: Link[]; name: L
 }
 
 /** For after(): linking never breaks or slows what triggered it. */
-export const autoLinkQuietly = (db: Db) => autoLinkContacts(db).catch((e) => { console.error("contact auto-link failed", e instanceof Error ? e.message : e); });
+export const autoLinkQuietly = (db: Db) => autoLinkContacts(db).catch((e) => { reportError("admin", "contact auto-link failed", e); });

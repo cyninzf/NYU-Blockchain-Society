@@ -13,6 +13,7 @@ import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { ADMIN_COOKIE, ADMIN_SESSION_MS, cookieOptions } from "@/lib/session-token";
 import { createSession, revokeSession } from "@/lib/sessions";
 
+import { reportError } from "@/lib/monitoring";
 export type LinkState = { sent: boolean; error?: string } | null;
 
 /** The same answer, at the same speed, whether or not the email is an admin. */
@@ -30,7 +31,7 @@ export async function requestAdminLink(_prev: LinkState, fd: FormData): Promise<
   if (await rateLimited(db, "admin-link", 5, 600)) return LIMITED;
   if (await rateLimitedEmail(db, "admin-link", email.data, 3, 900)) return LIMITED;
   // The lookup and the send happen after the response, so its timing can't tell admins apart.
-  after(() => sendAdminLink(db, email.data).catch((e) => console.error("admin link failed", e instanceof Error ? e.message : e)));
+  after(() => sendAdminLink(db, email.data).catch((e) => reportError("admin", "admin link failed", e)));
   return SENT;
 }
 

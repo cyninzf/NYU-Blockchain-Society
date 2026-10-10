@@ -13,6 +13,7 @@ import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
 import { rateLimited, seal, sign, unseal, verify } from "@/lib/security";
 
+import { reportError } from "@/lib/monitoring";
 const MIN_FILL_MS = 3000;
 const MAX_FORM_AGE_MS = 24 * 60 * 60 * 1000;
 const EDIT_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -75,14 +76,14 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     const row = await upsertMember(db, {
       name: d.name, email: d.email, affiliation: d.affiliation, blocks: [...new Set(d.blocks)], notify: d.notify ? [d.notify] : [], src: d.src ?? null,
     }, d.notify ?? null);
-    if (d.invite) await spendInviteToken(db, d.invite, row.id).catch((e) => console.error("invite link failed", e instanceof Error ? e.message : e));
+    if (d.invite) await spendInviteToken(db, d.invite, row.id).catch((e) => reportError("join", "invite link failed", e));
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
     // Encrypted, so it never shows the id; the block number itself only once the count is public.
     const token = seal(`m.${row.id}.${row.inserted ? 1 : 0}.${Date.now() + EDIT_WINDOW_MS}`);
     return { ok: true, n: (await countIsPublic(db)) ? row.id : null, token };
   } catch (e) {
-    console.error("join failed", e instanceof Error ? e.message : e);
+    reportError("join", "join failed", e);
     return { ok: false, error: GENERIC };
   }
 }
@@ -129,7 +130,7 @@ export async function saveDetails(token: string, input: z.input<typeof detailsSc
     await db.execute(sql`update members set ${sql.join(updates, sql`, `)}, updated_at = now() where id = ${Number(id)}`);
     return { ok: true };
   } catch (e) {
-    console.error("saveDetails failed", e instanceof Error ? e.message : e);
+    reportError("join", "saveDetails failed", e);
     return { ok: false, error: GENERIC };
   }
 }

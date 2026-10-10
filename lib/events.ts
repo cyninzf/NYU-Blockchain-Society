@@ -7,6 +7,7 @@ import { events, type EventRow } from "./db/schema";
 import { SLUG_RE, eventPath } from "./event-fields";
 import { eventOver } from "./event-time";
 
+import { reportError } from "./monitoring";
 // Public events: published and cancelled ones, never drafts. Cached under the "events" tag
 // (every admin change refreshes it) and re-split into upcoming and past at least hourly.
 
@@ -37,7 +38,7 @@ async function load(): Promise<Wire[]> {
       startsAt: e.startsAt.toISOString(), endsAt: e.endsAt?.toISOString() ?? null, updatedAt: e.updatedAt.toISOString(),
     }));
   } catch (e) {
-    console.error("events failed", e instanceof Error ? e.message : e);
+    reportError("site", "events failed", e);
     return [];
   }
 }

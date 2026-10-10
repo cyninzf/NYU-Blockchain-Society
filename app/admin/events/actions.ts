@@ -11,6 +11,7 @@ import { adminAudit, displayLinks, eventCheckins, events, type AuditChanges, typ
 import { type EventFields, EventInput, eventPath } from "@/lib/event-fields";
 import { dateToNyInput } from "@/lib/event-time";
 
+import { reportError } from "@/lib/monitoring";
 // Events: super admins only (round 10.2). Admins can view /admin/events and the preview, but
 // every action here refuses them with a 403 and logs the attempt. Every change is logged in
 // admin_audit, and the public pages (cached under "events") refresh at once.
@@ -46,7 +47,7 @@ export async function saveEvent(_prev: EventFormResult, fd: FormData): Promise<E
       created = row.id;
     } catch (e) {
       if (isUnique(e)) return { ok: false, error: `Another event already uses the link name "${d.slug}". Pick another.` };
-      console.error("event create failed", e instanceof Error ? e.message : e);
+      reportError("admin", "event create failed", e);
       return { ok: false, error: "The database refused the event. Nothing was saved." };
     }
     await audit(db, actor, "event.create", `Created event #${created} "${d.title}" (draft)`);
@@ -69,7 +70,7 @@ export async function saveEvent(_prev: EventFormResult, fd: FormData): Promise<E
     ]);
   } catch (e) {
     if (isUnique(e)) return { ok: false, error: `Another event already uses the link name "${d.slug}". Nothing was saved.` };
-    console.error("event edit failed", e instanceof Error ? e.message : e);
+    reportError("admin", "event edit failed", e);
     return { ok: false, error: "The database refused the change. Nothing was saved." };
   }
   updateTag("events");

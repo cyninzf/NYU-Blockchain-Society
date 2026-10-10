@@ -7,6 +7,7 @@ import { adminAudit, adminUsers, type AdminRole, type AuditChanges } from "./db/
 import { ADMIN_COOKIE } from "./session-token";
 import { sessionSubject } from "./sessions";
 
+import { reportError } from "./monitoring";
 // Who is acting in /admin, and what they may do. Checked on the server in every admin page,
 // action and route (proxy.ts only keeps strangers out): hiding a button is never the guard.
 
@@ -33,7 +34,7 @@ export async function roleFor(db: Db | null, email: string): Promise<AdminRole |
       .where(and(eq(sql`lower(${adminUsers.email})`, norm(email)), isNull(adminUsers.removedAt)));
     return u?.role ?? null;
   } catch (e) {
-    console.error("admin_users lookup failed", e instanceof Error ? e.message : e);
+    reportError("admin", "admin_users lookup failed", e);
     return null;
   }
 }
@@ -70,7 +71,7 @@ export async function requireAdmin(min: AdminRole = "admin"): Promise<{ db: Db; 
 export async function requireSuperOr403(attempt: string): Promise<{ db: Db; admin: Admin; actor: string }> {
   const { db, admin, actor } = await requireAdmin();
   if (admin.role !== "super_admin") {
-    await audit(db, actor, "denied", `Refused (super admins only): ${attempt}`).catch((e) => console.error("audit failed", e instanceof Error ? e.message : e));
+    await audit(db, actor, "denied", `Refused (super admins only): ${attempt}`).catch((e) => reportError("admin", "audit failed", e));
     forbidden();
   }
   return { db, admin, actor };

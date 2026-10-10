@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import type { InterestType } from "@/lib/db/schema";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 
+import { reportError } from "@/lib/monitoring";
 export type InterestResult = { ok: true } | { ok: false; error: string } | null;
 
 const MIN_FILL_MS = 3000;
@@ -34,10 +35,10 @@ async function submit(type: InterestType, fd: FormData): Promise<InterestResult>
     const id = await saveInterest(db, d);
     // The same thank-you whether or not the email was already a member.
     if (d.type === "founder" && d.addMember) await joinFounder(db, d);
-    after(() => notifyInterest(db, id, d).catch((e) => console.error("accelerator email failed", e instanceof Error ? e.message : e)));
+    after(() => notifyInterest(db, id, d).catch((e) => reportError("forms", "accelerator email failed", e)));
     return { ok: true };
   } catch (e) {
-    console.error("accelerator interest failed", e instanceof Error ? e.message : e);
+    reportError("forms", "accelerator interest failed", e);
     return { ok: false, error: GENERIC };
   }
 }

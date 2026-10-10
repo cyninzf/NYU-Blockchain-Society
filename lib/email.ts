@@ -4,6 +4,7 @@ import type { Db } from "./db";
 import { emailLog } from "./db/schema";
 import { undeliverable } from "./invites";
 
+import { reportError, type Area } from "./monitoring";
 // All email goes through Resend's HTTP API (no SDK). RESEND_API_KEY and REPLY_TO_EMAIL come from
 // the environment and are never logged. Without a key (local Codespaces) nothing is sent.
 
@@ -16,6 +17,11 @@ const BATCH_MAX = 100;
 export type EmailKind = "welcome" | "admin-link" | "member-link" | "checkin-link" | "announcement" | "announcement-test" | "invite" | "invite-test" | "inquiry" | "accelerator";
 /** `replyTo` overrides REPLY_TO_EMAIL, e.g. an inquiry notification answers the inquirer. */
 export type Message = { to: string; subject: string; html: string; text: string; headers?: Record<string, string>; replyTo?: string };
+/** Sentry area per email kind (round 16): a failed send is reported once, here. */
+const AREA_BY_KIND: Record<EmailKind, Area> = {
+  welcome: "join", "admin-link": "admin", "member-link": "update", "checkin-link": "checkin", announcement: "announcements", "announcement-test": "announcements",
+  invite: "invite", "invite-test": "invite", inquiry: "forms", accelerator: "forms",
+};
 export type SendResult = { ok: true; sent: number } | { ok: false; error: string };
 
 export const emailConfigured = () => Boolean(process.env.RESEND_API_KEY);
@@ -57,7 +63,7 @@ export async function sendEmail(db: Db, kind: EmailKind, m: Message): Promise<Se
   // Hard bounces and spam complaints (Resend's webhook, lib/invites.ts) never get another email.
   if ((await undeliverable(db, [m.to])).size) return { ok: false, error: "That address bounced or reported spam before, so it gets no email." };
   const r = await post("/emails", payload(m));
-  if (!r.ok) { console.error(`email ${kind} failed`, r.status, r.error); return { ok: false, error: "The email service refused the message." }; }
+  if (!r.ok) { reportError(AREA_BY_KIND[kind], `email ${kind} failed (${r.status})`, r.error); return { ok: false, error: "The email service refused the message." }; }
   await db.insert(emailLog).values({ kind, recipients: 1 });
   return { ok: true, sent: 1 };
 }
@@ -81,7 +87,7 @@ export async function sendBatch(db: Db, kind: EmailKind, all: Message[]): Promis
     if (i) await wait(600);
     const r = await post("/emails/batch", chunk.map(payload));
     if (!r.ok) {
-      console.error(`email batch ${kind} failed`, r.status, r.error);
+      reportError(AREA_BY_KIND[kind], `email batch ${kind} failed (${r.status})`, r.error);
       return { ok: false, error: `The email service refused a batch after ${sent} sent.`, sent, skipped };
     }
     await db.insert(emailLog).values({ kind, recipients: chunk.length });

@@ -29,6 +29,7 @@ import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 import { cookieOptions, MEMBER_COOKIE, MEMBER_SESSION_MS } from "@/lib/session-token";
 import { createSession } from "@/lib/sessions";
 
+import { reportError } from "@/lib/monitoring";
 export type CheckinResult = { ok: true; n: number | null; viaJoin?: boolean; fake?: boolean } | { ok: false; error: string };
 export type EmailStep = { ok: true } | { ok: false; error: string };
 
@@ -57,7 +58,7 @@ export async function checkInSelf(slug: string, test = false): Promise<CheckinRe
     await recordCheckin(o.db, o.e.id, id, "qr", "system", test);
     return { ok: true, n: (await countIsPublic(o.db)) ? id : null };
   } catch (e) {
-    console.error("check-in failed", e instanceof Error ? e.message : e);
+    reportError("checkin", "check-in failed", e);
     return { ok: false, error: GENERIC };
   }
 }
@@ -74,7 +75,7 @@ export async function requestCheckin(slug: string, email: string, test = false):
   if (await rateLimited(o.db, "checkin", 10, 600)) return { ok: false, error: LIMITED };
   if (await rateLimitedEmail(o.db, "checkin", parsed.data, 3, 900)) return { ok: false, error: LIMITED };
   // The lookup and the send happen after the response, so its timing can't tell members apart.
-  if (emailConfigured()) after(() => sendCheckinLink(o.db, parsed.data, o.e, test).catch((e) => console.error("check-in link failed", e instanceof Error ? e.message : e)));
+  if (emailConfigured()) after(() => sendCheckinLink(o.db, parsed.data, o.e, test).catch((e) => reportError("checkin", "check-in link failed", e)));
   return { ok: true };
 }
 
@@ -113,11 +114,11 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
     if (await rateLimitedEmail(o.db, "checkin-join", d.email, 3, 900)) return { ok: false, error: LIMITED };
     const row = await upsertMember(o.db, { name: d.name, email: d.email, affiliation: d.affiliation, blocks: [], notify: [], src: eventSource(d.slug) }, null);
     if (row.inserted) await recordCheckin(o.db, o.e.id, row.id, "qr", "system", test);
-    else if (emailConfigured()) after(() => sendCheckinLink(o.db, d.email, o.e, test).catch((e) => console.error("check-in link failed", e instanceof Error ? e.message : e)));
+    else if (emailConfigured()) after(() => sendCheckinLink(o.db, d.email, o.e, test).catch((e) => reportError("checkin", "check-in link failed", e)));
     // Never the block number here: it would differ between new and existing emails.
     return { ok: true, n: null, viaJoin: true };
   } catch (e) {
-    console.error("check-in join failed", e instanceof Error ? e.message : e);
+    reportError("checkin", "check-in join failed", e);
     return { ok: false, error: GENERIC };
   }
 }

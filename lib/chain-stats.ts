@@ -5,6 +5,7 @@ import { INDUSTRY_IDS, type IndustryId } from "@/content/industries";
 import { getDb, type Db } from "./db";
 import { members } from "./db/schema";
 
+import { reportError } from "./monitoring";
 // Anonymous growth: aggregates only. No names, emails or per-member data ever leave here, and
 // below `chainStatsMinMembers` members nothing count-like leaves either: no count, no breakdowns,
 // no node count (the background then shows a fixed ambient baseline). From that threshold on,
@@ -58,7 +59,7 @@ export async function chainPublic(): Promise<ChainPublic> {
     };
     return { stats };
   } catch (e) {
-    console.error("chain stats failed", e instanceof Error ? e.message : e);
+    reportError("site", "chain stats failed", e);
     return { stats: null };
   }
 }

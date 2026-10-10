@@ -22,6 +22,7 @@ import { memberIdFromSession } from "@/lib/member-session";
 import { cookieOptions, MEMBER_COOKIE, MEMBER_SESSION_MS } from "@/lib/session-token";
 import { createSession, revokeSession } from "@/lib/sessions";
 
+import { reportError } from "@/lib/monitoring";
 export type LinkState = { sent: true } | { sent: false; error: string } | null;
 
 /** The same answer, at the same speed, whether or not the email is a member. */
@@ -37,7 +38,7 @@ export async function requestMemberLink(_prev: LinkState, fd: FormData): Promise
   if (await rateLimited(db, "member-link", 5, 600)) return LIMITED;
   if (await rateLimitedEmail(db, "member-link", email.data, 3, 900)) return LIMITED;
   // The lookup and the send happen after the response, so its timing can't tell members apart.
-  after(() => sendMemberLink(db, email.data).catch((e) => console.error("member link failed", e instanceof Error ? e.message : e)));
+  after(() => sendMemberLink(db, email.data).catch((e) => reportError("update", "member link failed", e)));
   return SENT;
 }
 

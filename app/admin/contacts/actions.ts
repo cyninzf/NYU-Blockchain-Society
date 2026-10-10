@@ -16,6 +16,7 @@ import {
 } from "@/lib/contacts-import";
 import { readXlsx } from "@/lib/xlsx";
 
+import { reportError } from "@/lib/monitoring";
 export type PreviewResult =
   | { ok: true; headers: string[]; ignored: boolean[]; sample: string[][]; rows: number; format: ImportFormat }
   | { ok: false; error: string };
@@ -116,7 +117,7 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
     // Same name and headline as an existing contact without email: skipped by the unique index.
     for (let i = 0; i < noEmail.length; i += 500) await insert(noEmail.slice(i, i + 500));
   } catch (e) {
-    console.error("contacts import failed", e instanceof Error ? e.message : e);
+    reportError("admin", "contacts import failed", e);
     await audit(db, actor, "contacts.import", `Contacts import "${source}" stopped after ${s.imported} rows`).catch(() => {});
     return { ok: false, error: `The import stopped after ${s.imported} rows because of a database error. Re-run it: rows already imported are skipped.` };
   }
@@ -128,7 +129,7 @@ export async function importContacts(fd: FormData): Promise<ImportResult> {
     s.needsLook = (await nameMatches(db)).review.length;
   } catch (e) {
     // The rows are in; matching runs again after the next join, edit or import.
-    console.error("contact auto-link failed", e instanceof Error ? e.message : e);
+    reportError("admin", "contact auto-link failed", e);
   }
   refresh();
   return { ok: true, ...s };

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { backdropArrive, setBackdropLiveMode } from "../backdrop/backdrop";
 
+import { reportError } from "@/lib/monitoring";
 const POLL_MS = 4000;
 /** Arrivals in one poll are spaced out (about the length of the hold) so each gets its own moment. */
 const STAGGER_MS = 3000;
@@ -18,6 +19,7 @@ export default function LiveScreen({ slug, title, showCount, displayToken, test 
   const [n, setN] = useState<number | null>(null);
   const [lost, setLost] = useState(false);
   const last = useRef<number | null>(null);
+  const lostRef = useRef(false);
 
   // The ambient network dims while this screen is open, so check-ins stand out.
   useEffect(() => { setBackdropLiveMode(true); return () => setBackdropLiveMode(false); }, []);
@@ -39,8 +41,11 @@ export default function LiveScreen({ slug, title, showCount, displayToken, test 
           for (let k = 0; k < Math.min(count - last.current, 12); k++) timers.push(window.setTimeout(() => backdropArrive(), k * STAGGER_MS));
         }
         last.current = count;
-        setN(count); setLost(false);
-      } catch {
+        setN(count); setLost(false); lostRef.current = false;
+      } catch (e) {
+        // Reported once per outage (the first failed poll), tagged "live" for event night.
+        if (alive && !lostRef.current) reportError("live", "live screen poll failed", e);
+        lostRef.current = true;
         if (alive) setLost(true);
       }
       if (alive) timer = window.setTimeout(poll, POLL_MS);

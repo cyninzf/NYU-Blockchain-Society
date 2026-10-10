@@ -12,6 +12,7 @@ import { memberColumns } from "@/lib/members-query";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { adminAudit, AFFILIATIONS, contacts, members, type AuditChanges } from "@/lib/db/schema";
 
+import { reportError } from "@/lib/monitoring";
 const idOf = (fd: FormData) => {
   const id = Number(fd.get("id"));
   if (!Number.isInteger(id) || id < 1) throw new Error("Bad id");
@@ -120,12 +121,12 @@ export async function updateMember(_prev: EditResult, fd: FormData): Promise<Edi
     if ([err?.code, err?.cause?.code].includes("23505") || /unique/i.test(`${err?.message} ${err?.cause?.message}`)) {
       return { ok: false, error: "That email already belongs to another member. Nothing was saved." };
     }
-    console.error("member edit failed", e instanceof Error ? e.message : e);
+    reportError("admin", "member edit failed", e);
     return { ok: false, error: "The database refused the change. Nothing was saved." };
   }
   // A new email or name may match a contact now (logged as "system").
   const linked = await autoLinkContacts(db).then((r) => [...r.email, ...r.name].filter((l) => l.memberId === m.id).length, (e) => {
-    console.error("contact auto-link failed", e instanceof Error ? e.message : e);
+    reportError("admin", "contact auto-link failed", e);
     return 0;
   });
   updateTag("chain");
