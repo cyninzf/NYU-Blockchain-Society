@@ -586,3 +586,8 @@ footer ul{gap:0 22px}
 .iq-fine{margin:0; font-size:13px; color:var(--ink-muted)}
 .iq-err{min-height:1.2em; margin:0; color:#FFB4C8; font-size:15px}
 .iq-done{margin:24px 0 0; padding:16px 18px; border:1px solid var(--ink-line); border-radius:10px; color:var(--ink-fg)}
+/* Live screen count: each change ticks in (round 13.1); a plain fade under reduced motion */
+.live-n{display:inline-block; min-width:1ch; color:#D6B0F7; animation:live-tick .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes live-tick{from{opacity:0; transform:translateY(.45em) scale(1.25)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion: reduce){.live-n{animation:live-fade .6s ease both}}
+@keyframes live-fade{from{opacity:0} to{opacity:1}}

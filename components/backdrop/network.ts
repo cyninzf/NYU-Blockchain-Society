@@ -46,7 +46,11 @@ export function densityFor(W: number, H: number, members: number | null = null) 
 }
 export type Density = ReturnType<typeof densityFor>;
 
-const ARRIVE = 3200; // ms: a new node's arrival glow (live screen)
+// Live screen check-ins (round 13.1): each arrives at the centre with a ripple and glow, holds,
+// then drifts to its place on the evening's own chain and stays highlighted.
+const CI_HOLD = 2800; // ms at the centre: ripple and glow
+const CI_DRIFT = 1700; // ms to drift to its place; its link to the previous check-in draws in meanwhile
+const CI_FADE = 700; // ms: the reduced-motion fade-in
 const ease = (t: number) => { const x = Math.min(Math.max(t, 0), 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -81,6 +85,8 @@ export type DrawOpts = {
   crossesSolid: (A: P2, B: P2) => boolean;
   /** 1 when a block's footprint is clear of copy, easing to 0 as it reaches it (copy scrolled over it). */
   boxFade: (b: Box) => number;
+  /** Opacity factor for the ambient network (the live screen dims it so check-ins stand out). */
+  ambient?: number;
   /** When set, the next block prefers to form within this screen circle (e.g. near the hero logo). */
   near?: { x: number; y: number; r: number } | null;
 };
@@ -116,13 +122,16 @@ export function createNetwork(rnd: () => number, density: Density) {
   }
   pairs.sort((a, b) => a[2] - b[2]);
   for (const [i, j] of pairs) if (deg[i] < 3 && deg[j] < 3) { edges.push([i, j]); deg[i]++; deg[j]++; }
-  const adjOf = () => nodes.map((_, i) => edges.map((e, k) => [e, k] as const).filter(([e]) => e[0] === i || e[1] === i));
-  let adj = adjOf();
+  const adj = nodes.map((_, i) => edges.map((e, k) => [e, k] as const).filter(([e]) => e[0] === i || e[1] === i));
   const dots = Array.from({ length: density.dots }, () => ({ e: (rnd() * edges.length) | 0, t: rnd(), s: .18 + rnd() * .22, f: rnd() < .5 }));
 
   let formations: Formation[] = [];
-  /** New nodes (the live screen: one per check-in), with when they arrived, for their glow. */
-  const arrivals: { i: number; t0: number }[] = [];
+  /**
+   * The live screen's check-in nodes, a layer of their own (never part of the ambient web or its
+   * blocks). `t0` is when it arrived (-Infinity for ones already there when the screen opened).
+   */
+  const checkins: { home: V3; from: V3; ph: V3; t0: number }[] = [];
+  let walkDir = rnd() * Math.PI * 2;
   let nextAt = -1;
   let lastNow = 0;
   let snap: Snapshot = { sp: [], w: [], blocks: [] };
@@ -159,7 +168,9 @@ export function createNetwork(rnd: () => number, density: Density) {
   }
 
   function draw(ctx: CanvasRenderingContext2D, o: DrawOpts) {
-    const { now, el, reduce, gk, P, H } = o;
+    const { now, el, reduce, P, H } = o;
+    // The live screen dims the ambient network so check-ins stand out (o.ambient < 1).
+    const gk = o.gk * (o.ambient ?? 1);
     // A long pause (hidden tab) shouldn't fast-forward formations.
     if (now - lastNow > 500) for (const f of formations) f.t0 += now - lastNow;
     lastNow = now;
@@ -242,20 +253,6 @@ export function createNetwork(rnd: () => number, density: Density) {
       }
       db.fill(ctx, "233,219,248");
     }
-    // arrivals (live screen): an expanding ring and a bright core, fading over ARRIVE ms
-    if (reduce) arrivals.length = 0; // static under reduced motion: the new node just appears
-    for (let k = arrivals.length - 1; k >= 0; k--) {
-      const a = arrivals[k], t = (now - a.t0) / ARRIVE;
-      if (t >= 1) { arrivals.splice(k, 1); continue; }
-      const q = sp[a.i], f = (1 - t) * gk;
-      ctx.save();
-      ctx.strokeStyle = `rgba(216,194,240,${.7 * f})`; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(q[0], q[1], 6 + 60 * ease(t), 0, Math.PI * 2); ctx.stroke();
-      ctx.shadowColor = "rgba(185,120,240,.95)"; ctx.shadowBlur = 24 * f;
-      ctx.fillStyle = `rgba(245,238,251,${Math.min(1, .4 + f)})`;
-      ctx.beginPath(); ctx.arc(q[0], q[1], 2.5 + 3 * f, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
     snap = { sp, w: nodes.map((n) => n.w), blocks: [] };
     // forming blocks
     for (const { f, t } of live) {
@@ -295,19 +292,106 @@ export function createNetwork(rnd: () => number, density: Density) {
       });
       ctx.restore();
     }
+     if (checkins.length) drawCheckins(ctx, o);
+  }
+
+  /** A check-in node's world position now: at the centre while it arrives, then drifting home. */
+  function checkinPos(c: (typeof checkins)[number], now: number, el: number, reduce: boolean): V3 {
+    const sway = (n: number) => (reduce ? 0 : Math.sin(el * .2 + c.ph[n]) * .18);
+    const home: V3 = [c.home[0] + sway(0), c.home[1] + sway(1), c.home[2] + sway(2)];
+    if (reduce) return home;
+    const t = now - c.t0;
+    if (t <= CI_HOLD) return c.from;
+    const k = ease((t - CI_HOLD) / CI_DRIFT);
+    return [c.from[0] + (home[0] - c.from[0]) * k, c.from[1] + (home[1] - c.from[1]) * k, c.from[2] + (home[2] - c.from[2]) * k];
   }
 
   /**
-   * Adds one node (the live screen: a check-in), near the middle of the volume, tied to its 3
-   * nearest neighbours. It arrives with a soft ring and glow that fade over ~3 s.
+   * The evening's chain: violet nodes about twice the ambient size, each linked to the previous
+   * one, always bright. A new one ripples and glows at the centre, then drifts to its place while
+   * its link draws in. Under reduced motion it simply fades in at its place.
    */
-  function arrive(now: number) {
-    const p: V3 = [(rnd() - .5) * BOX[0] * .7, (rnd() - .5) * BOX[1] * .6, (rnd() - .5) * BOX[2] * .6];
-    const i = nodes.push({ home: p, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], sp: .12 + rnd() * .14, w: 0, busy: false }) - 1;
-    nodes.slice(0, i).map((n, j) => [j, dist(n.home, p)] as const).sort((a, b) => a[1] - b[1]).slice(0, 3).forEach(([j]) => edges.push([j, i]));
-    adj = adjOf();
-    arrivals.push({ i, t0: now });
+  function drawCheckins(ctx: CanvasRenderingContext2D, o: DrawOpts) {
+    const { now, el, reduce, P, gk } = o;
+    const sp = checkins.map((c) => P(checkinPos(c, now, el, reduce)));
+    const age = (c: (typeof checkins)[number]) => now - c.t0;
+    // fade-in (reduced motion) or a quick appear; links show once a node has started to drift
+    const vis = checkins.map((c) => (reduce ? Math.min(1, age(c) / CI_FADE) : Math.min(1, age(c) / 250)));
+    const linkK = checkins.map((c) => (reduce ? Math.min(1, age(c) / CI_FADE) : Math.min(1, Math.max(0, (age(c) - CI_HOLD) / CI_DRIFT))));
+    ctx.save();
+    ctx.lineCap = "round";
+    // links: previous → this, drawn in as this one drifts into place
+    for (let i = 1; i < checkins.length; i++) {
+      const k = linkK[i];
+      if (k <= 0) continue;
+      const A = sp[i - 1], B = sp[i];
+      ctx.strokeStyle = `rgba(185,120,240,${.55 * gk * Math.min(vis[i - 1], 1)})`;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]);
+      ctx.lineTo(A[0] + (B[0] - A[0]) * (reduce ? 1 : k), A[1] + (B[1] - A[1]) * (reduce ? 1 : k));
+      ctx.stroke();
+    }
+    checkins.forEach((c, i) => {
+      const q = sp[i], t = age(c), a = vis[i] * gk;
+      const arriving = !reduce && t < CI_HOLD + CI_DRIFT;
+      // ripple: two rings expanding from the centre during the hold
+      if (arriving && t < CI_HOLD) {
+        for (const off of [0, 700]) {
+          const r = (t - off) / (CI_HOLD - 700);
+          if (r <= 0 || r >= 1) continue;
+          ctx.strokeStyle = `rgba(216,170,250,${.8 * (1 - r) * gk})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.arc(q[0], q[1], 10 + 120 * ease(r), 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+      // glow: strong while arriving, then a steady halo for the rest of the evening
+      const glow = arriving ? 1 - Math.max(0, (t - CI_HOLD) / CI_DRIFT) * .65 : .35;
+      ctx.fillStyle = `rgba(155,77,219,${.28 * glow * a})`;
+      ctx.beginPath(); ctx.arc(q[0], q[1], 9 + 14 * (arriving ? glow : 0), 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = "rgba(185,120,240,.95)"; ctx.shadowBlur = (arriving ? 26 : 12) * a;
+      ctx.fillStyle = `rgba(214,176,247,${a})`;
+      ctx.beginPath(); ctx.arc(q[0], q[1], arriving ? 4 + 2 * glow : 4, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    ctx.restore();
   }
 
-  return { draw, density, snapshot: () => snap, arrive };
+  /** Whether a check-in is still animating (the engine keeps drawing, even under reduced motion's fade). */
+  const animating = (now: number, reduce: boolean) => checkins.some((c) => now - c.t0 < (reduce ? CI_FADE : CI_HOLD + CI_DRIFT));
+
+  /**
+   * One check-in (live screen). Its place is the next step of a meandering walk across the screen,
+   * so the evening's arrivals form their own chain. `quiet`: already there when the screen opened
+   * (no arrival moment).
+   */
+  function arrive(now: number, quiet = false) {
+    const lim: V3 = [BOX[0] * .4, BOX[1] * .34, BOX[2] * .25];
+    const prev = checkins[checkins.length - 1]?.home;
+    let home: V3;
+    if (!prev) home = [(rnd() - .5) * BOX[0] * .3, (rnd() - .5) * BOX[1] * .3, 0];
+    else {
+      walkDir += (rnd() - .5) * 2.1;
+      // Out past ~55% of the frame, turn halfway back toward the middle: the chain wanders across
+      // the screen instead of hugging an edge.
+      if (Math.hypot(prev[0] / lim[0], prev[1] / lim[1]) > .55) {
+        const back = Math.atan2(-prev[1], -prev[0]);
+        walkDir += Math.atan2(Math.sin(back - walkDir), Math.cos(back - walkDir)) * .5;
+      }
+      const step = 2.3;
+      home = [prev[0] + Math.cos(walkDir) * step, prev[1] + Math.sin(walkDir) * step * .8, (rnd() - .5) * BOX[2] * .3];
+      // turn back at the edges, so the chain stays on screen
+      for (const k of [0, 1] as const) if (Math.abs(home[k]) > lim[k]) {
+        home[k] = Math.sign(home[k]) * lim[k] - (home[k] - Math.sign(home[k]) * lim[k]);
+        walkDir = k === 0 ? Math.PI - walkDir : -walkDir;
+      }
+    }
+    const from: V3 = [(rnd() - .5) * .6, (rnd() - .5) * .4, 2];
+    checkins.push({ home, from, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], t0: quiet ? -Infinity : now });
+  }
+
+  /** The check-ins move to a rebuilt network (resize, member count), so the evening's chain survives. */
+  const takeCheckins = (from: { checkins: typeof checkins; walkDir: number }) => { checkins.push(...from.checkins); walkDir = from.walkDir; };
+  const exportCheckins = () => ({ checkins, walkDir });
+
+  return { draw, density, snapshot: () => snap, arrive, animating, exportCheckins, takeCheckins };
 }

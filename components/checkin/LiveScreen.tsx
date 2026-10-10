@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { backdropArrive } from "../backdrop/backdrop";
+import { backdropArrive, setBackdropLiveMode } from "../backdrop/backdrop";
 
 const POLL_MS = 4000;
+/** Arrivals in one poll are spaced out (about the length of the hold) so each gets its own moment. */
+const STAGGER_MS = 3000;
+/** Check-ins already there when the screen opens appear at once (no arrival), up to this many. */
+const MAX_QUIET = 150;
 
 /**
  * The live screen's overlay: polls the check-in count and adds one node to the background
@@ -15,6 +19,9 @@ export default function LiveScreen({ slug, title, showCount, displayToken, test 
   const [lost, setLost] = useState(false);
   const last = useRef<number | null>(null);
 
+  // The ambient network dims while this screen is open, so check-ins stand out.
+  useEffect(() => { setBackdropLiveMode(true); return () => setBackdropLiveMode(false); }, []);
+
   useEffect(() => {
     let alive = true, timer = 0;
     const timers: number[] = [];
@@ -25,9 +32,11 @@ export default function LiveScreen({ slug, title, showCount, displayToken, test 
         if (!r.ok) throw new Error(String(r.status));
         const { count } = (await r.json()) as { count: number };
         if (!alive) return;
-        // The first answer is the baseline; every increase after it arrives as new nodes.
-        if (last.current !== null && count > last.current) {
-          for (let k = 0; k < Math.min(count - last.current, 12); k++) timers.push(window.setTimeout(backdropArrive, k * 450));
+        // The first answer: the evening so far, placed at once. Every increase after it arrives
+        // as new nodes, each with its own moment.
+        if (last.current === null) for (let k = 0; k < Math.min(count, MAX_QUIET); k++) backdropArrive(true);
+        else if (count > last.current) {
+          for (let k = 0; k < Math.min(count - last.current, 12); k++) timers.push(window.setTimeout(() => backdropArrive(), k * STAGGER_MS));
         }
         last.current = count;
         setN(count); setLost(false);
@@ -44,7 +53,12 @@ export default function LiveScreen({ slug, title, showCount, displayToken, test 
     <div className="live">
       <p className="live-title mono" data-bg="solid">{title}</p>
       {test && <p className="live-test mono" data-bg="solid">Test mode · showing test check-ins only</p>}
-      {showCount && n !== null && <p className="live-count" data-bg="solid">{n} checked in tonight</p>}
+      {showCount && n !== null && (
+        <p className="live-count" data-bg="solid" aria-live="polite">
+          {/* keyed by the number, so each change replays the tick animation */}
+          <span key={n} className="live-n">{n}</span> checked in tonight
+        </p>
+      )}
       {lost && <p className="live-lost mono" role="status">Reconnecting…</p>}
       <button type="button" className="live-fs mono" onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}>Full screen</button>
     </div>
