@@ -36,9 +36,15 @@ yarn-error.log*
 .env*
 !.env.example
 
-# member data: never commit exports
+# member data and test fixtures: never commit spreadsheets or exports, anywhere.
+# Local test files go in fixtures/local/ (ignored as a whole).
 *.csv
+*.tsv
+*.xlsx
+*.xls
+*.xlsm
 /exports
+/fixtures/local/
 
 # vercel
 .vercel

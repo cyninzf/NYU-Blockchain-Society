@@ -5,7 +5,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 
 ## Public repo rules
 - Never commit secrets: database URLs, passwords, API keys. Use .env.local locally and Vercel environment variables in production. Provide a .env.example with empty values only.
-- Never commit member data: no CSVs, Luma exports, spreadsheets, or real names/emails in seed data or tests. Use obviously fake test data (e.g. test@example.com).
+- Never commit member data: no CSVs, Luma exports, spreadsheets, or real names/emails in seed data or tests. Use obviously fake test data (e.g. test@example.com). Local test fixtures (fake imports) live in `fixtures/local/`, which is git-ignored; `*.csv`, `*.tsv`, `*.xlsx`, `*.xls` and `*.xlsm` are ignored everywhere (round 9.1). Checked in round 9.1: no spreadsheet or export file has ever been in git history (all refs and unreachable objects).
 - Never put personal contact details of organizers or members in code or docs.
 
 ## The spec
