@@ -169,6 +169,13 @@
       "when": 1791650243594,
       "tag": "0023_conference_inquiries",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791666401165,
+      "tag": "0024_accelerator_interest",
+      "breakpoints": true
     }
   ]
 }

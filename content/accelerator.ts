@@ -1,3 +1,6 @@
+import type { IndustryId } from "./industries";
+import type { FOUNDER_AFFILIATIONS, FOUNDER_STAGES, SUPPORT_KINDS } from "@/lib/db/schema";
+
 // /accelerator (round 14): the accelerator is "building". Never present it as live, and make no
 // promises about funding, equity, cohorts, dates or perks.
 
@@ -25,3 +28,11 @@ export const accelerator = {
     },
   ],
 } as const;
+
+// The interest forms' options (stored values → labels), shared by the forms, the email and admin.
+export const AFFILIATION_LABELS: Record<(typeof FOUNDER_AFFILIATIONS)[number], string> = { alumni: "Alumni", faculty_staff: "Faculty/Staff", student: "Student", other: "Other" };
+export const STAGE_LABELS: Record<(typeof FOUNDER_STAGES)[number], string> = { idea: "Idea", building: "Building", launched: "Launched", raised: "Raised" };
+export const HELP_LABELS: Record<(typeof SUPPORT_KINDS)[number], string> = { mentor: "Mentor", invest: "Invest", partner: "Partner", other: "Other" };
+/** Same ids as the join flow's blocks. */
+export const FOCUS = ["blockchain", "finance", "ai"] as const satisfies readonly IndustryId[];
+export const FOCUS_LABELS: Record<(typeof FOCUS)[number], string> = { blockchain: "Blockchain", finance: "Finance", ai: "AI" };

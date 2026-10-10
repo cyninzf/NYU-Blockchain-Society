@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FounderForm, SupporterForm } from "@/components/accelerator/InterestForms";
 import Icon from "@/components/Icon";
 import { accelerator } from "@/content/accelerator";
 import { siteName } from "@/content/site";
@@ -42,11 +43,13 @@ export default function AcceleratorPage() {
         <div className="iq acc-form" id={founder.id}>
           <h2 className="conf-proof-h" data-bg="dim">{founder.title}</h2>
           <p className="series-sub" data-bg="dim">{founder.text}</p>
+          <div data-bg="dim"><FounderForm /></div>
         </div>
 
         <div className="iq acc-form" id={supporter.id}>
           <h2 className="conf-proof-h" data-bg="dim">{supporter.title}</h2>
           <p className="series-sub" data-bg="dim">{supporter.text}</p>
+          <div data-bg="dim"><SupporterForm /></div>
         </div>
       </div>
     </section>

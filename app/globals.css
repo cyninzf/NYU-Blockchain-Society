@@ -572,7 +572,7 @@ footer ul{gap:0 22px}
 .iq .series-sub{margin-top:10px}
 .iq-form{display:grid; gap:14px; margin-top:24px}
 .iq-form label{display:grid; gap:6px; color:var(--ink-muted); font-size:15px}
-.iq-form input:not([type=radio]),.iq-form textarea{min-height:48px; padding:10px 12px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.6); color:var(--ink-fg); font:inherit; font-size:16px; box-sizing:border-box; width:100%}
+.iq-form input:not([type=radio]):not([type=checkbox]),.iq-form textarea{min-height:48px; padding:10px 12px; border-radius:10px; border:1px solid #6A4590; background:rgba(28,5,51,.6); color:var(--ink-fg); font:inherit; font-size:16px; box-sizing:border-box; width:100%}
 .iq-form textarea{resize:vertical}
 .iq-two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
 @media (max-width:640px){.iq-two{grid-template-columns:1fr}}
@@ -604,3 +604,8 @@ footer ul{gap:0 22px}
 .blk-acts{margin-top:auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 18px}
 .blk-acts .go{margin-top:0}
 .blk-act{position:relative; z-index:3; min-height:44px}
+.iq-hint{font-size:13px; color:var(--ink-muted)}
+.iq-check{display:grid !important; grid-template-columns:auto 1fr; align-items:center; gap:4px 12px !important; min-height:44px; color:var(--ink-fg) !important; cursor:pointer}
+.iq-check input{width:20px; height:20px; accent-color:#9B4DDB}
+.iq-check .iq-hint{grid-column:2}
+.iq-form .iq-pick:has(input:focus-visible){outline:2px solid var(--glow); outline-offset:2px}

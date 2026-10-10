@@ -416,3 +416,48 @@ export const conferenceInquiries = pgTable(
 
 export type ConferenceInquiry = typeof conferenceInquiries.$inferSelect;
 
+export const INTEREST_TYPES = ["founder", "supporter"] as const;
+export type InterestType = (typeof INTEREST_TYPES)[number];
+export const FOUNDER_AFFILIATIONS = ["alumni", "faculty_staff", "student", "other"] as const;
+export const FOUNDER_STAGES = ["idea", "building", "launched", "raised"] as const;
+export const SUPPORT_KINDS = ["mentor", "invest", "partner", "other"] as const;
+export const INTEREST_STATUSES = ["new", "contacted", "closed"] as const;
+export type InterestStatus = (typeof INTEREST_STATUSES)[number];
+
+/**
+ * Accelerator interest from /accelerator (round 14): founders and supporters (mentor, invest,
+ * partner). Not contacts and not members, unless a founder ticks "Also add me as a member"
+ * (then they also join through the normal path). Super admins change the status; admins read.
+ */
+export const acceleratorInterest = pgTable(
+  "accelerator_interest",
+  {
+    id: serial().primaryKey(),
+    type: text().$type<InterestType>().notNull(),
+    name: text().notNull(),
+    email: text().notNull(),
+    /** Founders: NYU affiliation. */
+    affiliation: text().$type<(typeof FOUNDER_AFFILIATIONS)[number]>(),
+    /** Founders: company name. */
+    company: text(),
+    /** Founders: the one-line description. */
+    oneLiner: text("one_liner"),
+    stage: text().$type<(typeof FOUNDER_STAGES)[number]>(),
+    /** Founders: blockchain, finance, ai. */
+    focus: text().array().notNull().default(sql`'{}'::text[]`),
+    website: text(),
+    /** Supporters: organization. */
+    organization: text(),
+    /** Supporters: mentor, invest, partner, other. */
+    help: text().array().notNull().default(sql`'{}'::text[]`),
+    /** Supporters: optional message. */
+    message: text(),
+    /** Founders ticked "Also add me as a member". */
+    addMember: boolean("add_member").notNull().default(false),
+    status: text().$type<InterestStatus>().notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("accelerator_interest_type_idx").on(t.type, t.status, t.createdAt)],
+);
+
+export type AcceleratorInterest = typeof acceleratorInterest.$inferSelect;
