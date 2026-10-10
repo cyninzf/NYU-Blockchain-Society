@@ -156,3 +156,31 @@ and a Resend webhook (email.bounced, email.complained) pointing at `/api/resend/
 - [ ] Pause / Resume on a queued campaign switches its status, logged as `invite.pause` /
       `invite.resume`.
 - [ ] Clean up: delete the fake contacts and any test member (super admin).
+
+## 9. Conference 2027 hub and inquiries: `/conference`, `/admin/inquiries`
+
+- [ ] `/conference` shows "NYU Blockchain Conference 2027" and "Planning underway", with no date,
+      month, venue or speakers. "The first edition" shows November 1, 2024 · New York University,
+      632 registrations, 35 speakers and moderators, 7 panels plus a fireside (never
+      "attendees"), and "See the 2024 program" opens `/conference/2024`, which is unchanged.
+- [ ] Home page, The chain: Block 00's last chip reads "Next: 2027 · Planning underway" and opens
+      `/conference`.
+- [ ] "Get notified" in a private window: the join flow opens with conference updates picked.
+      Join with an address you own: the success screen says "We'll tell you when the next
+      conference is announced." and `/admin` shows notify "conference" and source
+      `conference-2027`.
+- [ ] In the same browser, reload `/conference`: the note "You're already on the chain…" with a
+      link to `/update` appears under the button.
+- [ ] Share preview: paste `/conference` into a link preview checker (or an unposted LinkedIn /
+      X draft): title "NYU Blockchain Conference 2027", "Planning underway", no date.
+- [ ] Inquiry form: send a message as "Sponsor" with an address you own and a message under
+      1,000 characters (the counter shows the length): "Thank you…" on screen; no email to that
+      address. The super admin inbox gets "Conference 2027 inquiry (Sponsor): <name>"; pressing
+      Reply addresses the inquirer.
+- [ ] Sending immediately after loading the page, or more than 5 in an hour, shows the normal
+      thank-you or "Too many messages" respectively, and stores nothing extra.
+- [ ] `/admin/inquiries`: the message is listed. As an Admin it's read-only; as a super admin,
+      set it to "Replied": `/admin/audit` shows `inquiry.status` new → replied. The inquirer is
+      not in Members or Contacts.
+- [ ] Clean up: delete the test member (super admin, `/admin`). Inquiries stay as a record (there
+      is no delete).
