@@ -6,16 +6,18 @@ import { authTokens } from "./db/schema";
 
 /** Magic links work once and expire after 15 minutes. */
 export const LINK_TTL_MS = 15 * 60 * 1000;
-type Purpose = "admin" | "member" | "checkin";
+/** Privacy-request confirmations from /contact (round 19) last 48 hours. */
+export const CONTACT_LINK_TTL_MS = 48 * 60 * 60 * 1000;
+type Purpose = "admin" | "member" | "checkin" | "contact";
 
 const hash = (raw: string) => createHash("sha256").update(raw).digest("base64url");
 
-/** A new single-use token for `subject`. Only its hash is stored. */
-export async function createLinkToken(db: Db, purpose: Purpose, subject: string): Promise<string> {
+/** A new single-use token for `subject`, valid for `ttlMs` (15 minutes by default). Only its hash is stored. */
+export async function createLinkToken(db: Db, purpose: Purpose, subject: string, ttlMs = LINK_TTL_MS): Promise<string> {
   const raw = randomBytes(32).toString("base64url");
-  await db.insert(authTokens).values({ tokenHash: hash(raw), purpose, subject, expiresAt: new Date(Date.now() + LINK_TTL_MS) });
-  // Occasionally prune old tokens so the table stays small.
-  if (Math.random() < 0.1) await db.delete(authTokens).where(lt(authTokens.createdAt, sql`now() - interval '2 days'`));
+  await db.insert(authTokens).values({ tokenHash: hash(raw), purpose, subject, expiresAt: new Date(Date.now() + ttlMs) });
+  // Occasionally prune old tokens so the table stays small (the longest, contact links, live 48 hours).
+  if (Math.random() < 0.1) await db.delete(authTokens).where(lt(authTokens.createdAt, sql`now() - interval '3 days'`));
   return raw;
 }
 

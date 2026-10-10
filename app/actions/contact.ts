@@ -1,7 +1,9 @@
 "use server";
 
 import { getDb } from "@/lib/db";
-import { ContactInput, saveContactMessage } from "@/lib/contact-messages";
+import { after } from "next/server";
+import { redirect } from "next/navigation";
+import { ContactInput, saveContactMessage, sendContactVerification, verifyContactMessage } from "@/lib/contact-messages";
 import { reportError } from "@/lib/monitoring";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
 
@@ -29,10 +31,20 @@ export async function submitContact(_prev: ContactResult, fd: FormData): Promise
   try {
     if (await rateLimited(db, "contact", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "contact", d.email, 3, 86400)) return { ok: false, error: "We already have your messages. We'll be in touch." };
-    await saveContactMessage(db, d);
+    const id = await saveContactMessage(db, d);
+    // Privacy requests: one confirmation email to the address given, after the response.
+    if (d.topic !== "general") after(() => sendContactVerification(db, id, d.email).catch((e) => reportError("forms", "contact verification failed", e)));
     return { ok: true, privacy: d.topic !== "general" };
   } catch (e) {
     reportError("forms", "contact message failed", e);
     return { ok: false, error: GENERIC };
   }
+}
+
+/** The confirmation page's button (a click, so link scanners can't use the link up). */
+export async function confirmContact(fd: FormData) {
+  const db = getDb();
+  const ok = db ? await verifyContactMessage(db, String(fd.get("t") ?? "")).catch((e) => { reportError("forms", "contact verify failed", e); return false; }) : false;
+  // The token leaves the URL either way.
+  redirect(`/contact/verify?${ok ? "done=1" : "error=link"}`);
 }

@@ -197,5 +197,22 @@ const [cRow] = await db.select().from(schema.contactMessages).where(eq(schema.co
 ok(cRow.status === "new" && cRow.verifiedAt === null && cRow.topic === "privacy_delete", "contact message stored new and unverified");
 const [{ cMembers }] = await db.select({ cMembers: sql<number>`count(*)::int` }).from(members).where(eq(members.email, "pat@example.com"));
 ok(cMembers === 0, "a contact message makes nobody a member");
+// Round 19: privacy requests are confirmed by a single-use, 48-hour emailed link.
+const { sendContactVerification, verifyContactMessage } = await import(`${P}/lib/contact-messages.ts`);
+const { createLinkToken } = await import(`${P}/lib/magic-link.ts`);
+await sendContactVerification(db, cid, "pat@example.com"); // no RESEND_API_KEY here: nothing is sent
+const cTokens = await db.select().from(schema.authTokens).where(eq(schema.authTokens.purpose, "contact"));
+const hours = (cTokens[0]?.expiresAt.getTime() - Date.now()) / 3.6e6;
+ok(cTokens.length === 1 && cTokens[0].subject === String(cid) && hours > 47.9 && hours <= 48, "one contact link for the request, valid 48 hours");
+const tok = await createLinkToken(db, "contact", String(cid), 48 * 3600e3);
+ok(await verifyContactMessage(db, tok), "confirmation link verifies the request");
+const [cv] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, cid));
+ok(cv.verifiedAt instanceof Date, "request marked verified");
+ok(!(await verifyContactMessage(db, tok)), "the link works only once");
+const old = await createLinkToken(db, "contact", String(cid), -1000);
+ok(!(await verifyContactMessage(db, old)), "an expired link is refused");
+ok(!(await verifyContactMessage(db, "not-a-real-token-at-all-xxxxxxxxxx")), "an unknown link is refused");
+const memberTok = await createLinkToken(db, "member", String(cid));
+ok(!(await verifyContactMessage(db, memberTok)), "a link of another purpose can't verify a request");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
