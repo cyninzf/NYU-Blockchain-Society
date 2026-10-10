@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { unsubscribeTarget } from "@/lib/unsubscribe";
 import Unsubscribe from "./Unsubscribe";
 import s from "../account.module.css";
 
@@ -28,5 +29,5 @@ export default function UnsubscribePage({ searchParams }: { searchParams: SP }) 
 async function Form({ searchParams }: { searchParams: SP }) {
   const { t } = await searchParams;
   if (typeof t !== "string" || !t) return <p className={s.err}>This link is incomplete. Use the unsubscribe link from your most recent email.</p>;
-  return <Unsubscribe t={t} />;
+  return <Unsubscribe t={t} invite={unsubscribeTarget(t)?.kind === "contact"} />;
 }

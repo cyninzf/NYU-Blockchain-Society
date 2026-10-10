@@ -8,6 +8,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { NOTIFY, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { affiliation, hero, mission } from "@/content/site";
+import { rememberInvite } from "@/lib/join-source";
 import { clearMarker, firstName, loadMarker, saveMarker } from "@/lib/you-marker";
 import Icon from "../Icon";
 import { OPEN_JOIN_EVENT, openJoin, type OpenJoinDetail } from "../OpenJoin";
@@ -107,6 +108,9 @@ export default function Story() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("join")) {
       const n = params.get("notify");
+      // An invite link's token leaves the URL at once; the join flow reads it from the session.
+      const invite = params.get("invite");
+      if (invite) { rememberInvite(invite); params.delete("invite"); }
       openJoin({ notify: NOTIFY.includes(n as Notify) ? (n as Notify) : undefined });
       params.delete("join"); params.delete("notify");
       const q = params.toString();

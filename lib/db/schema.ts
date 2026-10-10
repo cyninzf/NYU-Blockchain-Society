@@ -76,7 +76,9 @@ export const contacts = pgTable(
     importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
     invitedAt: timestamp("invited_at", { withTimezone: true }),
     memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
-    /** How `memberId` was set: email | name (automatic, lib/contact-links.ts) | manual. Null when unlinked. */
+    /** When this contact's invite link was used to join (round 12): the token works once. */
+    inviteUsedAt: timestamp("invite_used_at", { withTimezone: true }),
+    /** How `memberId` was set: email | name (automatic, lib/contact-links.ts) | invite (their invite link) | manual. Null when unlinked. */
     linkMethod: text("link_method"),
   },
   (t) => [

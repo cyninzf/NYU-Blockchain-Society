@@ -13,7 +13,7 @@ import { auditRow } from "./admin";
 // A pair an admin unlinked (contact_link_blocks) is never linked automatically again. Every
 // automatic link is logged in admin_audit with actor "system".
 
-export const LINK_LABELS: Record<string, string> = { email: "auto (email)", name: "auto (name)", manual: "manual" };
+export const LINK_LABELS: Record<string, string> = { email: "auto (email)", name: "auto (name)", invite: "auto (invite)", manual: "manual" };
 
 /** Lowercased, trimmed, whitespace collapsed, accents stripped: "  José   García " → "jose garcia". */
 export const nameKey = (name: string) => name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();

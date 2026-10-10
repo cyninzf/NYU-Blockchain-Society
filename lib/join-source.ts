@@ -29,3 +29,17 @@ export function joinSource(): string | undefined {
     return undefined;
   }
 }
+
+// An invite link's token (round 12): kept for the tab session once it's taken out of the URL,
+// so it never sits in the address bar or history. Used once, on join.
+const INVITE_KEY = "nyubs:invite";
+
+export function rememberInvite(t: string) {
+  try { if (t.length <= 400) sessionStorage.setItem(INVITE_KEY, t); } catch {}
+}
+export function storedInvite(): string | undefined {
+  try { return sessionStorage.getItem(INVITE_KEY) ?? undefined; } catch { return undefined; }
+}
+export function clearInvite() {
+  try { sessionStorage.removeItem(INVITE_KEY); } catch {}
+}

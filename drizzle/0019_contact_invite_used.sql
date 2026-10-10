@@ -1,0 +1,1 @@
+ALTER TABLE "contacts" ADD COLUMN "invite_used_at" timestamp with time zone;

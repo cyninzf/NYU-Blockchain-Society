@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";
 import { countryOf } from "@/lib/location";
 import { upsertMember } from "@/lib/member-join";
+import { invitedEmail, spendInviteToken } from "@/lib/invite-join";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
 import { rateLimited, seal, sign, unseal, verify } from "@/lib/security";
@@ -26,6 +27,13 @@ export type JoinResult =
 
 export type SaveResult = { ok: true; devNotice?: string } | { ok: false; error: string };
 
+/** The address an invite was sent to, to pre-fill the email step. Nothing for a used, expired or unknown token. */
+export async function inviteEmail(token: string): Promise<string | null> {
+  const db = getDb();
+  if (!db || typeof token !== "string" || token.length > 400) return null;
+  return invitedEmail(db, token).catch(() => null);
+}
+
 /** Issued when the flow opens; proves the form wasn't submitted instantly by a bot. */
 export async function startJoin(): Promise<string> {
   return sign(`f.${Date.now()}`);
@@ -41,6 +49,8 @@ const joinSchema = z.object({
   affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
   notify: z.enum(NOTIFY).optional(),
   src: z.string().regex(/^[\w-]{1,40}$/).optional(),
+  /** The invite link's token (round 12): links that contact on join, once. */
+  invite: z.string().max(400).optional(),
 });
 
 export async function join(input: z.input<typeof joinSchema>): Promise<JoinResult> {
@@ -65,6 +75,7 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
     const row = await upsertMember(db, {
       name: d.name, email: d.email, affiliation: d.affiliation, blocks: [...new Set(d.blocks)], notify: d.notify ? [d.notify] : [], src: d.src ?? null,
     }, d.notify ?? null);
+    if (d.invite) await spendInviteToken(db, d.invite, row.id).catch((e) => console.error("invite link failed", e instanceof Error ? e.message : e));
     // The edit token lets this browser add optional details right away. For an existing
     // email it may only fill blanks, so typing someone else's email can't overwrite their profile.
     // Encrypted, so it never shows the id; the block number itself only once the count is public.

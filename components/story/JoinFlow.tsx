@@ -4,11 +4,11 @@
 // Each completed step draws a node in the hero visual; on success the block snaps onto the chain.
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { join, saveDetails, startJoin, type SaveResult } from "@/app/actions/join";
+import { inviteEmail, join, saveDetails, startJoin, type SaveResult } from "@/app/actions/join";
 import { NOTIFY, notifyMessages, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
-import { joinSource } from "@/lib/join-source";
+import { clearInvite, joinSource, storedInvite } from "@/lib/join-source";
 import type { Affiliation } from "@/lib/db/schema";
 import Icon from "../Icon";
 import CalendarButtons from "../events/CalendarButtons";
@@ -38,6 +38,11 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  // Arrived from an invite: pre-fill the address it was sent to (still editable).
+  useEffect(() => {
+    const t = storedInvite();
+    if (t) inviteEmail(t).then((e) => { if (e) setEmail((cur) => cur || e); }).catch(() => {});
+  }, []);
   const [err, setErr] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
@@ -98,8 +103,10 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
         affiliation,
         notify: n,
         src,
+        invite: storedInvite(),
       });
       if (!res.ok) { setErr(res.error); return; }
+      clearInvite();
       setDone({ n: res.n, token: res.token, devNotice: res.devNotice, notify: n });
       onJoined(name.trim());
     } catch {
