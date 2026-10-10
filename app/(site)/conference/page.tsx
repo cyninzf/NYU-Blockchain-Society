@@ -6,14 +6,17 @@ import Icon from "@/components/Icon";
 import { editionStatus, editionTitle, nextEdition, pastEditions, series } from "@/content/conferences";
 import { siteName } from "@/content/site";
 
-const description = `The ${series.name}: an annual conference at NYU, since ${series.since}, with leaders from finance, crypto, and policy.`;
+const title = nextEdition ? editionTitle(nextEdition) : series.name;
+// Under 160 characters, no date (none is set yet).
+const description = `The ${series.name} returns in ${nextEdition?.year ?? "the next edition"}. Planning is underway: get notified, or ask about sponsoring or speaking.`;
+const image = { url: "/og/conference", width: 1200, height: 630, alt: `${title}: ${nextEdition ? editionStatus(nextEdition) : "annual"}` };
 
 export const metadata: Metadata = {
-  title: "Conference",
+  title,
   description,
   alternates: { canonical: "/conference" },
-  openGraph: { type: "website", url: "/conference", siteName, title: series.name, description, locale: "en_US" },
-  twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: series.name, description },
+  openGraph: { type: "website", url: "/conference", siteName, title, description, locale: "en_US", images: [image] },
+  twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title, description, images: [image] },
 };
 
 // The next edition's hub (round 13): its title and status, "Get notified", and the first edition
@@ -43,7 +46,7 @@ export default function ConferencePage() {
                 </div>
                 <h3 className="conf-proof-t">{editionTitle(first)}</h3>
                 <p>{[first.date, first.venue].filter(Boolean).join(" · ")}</p>
-                <p className="stats">
+                <p className="ed-stats">
                   {first.stats.registrations} registrations · {first.stats.speakers} speakers and moderators · {first.stats.panels} panels{first.stats.fireside ? " plus a fireside" : ""}
                 </p>
                 <Link className="blk-go go" href={`/conference/${first.year}`}>See the {first.year} program <Icon name="arrow-right" /></Link>

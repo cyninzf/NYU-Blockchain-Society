@@ -224,7 +224,7 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ed-blk .top{display:flex; justify-content:space-between; align-items:center; color:var(--ink-muted)}
 .ed-blk h2{margin:6px 0 0; font-weight:600; font-size:clamp(22px,2.4vw,30px); letter-spacing:-.03em; line-height:1.1}
 .ed-blk p{margin:0; color:var(--ink-muted)}
-.ed-blk .stats{font-size:13px; color:var(--ink-fg)}
+.ed-blk .ed-stats{font-size:13px; color:var(--ink-fg)}
 .ed-blk .go{margin-top:6px; color:var(--ink-fg); font-weight:550; text-decoration:none}
 .ed-blk:hover .go{text-decoration:underline; text-underline-offset:4px}
 .ed-blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:2px}
