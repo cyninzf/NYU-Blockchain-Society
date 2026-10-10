@@ -3,10 +3,8 @@ import { and, asc, eq, ne } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { getDb } from "./db";
 import { events, type EventRow } from "./db/schema";
+import { SLUG_RE } from "./event-fields";
 import { eventOver } from "./event-time";
-
-/** Lowercase letters, numbers and dashes; short enough for ?src=event-<slug> (40 characters). */
-export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,32}[a-z0-9])?$/;
 
 // Public events: published and cancelled ones, never drafts. Cached under the "events" tag
 // (every admin change refreshes it) and re-split into upcoming and past at least hourly.

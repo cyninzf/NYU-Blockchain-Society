@@ -10,6 +10,7 @@ import styles from "./admin.module.css";
 const TABS = [
   { href: "/admin", label: "Members" },
   { href: "/admin/contacts", label: "Contacts" },
+  { href: "/admin/events", label: "Events" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/team", label: "Team", superOnly: true },
