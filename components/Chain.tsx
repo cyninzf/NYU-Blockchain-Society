@@ -2,11 +2,14 @@ import Link from "next/link";
 import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
 import { chainBlocks, type BlockStatus, type NextEvent } from "@/content/chain";
 import { chainIntro } from "@/content/site";
+import { baseUrl } from "@/lib/base-url";
+import { calendarLinks } from "@/lib/calendar";
 import { eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import { publicEvents, type PublicEvent } from "@/lib/events";
 import NextEditionLink from "./conference/NextEditionLink";
 import DrawIn from "./DrawIn";
+import CalendarButtons from "./events/CalendarButtons";
 import Icon from "./Icon";
 import OpenJoin from "./OpenJoin";
 
@@ -27,6 +30,7 @@ const STATUS: Record<BlockStatus, { label: string; dot: string; draw: Draw }> = 
 const nextEvent = (e: PublicEvent | undefined): NextEvent | null => e ? {
   title: e.title, slug: e.slug, when: eventWhen(e.startsAt, e.endsAt), venue: e.venueName, cohost: e.cohost,
   registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled", src: eventSource(e.slug),
+  calendar: e.status === "cancelled" ? null : calendarLinks({ ...e, pageUrl: `${baseUrl()}/events/${e.slug}` }),
 } : null;
 
 export default async function Chain() {
@@ -66,6 +70,7 @@ export default async function Chain() {
                     {!ev.next.cancelled && !ev.next.registrationUrl && <span className="cohost">Registration opens soon</span>}
                   </p>
                 )}
+                {ev.next?.calendar && <CalendarButtons links={ev.next.calendar} />}
                 {ev.editions && (
                   <ol className="editions" aria-label="Editions">
                     {pastEditions.map((e) => (

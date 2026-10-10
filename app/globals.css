@@ -545,3 +545,9 @@ footer ul{gap:0 22px}
 .live-fs{position:absolute; top:16px; right:16px; pointer-events:auto; min-height:40px; padding:0 14px; border:1px solid #6A4590; border-radius:8px; background:rgba(28,5,51,.6); color:var(--ink-muted); font-size:12px; cursor:pointer; opacity:.35; transition:opacity .3s ease}
 .live-fs:hover,.live-fs:focus-visible{opacity:1}
 :fullscreen .live-fs{display:none}
+
+/* Add to calendar (round 11) */
+.cal{display:flex; flex-wrap:wrap; align-items:center; gap:4px 16px; margin:0; font-size:15px}
+.cal-h{color:var(--ink-muted)}
+.cal a{display:inline-flex; align-items:center; gap:4px; min-height:44px; color:var(--ink-fg); text-decoration:underline; text-underline-offset:4px}
+.blk .cal{position:relative; z-index:3; font-size:14px}

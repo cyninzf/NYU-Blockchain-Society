@@ -3,6 +3,7 @@
 // once someone owns them. Block 01's next event comes from the events table (/admin/events).
 
 import { series } from "./conferences";
+import type { CalendarLinks } from "@/lib/calendar";
 import type { Notify } from "./notify";
 
 export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" | "building";
@@ -16,6 +17,8 @@ export type NextEvent = {
   title: string; slug: string; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
   /** The join source for "Join the society to get the invite": event-<slug>. */
   src: string;
+  /** "Add to calendar" links (not for a cancelled event). */
+  calendar: CalendarLinks | null;
 };
 
 export type ChainBlock = {
