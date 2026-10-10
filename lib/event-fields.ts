@@ -40,3 +40,6 @@ export const EventInput = z.object({
 });
 
 export type EventFields = z.output<typeof EventInput>;
+
+/** The join source an event's share link carries: ?src=event-<slug> (stored in members.source on join). */
+export const eventSource = (slug: string) => `event-${slug}`;

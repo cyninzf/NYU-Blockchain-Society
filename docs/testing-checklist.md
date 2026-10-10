@@ -13,8 +13,8 @@ is by email link only (basic auth was removed in round 10).
 - [ ] Opening the same link again says it has expired or was already used.
 - [ ] At `/admin/team`, add the other two organizers (role Admin or Super admin). The recovery
       super admin shows masked and can't be changed.
-- [ ] Each organizer signs in on their own device. An Admin doesn't see the import, team or
-      media-kit-preview tabs, and opening `/admin/team` directly says it's for super admins.
+- [ ] Each organizer signs in on their own device. An Admin doesn't see the Team or Media kit
+      preview tabs or the Import button on Contacts, and opening `/admin/team` directly says it's for super admins.
 - [ ] "Sign out", then use the browser's back button: the admin pages ask you to sign in again.
 
 ## 2. Join, welcome email, update and unsubscribe: `/`, `/update`, `/unsubscribe`

@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { dateToNyInput } from "@/lib/event-time";
 import EventForm from "../EventForm";
+import ShareLink from "../ShareLink";
 import StatusActions, { STATUS_LABELS } from "../StatusActions";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
@@ -45,6 +46,12 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
         <a href={`/events/preview?id=${e.id}`} target="_blank" rel="noopener">Preview as it will appear</a>
         {e.status !== "draft" && <a href={`/events/${e.slug}`} target="_blank" rel="noopener">Public page</a>}
       </div>
+      {e.status === "published" && (
+        <section className={styles.mix} aria-labelledby="share-h">
+          <h2 id="share-h">Share link <span>Use it in invites: joins that start from it are stored with source <code>event-{e.slug}</code>.</span></h2>
+          <ShareLink slug={e.slug} />
+        </section>
+      )}
       <StatusActions id={e.id} status={e.status} canDelete={isSuper(admin)} from="edit" />
       <EventForm
         key={e.updatedAt.toISOString()}

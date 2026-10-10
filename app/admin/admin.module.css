@@ -65,3 +65,5 @@
 .compose textarea{line-height:1.5; resize:vertical}
 .compose .filters{margin:0}
 .h2{margin:8px 0 12px; font-size:20px}
+.share{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px}
+.share code{overflow-wrap:anywhere; font-size:13px; color:var(--muted)}
