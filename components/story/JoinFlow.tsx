@@ -11,6 +11,8 @@ import { privacyLine } from "@/content/site";
 import { joinSource } from "@/lib/join-source";
 import type { Affiliation } from "@/lib/db/schema";
 import Icon from "../Icon";
+import CalendarButtons from "../events/CalendarButtons";
+import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -173,8 +175,22 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   );
 }
 
+/** Joined from an event's share link (?src=event-<slug>): that event, if it's published and upcoming. */
+function useJoinEvent() {
+  const [ev, setEv] = useState<JoinEvent | null>(null);
+  useEffect(() => {
+    const slug = /^event-([a-z0-9-]{1,40})$/.exec(joinSource() ?? "")?.[1];
+    if (!slug) return;
+    let alive = true;
+    fetch(`/api/events/${slug}`).then((r) => (r.ok ? r.json() : null)).then((j: JoinEvent | null) => { if (alive && j?.title) setEv(j); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  return ev;
+}
+
 function Success({ done, headingRef, onClose }: { done: Done; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void }) {
   const [open, setOpen] = useState(true);
+  const ev = useJoinEvent();
   const save = (input: Parameters<typeof saveDetails>[1]) => saveDetails(done.token ?? "", input);
   return (
     <div className="jf-done">
@@ -182,6 +198,13 @@ function Success({ done, headingRef, onClose }: { done: Done; headingRef: React.
         {done.n ? <>Block #{done.n} added.</> : <>Block added.</>} You&apos;re on the chain.
       </h2>
       {done.notify && <p>{notifyMessages[done.notify]}</p>}
+      {ev && (
+        <div className="jf-event">
+          <p>You&apos;re on the list for <b>{ev.title}</b> · {ev.when}</p>
+          <CalendarButtons links={ev.calendar} />
+          {ev.registrationUrl && <p><a className="btn btn-w" href={ev.registrationUrl} target="_blank" rel="noopener">Register <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></p>}
+        </div>
+      )}
       {done.devNotice && <p className="dev">{done.devNotice}</p>}
       {open ? (
         <div className="more">

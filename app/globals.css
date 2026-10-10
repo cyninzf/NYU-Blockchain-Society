@@ -551,3 +551,5 @@ footer ul{gap:0 22px}
 .cal-h{color:var(--ink-muted)}
 .cal a{display:inline-flex; align-items:center; gap:4px; min-height:44px; color:var(--ink-fg); text-decoration:underline; text-underline-offset:4px}
 .blk .cal{position:relative; z-index:3; font-size:14px}
+.jf-event{display:grid; gap:8px; margin:6px 0 4px; padding:14px 16px; border:1px solid var(--ink-line); border-radius:10px}
+.jf-event p{margin:0}
