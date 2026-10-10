@@ -14,12 +14,12 @@ export const boilerplate = [
   {
     id: "short",
     label: "Short (~50 words)",
-    text: "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI. An official NYU Alumni club, it brings together the institutions, builders, investors, and policymakers shaping what comes next, connects NYU alumni and industry professionals worldwide, and helps NYU founders build.",
+    text: "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI. An official NYU Alumni Club, it brings together the institutions, builders, investors, and policymakers shaping what comes next, connects NYU alumni and industry professionals worldwide, and helps NYU founders build.",
   },
   {
     id: "long",
     label: "Long (~100 words)",
-    text: "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI. An official NYU Alumni club, it brings together the institutions, builders, investors, and policymakers shaping what comes next, connects NYU alumni and industry professionals worldwide, and helps NYU founders build. It launched the annual NYU Blockchain Conference on November 1, 2024 at New York University; the first edition drew 632 registrations, with 35 speakers and moderators across 7 panels plus a fireside. The society also runs networking events for alumni, from mixers to roundtables, and is building an accelerator for NYU founders.",
+    text: "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI. An official NYU Alumni Club, it brings together the institutions, builders, investors, and policymakers shaping what comes next, connects NYU alumni and industry professionals worldwide, and helps NYU founders build. It launched the annual NYU Blockchain Conference on November 1, 2024 at New York University; the first edition drew 632 registrations, with 35 speakers and moderators across 7 panels plus a fireside. The society also runs networking events for alumni, from mixers to roundtables, and is building an accelerator for NYU founders.",
   },
 ];
 
