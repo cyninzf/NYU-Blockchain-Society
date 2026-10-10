@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
@@ -19,7 +20,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Contacts</h1>
-      <p className={styles.lede}>People imported from lists such as conference registrations. Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins they&apos;re linked to their member automatically: by email, or for contacts without an email by an exact name match. Unclear name matches wait under Needs a look; Undo removes a link for good.</p>
+      <p className={styles.lede}>People imported from lists such as conference registrations (with email) or the LinkedIn group (name and headline, no email). Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins they&apos;re linked to their member automatically: by email, or for contacts without an email by an exact name match. Unclear name matches wait under Needs a look; Undo removes a link for good.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Contacts searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
@@ -28,6 +29,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
+const SHOWN = 200;
 const checked = (v: boolean | null) => (v === null ? "Unknown" : v ? "Yes" : "No");
 
 async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
@@ -42,17 +44,20 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
       {review.length > 0 && <NeedsALook review={review} />}
 
       <form className={styles.filters} method="get">
+        <label>Search
+          <input name="q" type="search" defaultValue={f.q ?? ""} placeholder="Name, email or headline" />
+        </label>
         <label>Source
           <select name="source" defaultValue={f.source ?? ""}>
             <option value="">Any</option>
             {sources.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
-        <label>Status
-          <select name="status" defaultValue={f.status ?? ""}>
+        <label>Linked
+          <select name="linked" defaultValue={f.linked ?? ""}>
             <option value="">Any</option>
-            <option value="converted">Joined (converted)</option>
-            <option value="open">Not joined yet</option>
+            <option value="yes">Linked to a member</option>
+            <option value="no">Not linked</option>
           </select>
         </label>
         <label>Checked in
@@ -65,6 +70,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
         </label>
         <button type="submit">Filter</button>
         <a href="/admin/contacts">Clear</a>
+        {isSuper(admin) && <Link className={`${styles.button} ${styles.primary}`} href="/admin/contacts/import">Import</Link>}
         {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
       </form>
 
@@ -73,17 +79,18 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           <caption className="sr">Contacts, newest first</caption>
           <thead>
             <tr>
-              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Source</th>
-              <th scope="col">Checked in</th><th scope="col">Member</th><th scope="col">Invited</th><th scope="col">Imported</th>
+              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Email</th><th scope="col">Source</th>
+              <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invited</th><th scope="col">Imported</th>
               <th scope="col"><span className="sr">Actions</span></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ c, memberName }) => (
+            {rows.slice(0, SHOWN).map(({ c, memberName }) => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td>{c.name}</td>
-                <td>{c.email}</td>
+                <td>{c.headline}</td>
+                <td>{c.email ?? "—"}</td>
                 <td>{c.source}</td>
                 <td>{checked(c.checkedIn)}</td>
                 <td>{c.memberId ? (
@@ -112,6 +119,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           </tbody>
         </table>
         {!rows.length && <p className={styles.empty}>No contacts match these filters.</p>}
+        {rows.length > SHOWN && <p className={styles.empty}>Showing the first {SHOWN} of {rows.length}. Search or filter to narrow it down{isSuper(admin) ? "; the CSV export has all of them" : ""}.</p>}
       </div>
     </>
   );

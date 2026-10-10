@@ -29,6 +29,7 @@
 .panel p{margin:0}
 .panel input{min-height:44px; font-size:16px; padding:0 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); font:inherit}
 .row{display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+.button{display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:8px; border:1px solid var(--line); text-decoration:none}
 .primary{background:var(--accent) !important; color:#fff !important; border-color:var(--accent) !important; font-weight:600}
 .note{color:var(--muted)}
 .err{min-height:1.2em; color:#B4234F}
