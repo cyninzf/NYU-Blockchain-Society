@@ -279,6 +279,17 @@ Privacy links
 - [ ] "See our privacy policy." appears under: the join flow (every step), `/update` (the email
       form and the edit form), check-in (the email step and the join step), the conference
       inquiry form and both accelerator forms. Each link opens `/privacy`.
+- [ ] Under "Your choices and rights", `/privacy` shows "For access or deletion requests you can
+      also write to <the reply-to address>." and the address opens a new email to it. (It's the
+      `REPLY_TO_EMAIL` value at deploy time: after changing it in Vercel, redeploy.)
+
+Deleting inquiries (round 17)
+- [ ] As an Admin, `/admin/inquiries` and its Accelerator tab show no Delete.
+- [ ] As a super admin, send a test conference inquiry and a test accelerator form (addresses you
+      own). On each row, "Delete" opens a confirm step; "Delete #<id> permanently" removes it.
+- [ ] `/admin/audit` shows `inquiry.delete` "Deleted conference inquiry #<id>" and
+      `accelerator.delete` "Deleted accelerator founder #<id>" (or supporter) with your email and
+      the time, and nothing from the message.
 
 Sentry (after setting the environment variables and redeploying)
 - [ ] `/admin/sentry-test` as an Admin: "Only super admins can open this page."
