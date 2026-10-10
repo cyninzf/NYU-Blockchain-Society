@@ -23,6 +23,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 - Domain stays registered at Wix; DNS will point to Vercel later. Don't build anything on Wix.
 
 ## Commands
+- Production testing after deploys that touch email, sign-in or members: `docs/testing-checklist.md`.
 - `npm run dev`: dev server (Codespaces: open forwarded port 3000)
 - `npm run build`: must pass before every commit
 - `npm run lint`
