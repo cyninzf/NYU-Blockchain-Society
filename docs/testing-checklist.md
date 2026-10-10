@@ -184,3 +184,42 @@ and a Resend webhook (email.bounced, email.complained) pointing at `/api/resend/
       not in Members or Contacts.
 - [ ] Clean up: delete the test member (super admin, `/admin`). Inquiries stay as a record (there
       is no delete).
+
+## 10. Accelerator: `/accelerator`, `/admin/inquiries/accelerator`
+
+Use addresses you own. Wait a few seconds after the page loads before sending (faster sends are
+treated as bots: they see the thank-you and nothing is stored).
+
+- [ ] `/accelerator` shows "Block 02 · Accelerator · Building", the title "Accelerator" and one
+      paragraph, with no funding, equity, cohort, date or perk promises. The two path cards
+      ("I'm a founder", "I want to mentor, invest or partner") jump to their forms.
+- [ ] Home page, The chain: Block 02's card opens `/accelerator`; its "Get notified" button
+      still opens the join flow instead.
+- [ ] Share preview: paste `/accelerator` into a link preview checker: "Accelerator", "Block 02 ·
+      Building", no date; the description is the accelerator one.
+- [ ] Founder form, checkbox unticked: fill every field (Focus: two of them; Website:
+      `example.com`). "Thank you…" on screen; no email to that address. The super admin inbox
+      gets "Accelerator founder: <name> (<company>)" with stage, focus and `https://example.com`;
+      Reply addresses the founder. They are not in Members or Contacts.
+- [ ] Founder form validation: no focus, no stage or a website like `not a site` shows a clear
+      error and keeps what was typed.
+- [ ] Founder form with "Also add me as a member" ticked and a new address: the inbox gets the
+      welcome email ("Block added. You're on the chain." plus "We'll tell you when the
+      Accelerator launches."); `/admin` shows the member with blocks = the focus picked, notify
+      "accelerator" and source `accelerator-founder`. The notification says "They also asked to
+      be added as a member."
+- [ ] Same, with an address that is already a member: the same thank-you, no second welcome
+      email, and that member now also has notify "accelerator" (source unchanged).
+- [ ] Supporter form: Mentor + Invest, message left empty: "Thank you…"; the inbox gets
+      "Accelerator supporter: <name>"; Reply addresses the supporter.
+- [ ] More than 5 sends in an hour from one network (both forms count together) shows "Too many
+      messages from here"; a fourth send in a day with one email shows "We already have your
+      details".
+- [ ] `/admin/inquiries` has sub-tabs Conference · Accelerator. On Accelerator, filter by type
+      (Founders / Supporters), stage, focus and status: each narrows the list as expected.
+- [ ] As an Admin: read-only (a status badge, no Save, no Export CSV).
+- [ ] As a super admin: set the founder to "Contacted": `/admin/audit` shows
+      `accelerator.status` new → contacted. "Export CSV" downloads the filtered rows and logs
+      `export.accelerator`.
+- [ ] Clean up: delete the test member (super admin, `/admin`). Interest rows stay as a record
+      (there is no delete).
