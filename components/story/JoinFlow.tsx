@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { join, saveDetails, startJoin, type SaveResult } from "@/app/actions/join";
-import { NOTIFY, notifyMessages, type Notify } from "@/content/events";
+import { NOTIFY, notifyMessages, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
 import { joinSource } from "@/lib/join-source";

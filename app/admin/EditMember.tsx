@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, type FormEvent } from "react";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import type { Affiliation } from "@/lib/db/schema";
 import { updateMember, type EditResult } from "./actions";

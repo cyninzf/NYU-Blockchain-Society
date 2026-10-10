@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import type { Notify } from "@/content/events";
+import type { Notify } from "@/content/notify";
 
 /** Event the hero's join flow listens for. Every "Join" CTA dispatches it. */
 export const OPEN_JOIN_EVENT = "nbs:open-join";

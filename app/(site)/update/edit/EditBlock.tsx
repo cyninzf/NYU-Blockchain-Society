@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { saveOwnBlock, type SaveState } from "../actions";
 import s from "../../account.module.css";

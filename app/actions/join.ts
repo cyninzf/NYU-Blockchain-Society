@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { AFFILIATIONS } from "@/lib/db/schema";

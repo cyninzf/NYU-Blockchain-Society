@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { baseUrl } from "@/lib/base-url";
 import { countIsPublic } from "@/lib/chain-stats";

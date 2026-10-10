@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { and, arrayOverlaps, eq, isNull, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { baseUrl } from "./base-url";
 import type { Db } from "./db";

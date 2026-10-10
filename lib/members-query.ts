@@ -1,6 +1,6 @@
 import "server-only";
 import { and, arrayContains, count, desc, eq, getTableColumns, isNull, type SQL } from "drizzle-orm";
-import { NOTIFY, type Notify } from "@/content/events";
+import { NOTIFY, type Notify } from "@/content/notify";
 import { INDUSTRY_IDS, type IndustryId } from "@/content/industries";
 import type { Db } from "./db";
 import { AFFILIATIONS, members, type Affiliation } from "./db/schema";

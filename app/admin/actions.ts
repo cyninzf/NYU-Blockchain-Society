@@ -3,7 +3,7 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { INDUSTRY_IDS } from "@/content/industries";
 import { audit, auditRow, requireAdmin } from "@/lib/admin";
 import { autoLinkContacts } from "@/lib/contact-links";

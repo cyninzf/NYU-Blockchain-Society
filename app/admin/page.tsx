@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { desc, inArray } from "drizzle-orm";
 import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { adminAudit, AFFILIATIONS, type AdminAudit, type Affiliation } from "@/lib/db/schema";

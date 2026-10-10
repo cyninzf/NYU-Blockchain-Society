@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { NOTIFY } from "@/content/events";
+import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import type { AnnouncementFilters } from "@/lib/db/schema";
 import { countRecipients, sendAnnouncement, sendTest, type CountResult, type SendResult } from "./actions";

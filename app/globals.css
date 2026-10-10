@@ -145,6 +145,7 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .blk.active .btn{margin-top:auto; align-self:flex-start}
 .blk .next{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; color:var(--ink-fg); font-size:15px}
 .blk .next b{font-weight:550}
+.blk .next .cohost{flex-basis:100%; color:var(--ink-muted); font-size:14px}
 .tag{display:inline-flex; align-items:center; min-height:22px; padding:0 8px; border:1px solid rgba(216,194,240,.6); border-radius:6px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--lilac)}
 /* every block is clickable: its action stretches over the whole card */
 .blk-go::before{content:""; position:absolute; inset:0; z-index:2}

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { boilerplate } from "@/content/boilerplate";
-import { notifyMessages } from "@/content/events";
+import { notifyMessages } from "@/content/notify";
 import { baseUrl } from "./base-url";
 import type { Db } from "./db";
 import { members } from "./db/schema";

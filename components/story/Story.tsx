@@ -5,7 +5,7 @@
 // docs/prototype.html.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { NOTIFY, type Notify } from "@/content/events";
+import { NOTIFY, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { affiliation, hero, mission } from "@/content/site";
 import { clearMarker, firstName, loadMarker, saveMarker } from "@/lib/you-marker";

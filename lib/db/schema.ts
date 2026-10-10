@@ -237,3 +237,40 @@ export const authSessions = pgTable(
   },
   (t) => [uniqueIndex("auth_sessions_hash_idx").on(t.tokenHash), index("auth_sessions_subject_idx").on(t.kind, t.subject)],
 );
+
+export const EVENT_STATUSES = ["draft", "published", "cancelled"] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+export const eventStatus = pgEnum("event_status", EVENT_STATUSES);
+
+/**
+ * Events, managed at /admin/events (round 10). Times are stored in UTC and entered and shown in
+ * America/New_York (lib/event-time.ts). Drafts are never public; cancelled events show as
+ * cancelled until they end, then disappear. `slug` names the public page (/events/<slug>) and
+ * the share link's ?src=event-<slug>.
+ */
+export const events = pgTable(
+  "events",
+  {
+    id: serial().primaryKey(),
+    title: text().notNull(),
+    slug: text().notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    venueName: text("venue_name"),
+    address: text(),
+    /** Short, plain text. */
+    description: text(),
+    /** e.g. the Luma page. */
+    registrationUrl: text("registration_url"),
+    /** Free text, e.g. "KPMG": shown as "Co-hosted with …", never with a logo. */
+    cohost: text(),
+    status: eventStatus().notNull().default("draft"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("events_slug_idx").on(t.slug), index("events_starts_idx").on(t.startsAt)],
+);
+
+export type EventRow = typeof events.$inferSelect;
+

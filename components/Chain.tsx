@@ -1,8 +1,9 @@
-import { cacheLife } from "next/cache";
 import Link from "next/link";
 import { nextEdition, pastEditions, statusLabel } from "@/content/conferences";
-import { chainBlocks, type BlockStatus } from "@/content/events";
+import { chainBlocks, type BlockStatus, type NextEvent } from "@/content/chain";
 import { chainIntro } from "@/content/site";
+import { eventWhen } from "@/lib/event-time";
+import { publicEvents, type PublicEvent } from "@/lib/events";
 import NextEditionLink from "./conference/NextEditionLink";
 import DrawIn from "./DrawIn";
 import Icon from "./Icon";
@@ -10,25 +11,27 @@ import OpenJoin from "./OpenJoin";
 
 // Each block is drawn by its status: confirmed (done/annual) = solid edges, active (the
 // current block: next event) = glowing edges with a slow pulse, building = dashed edges, as
-// if still being mined. Change a block's status in content/ and its drawing follows.
+// if still being mined. Change a block's status in content/ (or Block 01's event in
+// /admin/events) and its drawing follows.
 type Draw = "confirmed" | "active" | "building";
 const STATUS: Record<BlockStatus, { label: string; dot: string; draw: Draw }> = {
   annual: { label: "Annual", dot: "st ok", draw: "confirmed" },
   done: { label: "Done", dot: "st ok", draw: "confirmed" },
   upcoming: { label: "Upcoming", dot: "st pend", draw: "active" },
   soon: { label: "Next date soon", dot: "st pend", draw: "active" },
+  cancelled: { label: "Cancelled", dot: "st", draw: "confirmed" },
   building: { label: "Building", dot: "st", draw: "building" },
 };
 
-/** Today in New York (YYYY-MM-DD). Cached hourly so the page stays static. */
-async function todayNY() {
-  "use cache";
-  cacheLife("hours");
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
-}
+const nextEvent = (e: PublicEvent | undefined): NextEvent | null => e ? {
+  title: e.title, slug: e.slug, when: eventWhen(e.startsAt, e.endsAt), venue: e.venueName, cohost: e.cohost,
+  registrationUrl: e.registrationUrl, cancelled: e.status === "cancelled",
+} : null;
 
 export default async function Chain() {
-  const blocks = chainBlocks(await todayNY());
+  // Block 01: the next published event; a cancelled one only when nothing else is coming up.
+  const { upcoming } = await publicEvents();
+  const blocks = chainBlocks(nextEvent(upcoming.find((e) => e.status === "published") ?? upcoming[0]));
   return (
     <section className="chain" id="chain" aria-labelledby="chain-h">
       <div className="wrap">
@@ -56,8 +59,9 @@ export default async function Chain() {
                 <p>{ev.text}</p>
                 {ev.next && (
                   <p className="next">
-                    <span className="tag mono">{ev.next.format}</span>
-                    <span>Next: <b>{ev.next.title}</b> · {ev.next.date}{ev.next.venue && <> · {ev.next.venue}</>}</span>
+                    {ev.next.cancelled && <span className="tag mono">Cancelled</span>}
+                    <span>Next: <b>{ev.next.title}</b> · {ev.next.when}{ev.next.venue && <> · {ev.next.venue}</>}</span>
+                    {ev.next.cohost && <span className="cohost">Co-hosted with {ev.next.cohost}</span>}
                   </p>
                 )}
                 {ev.editions && (
