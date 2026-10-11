@@ -341,3 +341,27 @@ Use an address you own. Wait a few seconds after the page loads before sending.
       `/admin/audit` shows `contact_message.delete` "Deleted contact message #<id>" with your email
       and the time, and nothing from the message.
 - [ ] More than 5 sends in an hour from one network shows "Too many messages from here".
+
+## 14. Suspected spam and the honeypot (round 20)
+
+Use your own Chrome with Autofill on and a saved address (Settings → Autofill → Addresses).
+
+- [ ] On `/contact`, `/conference` and both `/accelerator` forms, and in the join flow, fill the
+      form with Chrome Autofill (click Name, pick your saved address) and send it normally. Each
+      appears in admin as a normal row (no "Suspected spam" badge), the super admin gets the usual
+      notification, and Vercel logs show no "flagged:" line for it.
+- [ ] Same for an event check-in quick join (on a published event in its window, or `?test=1`
+      with "Create a real member" ticked): the person becomes a member and is checked in.
+- [ ] Flag one on purpose: in DevTools, type something into the hidden field (the input inside
+      `div.hp` at the end of the form) and send. The thank-you looks the same; no email arrives
+      (no notification, no confirmation link); the row shows "Suspected spam · hidden field
+      filled"; Vercel logs show "<form> flagged: honeypot".
+- [ ] A flagged join: do the same in the join flow. Members → Show "Pending: suspected spam"
+      lists it; it is not in the member list, the counts or `/api/chain`, and no welcome email
+      arrives.
+- [ ] As an Admin: badges and the Spam filter show, but no "Not spam" or Delete.
+- [ ] As a super admin: "Not spam" on the flagged inquiry sends the notification once (pressing
+      it again does nothing); on a flagged privacy request it sends the confirmation link and the
+      notification; on the pending join it creates the member and sends the welcome email.
+      `/admin/audit` shows the `*.not_spam` entries without any message content. Delete the
+      remaining test items (`pending.delete` for the pending one).
