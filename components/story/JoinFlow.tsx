@@ -8,7 +8,7 @@ import { inviteEmail, join, saveDetails, startJoin, type SaveResult } from "@/ap
 import { NOTIFY, notifyIntro, notifyMessages, type Notify } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { privacyLine } from "@/content/site";
-import { clearInvite, joinSource, storedInvite } from "@/lib/join-source";
+import { clearInvite, joinSource, pickedSource, storedInvite } from "@/lib/join-source";
 import type { Affiliation } from "@/lib/db/schema";
 import Icon from "../Icon";
 import CalendarButtons from "../events/CalendarButtons";
@@ -190,7 +190,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
 function useJoinEvent() {
   const [ev, setEv] = useState<JoinEvent | null>(null);
   useEffect(() => {
-    const slug = /^event-([a-z0-9-]{1,40})$/.exec(joinSource() ?? "")?.[1];
+    const slug = /^event-([a-z0-9-]{1,40})$/.exec(pickedSource() ?? "")?.[1];
     if (!slug) return;
     let alive = true;
     fetch(`/api/events/${slug}`).then((r) => (r.ok ? r.json() : null)).then((j: JoinEvent | null) => { if (alive && j?.title) setEv(j); }).catch(() => {});

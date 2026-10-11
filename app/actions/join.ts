@@ -49,7 +49,7 @@ const joinSchema = z.object({
   // "friend" is kept for old rows only; the flow no longer offers it.
   affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
   notify: z.enum(NOTIFY).optional(),
-  src: z.string().regex(/^[\w-]{1,40}$/).optional(),
+  src: z.string().regex(/^[\w.-]{1,40}$/).optional(),
   /** The invite link's token (round 12): links that contact on join, once. */
   invite: z.string().max(400).optional(),
 });
