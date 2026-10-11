@@ -342,23 +342,28 @@ Use an address you own. Wait a few seconds after the page loads before sending.
       and the time, and nothing from the message.
 - [ ] More than 5 sends in an hour from one network shows "Too many messages from here".
 
-## 14. Suspected spam and the honeypot (round 20)
+## 14. Suspected spam and form validation (rounds 20 and 21)
 
-Use your own Chrome with Autofill on and a saved address (Settings → Autofill → Addresses).
+There is no hidden honeypot field any more: the only spam flag is a submission sent in under 2
+seconds. Test in both Chrome and Safari (iPhone too, if you can).
 
-- [ ] On `/contact`, `/conference` and both `/accelerator` forms, and in the join flow, fill the
-      form with Chrome Autofill (click Name, pick your saved address) and send it normally. Each
-      appears in admin as a normal row (no "Suspected spam" badge), the super admin gets the usual
-      notification, and Vercel logs show no "flagged:" line for it.
-- [ ] Same for an event check-in quick join (on a published event in its window, or `?test=1`
-      with "Create a real member" ticked): the person becomes a member and is checked in.
-- [ ] Flag one on purpose: in DevTools, type something into the hidden field (the input inside
-      `div.hp` at the end of the form) and send. The thank-you looks the same; no email arrives
-      (no notification, no confirmation link); the row shows "Suspected spam · hidden field
-      filled"; Vercel logs show "<form> flagged: honeypot".
-- [ ] A flagged join: do the same in the join flow. Members → Show "Pending: suspected spam"
-      lists it; it is not in the member list, the counts or `/api/chain`, and no welcome email
-      arrives.
+- [ ] On `/contact`, `/conference`, both `/accelerator` forms, the join flow and an event check-in
+      quick join (a published event in its window, or `?test=1` with "Create a real member"),
+      fill the form normally (AutoFill is fine) and send. Each arrives as a normal row with no
+      "Suspected spam" badge, the super admin gets the usual notification (a join gets the
+      welcome email), and Vercel logs show no "flagged:" line for it.
+- [ ] Validation keeps what you typed, in Chrome and Safari: on `/contact`, write a message under
+      10 characters and send. The form stays filled (name, email, topic, message), "Tell us a
+      little more (at least 10 characters)." appears right under the message, and the cursor is
+      in the message. Fix it and send: the thank-you appears. Repeat with a bad email
+      (`name@`) on `/conference` and with nothing ticked under Focus on the founder form.
+- [ ] Join flow: type a name, then an email like `a@b`: the error is under the email and Next
+      doesn't advance.
+- [ ] Flag one on purpose: open a form, fill it with AutoFill and send within 2 seconds of the page
+      appearing (or reload and paste fast). The thank-you looks the same; no email arrives; the
+      row shows "Suspected spam · sent too fast"; Vercel logs show "<form> flagged: too_fast". A
+      flagged join appears under Members → Show "Pending: suspected spam", not in the member list,
+      the counts or `/api/chain`.
 - [ ] As an Admin: badges and the Spam filter show, but no "Not spam" or Delete.
 - [ ] As a super admin: "Not spam" on the flagged inquiry sends the notification once (pressing
       it again does nothing); on a flagged privacy request it sends the confirmation link and the
