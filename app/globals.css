@@ -416,7 +416,6 @@ footer a{text-decoration:none} footer a:hover{color:var(--ink-fg)}
 .picks.you{display:grid; grid-template-columns:repeat(2,minmax(0,1fr))}
 .picks.you .pick{min-height:52px}
 .pick:disabled,.jf fieldset:disabled .pick{opacity:.6; cursor:progress}
-.hp{position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden}
 .jf-done .more{gap:0}
 .jf-done h3{margin:8px 0 10px; font-size:17px; font-weight:600}
 .jf-done h3 span{display:block; margin-top:2px; font-size:14px; font-weight:400; color:var(--ink-muted)}

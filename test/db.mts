@@ -225,19 +225,18 @@ ok(cDel.length === 1 && cDel[0].actor === "super@example.com" && cDel[0].detail 
 // Round 20: the shared bot guard. A real person filling a form normally is always kept.
 const { formGuard, MIN_FILL_MS } = await import(`${P}/lib/form-guard.ts`);
 const { sign } = await import(`${P}/lib/security.ts`);
-const { HONEYPOT_FIELD } = await import(`${P}/lib/honeypot.ts`);
 const tokenAt = (msAgo: number) => sign(`f.${Date.now() - msAgo}`);
 const warn = console.warn; const drops: string[] = []; console.warn = (m: string) => drops.push(m);
 const kind = (g: any) => (g.kind === "ok" ? `ok:${g.spam ?? "clean"}` : g.kind);
-ok(kind(formGuard("contact", tokenAt(MIN_FILL_MS + 500), "")) === "ok:clean", "a normal submit after a few seconds is kept");
-ok(kind(formGuard("contact", tokenAt(60_000), "")) === "ok:clean", "a slow submit is kept");
-ok(kind(formGuard("contact", tokenAt(300), "")) === "ok:too_fast", "an instant submit is kept, flagged");
-ok(kind(formGuard("inquiry", tokenAt(10_000), "http://spam.example")) === "ok:honeypot", "a filled honeypot is kept, flagged");
-ok(kind(formGuard("contact", tokenAt(25 * 3600e3), "")) === "expired" && kind(formGuard("contact", "forged.token", "")) === "expired", "an old or forged token is refused");
+ok(kind(formGuard("contact", tokenAt(MIN_FILL_MS + 500))) === "ok:clean", "a normal submit after a few seconds is kept");
+ok(kind(formGuard("contact", tokenAt(60_000))) === "ok:clean", "a slow submit is kept");
+ok(kind(formGuard("contact", tokenAt(300))) === "ok:too_fast", "an instant submit is kept, flagged");
+ok(kind(formGuard("inquiry", tokenAt(1_000))) === "ok:too_fast", "under 2 seconds is too fast, whatever the form");
+ok(kind(formGuard("contact", tokenAt(25 * 3600e3))) === "expired" && kind(formGuard("contact", "forged.token")) === "expired", "an old or forged token is refused");
 console.warn = warn;
-ok(drops.join("|") === "contact flagged: too_fast|inquiry flagged: honeypot", "each flag is logged as \"<form> flagged: <reason>\" only");
-ok(MIN_FILL_MS <= 2000 && !/web|site|url|mail|name|phone|tel|mobile|hp|company|org|addr|city|zip|post|country|card/i.test(HONEYPOT_FIELD), "the honeypot name matches none of Chrome's autofill words (hp = phone) and the minimum time is 2 s at most");
-// Round 20: suspected spam is saved and flagged, sends nothing, and "Not spam" sends the skipped
+ok(drops.join("|") === "contact flagged: too_fast|inquiry flagged: too_fast", "each flag is logged as \"<form> flagged: too_fast\" only");
+ok(MIN_FILL_MS === 2000, "the minimum time is 2 seconds");
+// Round 20 (round 21: too fast is the only flag): suspected spam is saved and flagged, sends nothing, and "Not spam" sends the skipped
 // email exactly once (through the real sendEmail and the stubbed Resend API above).
 process.env.SUPER_ADMIN_EMAIL = "super@example.com";
 const deferred: (() => Promise<unknown>)[] = [];
@@ -251,10 +250,10 @@ const { receiveInterest, markInterestNotSpam } = await import(`${P}/lib/accelera
 const { savePendingJoin, approvePendingJoin, deletePendingJoin } = await import(`${P}/lib/pending-joins.ts`);
 
 let s0 = sends();
-const spamIq = await receiveInquiry(db, InquiryInput.parse({ name: "Hal Honeypot", email: "hal@example.com", company: "", interest: "speak", message: "Autofill filled the hidden field." }), "2027", "honeypot", defer);
+const spamIq = await receiveInquiry(db, InquiryInput.parse({ name: "Hal Hasty", email: "hal@example.com", company: "", interest: "speak", message: "Sent faster than anyone types." }), "2027", "too_fast", defer);
 await flush();
 const [hal] = await db.select().from(schema.conferenceInquiries).where(eq(schema.conferenceInquiries.id, spamIq));
-ok(hal && hal.suspectedSpam && hal.spamReason === "honeypot", "a filled honeypot saves the inquiry, flagged");
+ok(hal && hal.suspectedSpam && hal.spamReason === "too_fast", "a too-fast inquiry is saved, flagged");
 ok(sends() === s0, "a flagged inquiry sends no email");
 await receiveInquiry(db, InquiryInput.parse({ name: "Cleo Clean", email: "cleo@example.com", company: "", interest: "other", message: "A normal message from a person." }), "2027", null, defer);
 await flush();
@@ -277,7 +276,7 @@ ok(sends() === s0 + 2 && two.includes("tia@example.com") && two.includes("super@
 ok(!(await markContactNotSpam(db, spamMsg, "super@example.com")) && sends() === s0 + 2, "a second Not spam sends nothing");
 
 s0 = sends();
-const spamSup = await receiveInterest(db, (parseInterest("supporter", fd({ name: "Sam Spam", email: "samspam@example.com", organization: "Example Fund", help: ["mentor"], message: "" })) as any).data, "honeypot", defer);
+const spamSup = await receiveInterest(db, (parseInterest("supporter", fd({ name: "Sam Spam", email: "samspam@example.com", organization: "Example Fund", help: ["mentor"], message: "" })) as any).data, "too_fast", defer);
 await flush();
 ok(sends() === s0, "a flagged accelerator form sends no email");
 ok(await markInterestNotSpam(db, spamSup, "super@example.com") && sends() === s0 + 1, "Not spam sends its notification");
@@ -286,7 +285,7 @@ ok(!(await markInterestNotSpam(db, spamSup, "super@example.com")) && sends() ===
 // Joins: a flagged join is never a member until approved; approving joins once (welcome via the join).
 const membersBefore = (await db.select().from(members)).length;
 const [anyEvent] = await db.select().from(events).limit(1);
-const pj = await savePendingJoin(db, { kind: "checkin", name: "Pia Pending", email: "pia@example.com", affiliation: "alumni", blocks: [], notify: [], source: "event-test", eventId: anyEvent.id, spamReason: "honeypot" });
+const pj = await savePendingJoin(db, { kind: "checkin", name: "Pia Pending", email: "pia@example.com", affiliation: "alumni", blocks: [], notify: [], source: "event-test", eventId: anyEvent.id, spamReason: "too_fast" });
 ok((await db.select().from(members)).length === membersBefore, "a flagged join creates no member");
 let welcomes = 0;
 const fakeJoin = async (d: any, m: any) => { const [r] = await d.insert(members).values({ name: m.name, email: m.email, affiliation: m.affiliation, blocks: m.blocks, notify: m.notify, source: m.src }).returning(); welcomes++; return { id: r.id, inserted: true }; };
@@ -298,6 +297,6 @@ ok(pjCheckin?.method === "admin" && !pjCheckin.isTest, "an approved check-in joi
 const pj2 = await savePendingJoin(db, { kind: "join", name: "Del Ete", email: "del@example.com", affiliation: "student", blocks: ["ai"], notify: [], source: null, eventId: null, spamReason: "too_fast" });
 ok(await deletePendingJoin(db, pj2, "super@example.com"), "a pending join can be deleted");
 const spamAudit = (await db.select().from(adminAudit)).filter((a: any) => /not_spam|pending\.delete/.test(a.action));
-ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@example.com" && !/@example\.com|Hal|Tia|Pia|Sam|hidden field|privacy|Autofill/i.test(a.detail ?? "")), "Not spam and delete are logged without content");
+ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@example.com" && !/@example\.com|Hal|Tia|Pia|Sam|faster|privacy|Send me/i.test(a.detail ?? "")), "Not spam and delete are logged without content");
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

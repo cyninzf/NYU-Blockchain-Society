@@ -7,7 +7,6 @@ import { TOPIC_LABELS } from "@/content/contact";
 import type { ContactTopic } from "@/lib/db/schema";
 import PrivacyNote from "../PrivacyNote";
 
-import Honeypot from "../Honeypot";
 const TOPICS = Object.entries(TOPIC_LABELS) as [ContactTopic, string][];
 
 /** /contact: name, email, topic, message (1,000 characters). */
@@ -49,8 +48,6 @@ export default function ContactForm() {
       <p className="iq-fine">For a privacy request we&apos;ll first email you a link to confirm it&apos;s you.</p>
       <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
-      {/* Last in the form, after the button, away from any text (see components/Honeypot.tsx). */}
-      <Honeypot id="zq_k4v_c" />
     </form>
   );
 }

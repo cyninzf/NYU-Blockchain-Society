@@ -6,8 +6,6 @@ import { startJoin } from "@/app/actions/join";
 import CheckinDone from "./CheckinDone";
 
 import PrivacyNote from "../PrivacyNote";
-import Honeypot from "../Honeypot";
-import { HONEYPOT_FIELD } from "@/lib/honeypot";
 const YOU = [["alumni", "Alumni"], ["industry", "Industry professional"], ["faculty_staff", "Faculty/Staff"], ["student", "Student"]] as const;
 const JOINED_BEFORE = "Joined before with this email? Tap the link we just emailed you to finish checking in.";
 
@@ -61,7 +59,7 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
     setErr(""); setBusy(true);
     try {
       const r = await checkinJoin({
-        slug, formToken: token, hp: String(fd.get(HONEYPOT_FIELD) ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation,
+        slug, formToken: token, name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), affiliation,
         test, createReal: test && fd.get("createReal") === "on",
       });
       if (!r.ok) return setErr(r.error);
@@ -100,8 +98,6 @@ export default function CheckinFlow({ slug, test = false }: { slug: string; test
       <p className="ci-fine">By joining, organizers may email you about events and programs. Unsubscribe anytime. Only organizers see your details.</p>
       <p className="ci-err" role="alert">{err}</p>
       <PrivacyNote />
-      {/* Last in the form, after the buttons, away from any text (see components/Honeypot.tsx). */}
-      <Honeypot id="zq_k4v_q" />
     </form>
   );
 }

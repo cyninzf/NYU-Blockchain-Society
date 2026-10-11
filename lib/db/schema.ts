@@ -409,9 +409,9 @@ export const conferenceInquiries = pgTable(
     /** The edition it's about, e.g. "2027". */
     edition: text().notNull(),
     status: text().$type<InquiryStatus>().notNull().default("new"),
-    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    /** Round 20: caught by the bot guard (sent too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
     suspectedSpam: boolean("suspected_spam").notNull().default(false),
-    /** honeypot | too_fast */
+    /** too_fast ("honeypot" only on rows from round 20, before the hidden field was removed) */
     spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -459,9 +459,9 @@ export const acceleratorInterest = pgTable(
     /** Founders ticked "Also add me as a member". */
     addMember: boolean("add_member").notNull().default(false),
     status: text().$type<InterestStatus>().notNull().default("new"),
-    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    /** Round 20: caught by the bot guard (sent too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
     suspectedSpam: boolean("suspected_spam").notNull().default(false),
-    /** honeypot | too_fast */
+    /** too_fast ("honeypot" only on rows from round 20, before the hidden field was removed) */
     spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -490,9 +490,9 @@ export const contactMessages = pgTable(
     /** Privacy requests only: when the sender confirmed the address. Null = unverified (or not needed). */
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     status: text().$type<ContactStatus>().notNull().default("new"),
-    /** Round 20: caught by the bot guard (honeypot or too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
+    /** Round 20: caught by the bot guard (sent too fast). Saved, not dropped; no emails until a super admin marks it "Not spam". */
     suspectedSpam: boolean("suspected_spam").notNull().default(false),
-    /** honeypot | too_fast */
+    /** too_fast ("honeypot" only on rows from round 20, before the hidden field was removed) */
     spamReason: text("spam_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -501,6 +501,7 @@ export const contactMessages = pgTable(
 
 export type ContactMessage = typeof contactMessages.$inferSelect;
 
+/** New flags are always "too_fast"; "honeypot" stays readable for rows flagged in round 20. */
 export const SPAM_REASONS = ["honeypot", "too_fast"] as const;
 export type SpamReason = (typeof SPAM_REASONS)[number];
 

@@ -19,7 +19,7 @@ export type FormName = "join" | "checkin" | "inquiry" | "accelerator" | "contact
  * One log line and a Sentry breadcrumb with the form and the reason only, never the person's
  * details. Search the logs for "flagged:".
  */
-export function recordFlag(form: FormName, reason: "honeypot" | "too_fast") {
+export function recordFlag(form: FormName, reason: "too_fast") {
   console.warn(`${form} flagged: ${reason}`);
   Sentry.addBreadcrumb({ category: "form", level: "info", message: `${form} flagged: ${reason}` });
 }

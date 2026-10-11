@@ -42,7 +42,6 @@ export async function startJoin(): Promise<string> {
 
 const joinSchema = z.object({
   formToken: z.string().max(200),
-  hp: z.string().max(200), // the honeypot field (lib/honeypot.ts): real people never see it
   blocks: z.array(z.enum(INDUSTRY_IDS)).max(3),
   name: z.string().trim().min(1, "Add your name.").max(120),
   email: z.email("Enter an email we can reach you at, like name@example.com.").trim().max(254),
@@ -59,7 +58,7 @@ export async function join(input: z.input<typeof joinSchema>): Promise<JoinResul
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
 
-  const guard = formGuard("join", d.formToken, d.hp);
+  const guard = formGuard("join", d.formToken);
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
 
   const db = getDb();

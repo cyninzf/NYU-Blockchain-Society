@@ -4,6 +4,7 @@ import styles from "./admin.module.css";
 // Suspected spam in the admin (round 20): the badge, the filter and the "Not spam" button, shared
 // by the three Inquiries tabs and the pending joins on Members.
 
+// "honeypot" only on rows flagged in round 20, before the hidden field was removed.
 const REASON: Record<SpamReason, string> = { honeypot: "hidden field filled", too_fast: "sent too fast" };
 
 /** ?spam=1 only suspected spam, ?spam=0 none of it; anything else, everything. */

@@ -84,7 +84,6 @@ export async function requestCheckin(slug: string, email: string, test = false):
 const JoinInput = z.object({
   slug: z.string().regex(SLUG),
   formToken: z.string().max(200),
-  hp: z.string().max(200), // the honeypot field (lib/honeypot.ts)
   name: z.string().trim().min(1, "Add your name.").max(120),
   email: Email,
   affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
@@ -104,7 +103,7 @@ export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<Che
   const d = parsed.data;
   const test = Boolean(d.test);
   // Test mode skips the bot checks so super admins can test quickly.
-  const guard: GuardResult = test ? (verify(d.formToken) ? { kind: "ok", spam: null } : { kind: "expired" }) : formGuard("checkin", d.formToken, d.hp);
+  const guard: GuardResult = test ? (verify(d.formToken) ? { kind: "ok", spam: null } : { kind: "expired" }) : formGuard("checkin", d.formToken);
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
   const o = await openEvent(d.slug, test);
   if (!o) return { ok: false, error: CLOSED };

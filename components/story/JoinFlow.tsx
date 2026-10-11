@@ -16,7 +16,6 @@ import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
 import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
-import Honeypot from "../Honeypot";
 const STEPS = ["blocks", "name", "email", "you"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const YOU: [Exclude<Affiliation, "friend">, string][] = [
@@ -55,7 +54,6 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   const formToken = useRef<Promise<string> | null>(null);
   const stepRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
-  const honeypot = useRef<HTMLInputElement>(null);
 
   useEffect(() => { formToken.current = startJoin(); }, []);
 
@@ -100,7 +98,6 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     try {
       const res = await join({
         formToken: (await formToken.current) ?? "",
-        hp: honeypot.current?.value ?? "",
         blocks: [...sel].sort().map((i) => industries[i].id),
         name: name.trim(),
         email: email.trim(),
@@ -180,8 +177,6 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
       <p className="err" id="jf-err" role="alert">{sending ? "" : err}</p>
       {id === "you" && <p className="fine">{sending ? "Adding your block…" : privacyLine}</p>}
       <PrivacyNote className="fine privacy-note" />
-      {/* Last in the form, away from any text (see components/Honeypot.tsx). */}
-      <Honeypot ref={honeypot} id="zq_k4v_j" />
     </form>
   );
 }

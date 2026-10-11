@@ -6,7 +6,6 @@ import { startJoin } from "@/app/actions/join";
 
 import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
-import Honeypot from "../Honeypot";
 const INTERESTS = [["sponsor", "Sponsor"], ["speak", "Speak"], ["other", "Other"]] as const;
 
 /** "Interested in sponsoring or speaking?" Name, email, company, interest, message (1,000 characters). */
@@ -44,8 +43,6 @@ export default function InquiryForm() {
       <p className="iq-fine">We use these details only to reply about the conference. You won&apos;t be added to any list.</p>
       <PrivacyNote />
       <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
-      {/* Last in the form, after the button, away from any text (see components/Honeypot.tsx). */}
-      <Honeypot id="zq_k4v_i" />
     </form>
   );
 }

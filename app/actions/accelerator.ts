@@ -6,7 +6,6 @@ import { getDb } from "@/lib/db";
 import type { InterestType } from "@/lib/db/schema";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
-import { HONEYPOT_FIELD } from "@/lib/honeypot";
 
 import { reportError } from "@/lib/monitoring";
 export type InterestResult = { ok: true } | { ok: false; error: string } | null;
@@ -14,12 +13,12 @@ export type InterestResult = { ok: true } | { ok: false; error: string } | null;
 const GENERIC = "Something went wrong on our side. Please try again in a moment.";
 
 /**
- * The two forms on /accelerator. Same protection as the conference inquiry form: a honeypot, the
+ * The two forms on /accelerator. Same protection as the conference inquiry form: the
  * signed minimum-fill-time token (startJoin), and rate limits per IP and per email (shared by both
  * forms). Stored, then one email to SUPER_ADMIN_EMAIL after the response; nothing to the submitter.
  */
 async function submit(type: InterestType, fd: FormData): Promise<InterestResult> {
-  const guard = formGuard("accelerator", String(fd.get("formToken") ?? ""), String(fd.get(HONEYPOT_FIELD) ?? ""));
+  const guard = formGuard("accelerator", String(fd.get("formToken") ?? ""));
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
   // Suspected bots are saved flagged (no notification, no member) and see the normal thank-you.
   const spam = guard.spam;
