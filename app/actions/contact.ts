@@ -43,7 +43,9 @@ export async function submitContact(_prev: ContactResult | null, fd: FormData): 
 /** The confirmation page's button (a click, so link scanners can't use the link up). */
 export async function confirmContact(fd: FormData) {
   const db = getDb();
-  const ok = db ? await verifyContactMessage(db, String(fd.get("t") ?? "")).catch((e) => { reportError("forms", "contact verify failed", e); return false; }) : false;
+  const outcome = db
+    ? await verifyContactMessage(db, String(fd.get("t") ?? "")).catch((e) => { reportError("forms", "contact verify failed", e); return "invalid" as const; })
+    : "invalid";
   // The token leaves the URL either way.
-  redirect(`/contact/verify?${ok ? "done=1" : "error=link"}`);
+  redirect(`/contact/verify?${outcome === "confirmed" ? "done=1" : `error=${outcome === "closed" ? "closed" : "link"}`}`);
 }

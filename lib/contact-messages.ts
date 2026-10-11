@@ -52,11 +52,20 @@ export async function sendContactVerification(db: Db, id: number, email: string)
 }
 
 /** The confirmation link's button: marks the request verified. False for a used, expired or unknown link. */
-export async function verifyContactMessage(db: Db, token: string): Promise<boolean> {
+export type VerifyOutcome = "confirmed" | "closed" | "invalid";
+
+/**
+ * The confirmation link's button. "invalid": unknown, expired or already used. "closed": the link
+ * was fine but its request has since been deleted or closed, so nothing is confirmed (never a
+ * false success). "confirmed": `verified_at` is set (the first time is kept).
+ */
+export async function verifyContactMessage(db: Db, token: string): Promise<VerifyOutcome> {
   const id = Number(await consumeLinkToken(db, "contact", token));
-  if (!Number.isInteger(id) || id < 1) return false;
+  if (!Number.isInteger(id) || id < 1) return "invalid";
+  const [m] = await db.select({ status: contactMessages.status }).from(contactMessages).where(eq(contactMessages.id, id));
+  if (!m || m.status === "closed") return "closed";
   await db.update(contactMessages).set({ verifiedAt: new Date() }).where(and(eq(contactMessages.id, id), isNull(contactMessages.verifiedAt)));
-  return true;
+  return "confirmed";
 }
 
 /**

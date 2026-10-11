@@ -205,20 +205,22 @@ const cTokens = await db.select().from(schema.authTokens).where(eq(schema.authTo
 const hours = (cTokens[0]?.expiresAt.getTime() - Date.now()) / 3.6e6;
 ok(cTokens.length === 1 && cTokens[0].subject === String(cid) && hours > 47.9 && hours <= 48, "one contact link for the request, valid 48 hours");
 const tok = await createLinkToken(db, "contact", String(cid), 48 * 3600e3);
-ok(await verifyContactMessage(db, tok), "confirmation link verifies the request");
+ok((await verifyContactMessage(db, tok)) === "confirmed", "confirmation link verifies the request");
 const [cv] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, cid));
 ok(cv.verifiedAt instanceof Date, "request marked verified");
-ok(!(await verifyContactMessage(db, tok)), "the link works only once");
+ok((await verifyContactMessage(db, tok)) === "invalid", "the link works only once");
 const old = await createLinkToken(db, "contact", String(cid), -1000);
-ok(!(await verifyContactMessage(db, old)), "an expired link is refused");
-ok(!(await verifyContactMessage(db, "not-a-real-token-at-all-xxxxxxxxxx")), "an unknown link is refused");
+ok((await verifyContactMessage(db, old)) === "invalid", "an expired link is refused");
+ok((await verifyContactMessage(db, "not-a-real-token-at-all-xxxxxxxxxx")) === "invalid", "an unknown link is refused");
 const memberTok = await createLinkToken(db, "member", String(cid));
-ok(!(await verifyContactMessage(db, memberTok)), "a link of another purpose can't verify a request");
+ok((await verifyContactMessage(db, memberTok)) === "invalid", "a link of another purpose can't verify a request");
 const { setContactStatus, deleteContactMessage } = await import(`${P}/lib/contact-messages.ts`);
 ok(await setContactStatus(db, cid, "replied", "super@example.com"), "contact message status changed");
 const cAudit = (await db.select().from(adminAudit)).filter((a: any) => a.action === "contact_message.status");
 ok(cAudit.length === 1 && cAudit[0].changes.status.join() === "new,replied", "contact status change logged with old and new");
+const pendingTok = await createLinkToken(db, "contact", String(cid), 48 * 3600e3);
 ok(await deleteContactMessage(db, cid, "super@example.com"), "contact message deleted");
+ok((await verifyContactMessage(db, pendingTok)) === "closed", "a link for a deleted request says it's no longer open, never confirmed");
 ok(!(await deleteContactMessage(db, cid, "super@example.com")), "deleting it again is a no-op");
 const cDel = (await db.select().from(adminAudit)).filter((a: any) => a.action === "contact_message.delete");
 ok(cDel.length === 1 && cDel[0].actor === "super@example.com" && cDel[0].detail === `Deleted contact message #${cid}` && Object.keys(cDel[0].changes ?? {}).length === 0, "contact delete logged with who, when and which, no content");
@@ -380,6 +382,23 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   await db.update(schema.contactMessages).set({ status: "closed" });
   const quiet = await runDigest(db, new Date(Date.now() + 2 * 86400000));
   ok(quiet.note === "quiet day" && sends() === before + 1, "a quiet day sends nothing");
+}
+// Round 23: admin paging (100 per page) keeps the filters; counts match the filters.
+{
+  const { listContacts, countContacts } = await import(`${P}/lib/contacts-query.ts`);
+  const { listMembers, countMembers } = await import(`${P}/lib/members-query.ts`);
+  const { pageWindow } = await import(`${P}/lib/paging.ts`);
+  await db.insert(contacts).values(Array.from({ length: 150 }, (_, i) => ({ name: `Pager Person ${i}`, email: `pager${i}@example.com`, source: "pager-test" })));
+  const f = { source: "pager-test" };
+  const total = await countContacts(db, f);
+  const w = pageWindow(2, total);
+  const p2 = await listContacts(db, f, { limit: 100, offset: w.offset });
+  ok(total === 150 && w.last === 2 && p2.length === 50 && p2.every((r: any) => r.c.source === "pager-test"), "contacts page 2 holds the last 50 of 150, filter kept");
+  const p1 = await listContacts(db, f, { limit: 100, offset: 0 });
+  ok(p1.length === 100 && !p1.some((r: any) => p2.some((x: any) => x.c.id === r.c.id)), "pages don't overlap");
+  ok(pageWindow(9, total).page === 2 && pageWindow(1, 0).last === 1, "a page past the end shows the last one");
+  ok((await countMembers(db, {})) === (await listMembers(db, {})).length, "member count matches the unpaged list");
+  await db.delete(contacts).where(eq(contacts.source, "pager-test"));
 }
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

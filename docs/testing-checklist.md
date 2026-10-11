@@ -335,6 +335,10 @@ Use an address you own. Wait a few seconds after the page loads before sending.
       "Verified" with the time. Open the same link again: "expired or was already used".
 - [ ] Privacy request: delete my data: same as access; leave the link unclicked and check the row
       stays "Unverified" (the link stops working after 48 hours).
+- [ ] Deleted before confirming (round 23): send another privacy request, delete it in admin, then
+      open its link and press "Confirm my request": "This request is no longer open. If you still
+      need help, send us a new message." with a link to /contact (no error page, no "confirmed").
+      An expired or used link says "This link has expired or was already used…" with the same link.
 - [ ] As an Admin: the Contact tab is read-only (no Save, no Delete).
 - [ ] As a super admin: set a message to "Replied" (`/admin/audit`: `contact_message.status` new →
       replied), then delete each test message ("Delete" → "Delete #<id> permanently");
@@ -407,3 +411,13 @@ Daily digest:
 - [ ] The next morning (after 15:00 UTC): if anything was waiting or new, the super admin and the
       listed organizers each got one digest, and `/admin/audit` shows `digest.send` "Daily digest
       sent to <n> recipients". On a quiet day nothing arrives and nothing is logged.
+
+## 16. Admin paging (round 23)
+
+- [ ] `/admin/contacts`: "Showing 1–100 of <n>" and Next; Next shows "Showing 101–200 of <n>" with
+      Previous; the last page shows the remainder and no active Next.
+- [ ] Search or filter (e.g. a source), go to page 2: the search box and filters keep their
+      values and every row matches. Press Filter again: back to page 1.
+- [ ] "Export CSV (n)" shows the full match count and the file has every matching row.
+- [ ] `/admin` (Members): the same pager once there are more than 100 members (until then, just
+      "Showing 1–<n> of <n>").

@@ -28,8 +28,10 @@ export default function ContactVerifyPage({ searchParams }: { searchParams: SP }
 async function Step({ searchParams }: { searchParams: SP }) {
   const { t, done, error } = await searchParams;
   if (done) return <p className="iq-done" role="status">Thank you: your request is confirmed. An organizer will take care of it and reply by email.</p>;
+  // Calm answers, never an error page: a deleted or closed request, or an expired or used link.
+  if (error === "closed") return <p className="series-sub" role="status">This request is no longer open. If you still need help, <Link href="/contact">send us a new message</Link>.</p>;
   if (error || typeof t !== "string" || !t) {
-    return <p className="series-sub" role="alert">This link has expired or was already used. If you still need something, <Link href="/contact">send the form again</Link>.</p>;
+    return <p className="series-sub" role="status">This link has expired or was already used. If you still need help, <Link href="/contact">send us a new message</Link>.</p>;
   }
   return (
     <form action={confirmContact} className="iq-form">
