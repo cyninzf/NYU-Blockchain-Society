@@ -370,3 +370,40 @@ seconds. Test in both Chrome and Safari (iPhone too, if you can).
       notification; on the pending join it creates the member and sends the welcome email.
       `/admin/audit` shows the `*.not_spam` entries without any message content. Delete the
       remaining test items (`pending.delete` for the pending one).
+
+## 15. Members by country, join sources, welcome email and daily digest (round 22)
+
+Members by country (`/admin`, Members):
+- [ ] "Members by country" shows no city or state tiles ("New York City", "New York"): those members
+      count under United States. Anything that matches no country shows as "Unrecognized".
+- [ ] Each member's "City and country" still reads exactly as they typed it (Details column, Edit).
+- [ ] The Country filter works for United States and for Unrecognized.
+
+Join sources (a private window each time, so the tab session is fresh):
+- [ ] Open `/?src=test-launch`, go to `/conference`, press "Get notified" and join with an obviously
+      fake address (e.g. `src-test@example.com`). In `/admin` the member's Source is `test-launch`,
+      not `conference-2027`.
+- [ ] Open the site from a link on another site with no `?src=` (e.g. post the plain URL in a
+      private LinkedIn or X draft preview and click it, or click it from an email): the member's
+      Source is `ref-<that site>` (e.g. `ref-linkedin.com`, `ref-t.co`). Typed directly: no source.
+- [ ] An event share link (`/networking/<slug>?src=event-<slug>`) still shows the event on the
+      join success screen.
+- [ ] Delete the test members afterwards (`member.delete` in the audit log).
+
+Welcome email:
+- [ ] Settings → "Send test welcome email to me": one `[Test] Block added. You're on the chain.`
+      arrives, only to you. Two paragraphs, "Update your profile" button (→ `/update`), "Follow us
+      on LinkedIn and X" (LinkedIn → the company page, X → @NYU_Blockchain), the small print and
+      Unsubscribe. The plain-text part (View source / Show original) matches. Audit: `welcome.test`.
+- [ ] Footer and join section "LinkedIn" open https://www.linkedin.com/company/nyu-blockchain-society/.
+
+Daily digest:
+- [ ] Settings → "Digest recipients": saving an address that isn't on Team is refused with a clear
+      message; an active admin's address saves (`settings.edit` with old → new).
+- [ ] "Send test digest to me": one `[Test] Daily digest: …` arrives, only to you, with "Waiting
+      for review" first (if anything waits, each with how long), verified privacy requests, new
+      members (name, affiliation, source, no email addresses) and new messages by type, plus
+      "Open admin". Audit: `digest.test`.
+- [ ] The next morning (after 15:00 UTC): if anything was waiting or new, the super admin and the
+      listed organizers each got one digest, and `/admin/audit` shows `digest.send` "Daily digest
+      sent to <n> recipients". On a quiet day nothing arrives and nothing is logged.
