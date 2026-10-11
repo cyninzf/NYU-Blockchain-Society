@@ -328,5 +328,21 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   ok(quinn && quinn.suspectedSpam && quinn.spamReason === "too_fast", "it is saved, flagged too_fast");
   ok(sends() === s1, "and sends nothing");
 }
+// Members by country: matched against the country list, display only (round 22).
+{
+  const { membersByCountry } = await import(`${P}/lib/members-query.ts`);
+  const [a, b, c] = await db.insert(members).values([
+    { name: "City Only", email: "city@example.com", affiliation: "alumni", location: "New York City", country: "New York City" },
+    { name: "State Twice", email: "state@example.com", affiliation: "alumni", location: "New York, New York", country: "New York" },
+    { name: "Nowhere Known", email: "nowhere@example.com", affiliation: "alumni", location: "Atlantis", country: "Atlantis" },
+  ]).returning();
+  const counts = await membersByCountry(db);
+  const rows = await db.select().from(members).where(sql`id in (${a.id}, ${b.id}, ${c.id})`).orderBy(members.id);
+  ok(rows[0].country === "United States" && rows[1].country === "United States", "a city with no comma and \"New York, New York\" count as United States");
+  ok(rows[2].country === "Unrecognized", "an entry with no matching country counts as Unrecognized");
+  ok(rows[0].location === "New York City" && rows[1].location === "New York, New York" && rows[2].location === "Atlantis", "what members typed is never changed");
+  ok(!counts.some((x: any) => x.country === "New York City" || x.country === "New York"), "no city or state tiles in Members by country");
+  await db.delete(members).where(sql`id in (${a.id}, ${b.id}, ${c.id})`);
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

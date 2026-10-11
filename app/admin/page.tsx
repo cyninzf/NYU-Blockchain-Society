@@ -63,7 +63,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
       <ShowFilter show="members" pending={pending} />
       {countries.length > 0 && (
         <section className={styles.mix} aria-labelledby="country-h">
-          <h2 id="country-h">Members by country <span>From the optional &ldquo;City and country&rdquo; field, read from the part after the last comma. Counts only.</span></h2>
+          <h2 id="country-h">Members by country <span>From the optional &ldquo;City and country&rdquo; field, matched against a list of countries (cities like &ldquo;NYC&rdquo; count as their country). &ldquo;Unrecognized&rdquo;: no country matched; the entry is kept as typed. Counts only.</span></h2>
           <dl className={styles.counts}>
             {countries.map((c) => <div key={c.country ?? ""}><dt>{c.country ?? "Not given"}</dt><dd>{c.n}</dd></div>)}
           </dl>

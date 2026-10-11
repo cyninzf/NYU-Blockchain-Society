@@ -1,9 +1,10 @@
 import "server-only";
-import { and, arrayContains, count, desc, eq, getTableColumns, isNull, type SQL } from "drizzle-orm";
+import { and, arrayContains, count, desc, eq, getTableColumns, isNull, sql, type SQL } from "drizzle-orm";
 import { NOTIFY, type Notify } from "@/content/notify";
 import { INDUSTRY_IDS, type IndustryId } from "@/content/industries";
 import type { Db } from "./db";
 import { AFFILIATIONS, members, type Affiliation } from "./db/schema";
+import { countryOf, UNRECOGNIZED } from "./location";
 
 /** `country`: a country as counted in "Members by country", or "none" for members who left it blank. */
 export type MemberFilters = { affiliation?: Affiliation; block?: IndustryId; notify?: Notify; country?: string };
@@ -38,10 +39,25 @@ export function listMembers(db: Db, f: MemberFilters) {
   return db.select(memberColumns).from(members).where(where.length ? and(...where) : undefined).orderBy(desc(members.id));
 }
 
-/** "Members by country": counts only, most members first, blanks last. */
+/**
+ * Re-derives `members.country` from what each member typed ("City and country") wherever the
+ * stored value differs, e.g. rows saved before the country list learned "New York City". Only the
+ * derived column changes; `location` is never touched. A no-op once everything matches.
+ */
+export async function syncCountries(db: Db) {
+  const rows = await db.select({ id: members.id, location: members.location, country: members.country }).from(members);
+  const stale = rows.flatMap((r) => { const c = countryOf(r.location); return c === r.country ? [] : [{ id: r.id, c }]; });
+  if (!stale.length) return 0;
+  await db.execute(sql`update members as m set country = v.c from (values ${sql.join(stale.map((r) => sql`(${r.id}::int, ${r.c}::text)`), sql`, `)}) as v(id, c) where m.id = v.id`);
+  return stale.length;
+}
+
+/** "Members by country": counts only, most members first, then "Unrecognized", blanks last. */
 export async function membersByCountry(db: Db) {
+  await syncCountries(db);
   const rows = await db.select({ country: members.country, n: count() }).from(members).groupBy(members.country);
-  return rows.sort((a, b) => (a.country === null ? 1 : 0) - (b.country === null ? 1 : 0) || b.n - a.n || (a.country ?? "").localeCompare(b.country ?? ""));
+  const rank = (c: string | null) => (c === null ? 2 : c === UNRECOGNIZED ? 1 : 0);
+  return rows.sort((a, b) => rank(a.country) - rank(b.country) || b.n - a.n || (a.country ?? "").localeCompare(b.country ?? ""));
 }
 
 export const AFFILIATION_LABELS: Record<Affiliation, string> = {

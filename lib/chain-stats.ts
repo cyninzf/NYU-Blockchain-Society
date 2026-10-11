@@ -49,7 +49,7 @@ export async function chainPublic(): Promise<ChainPublic> {
       blockchain: sql<number>`count(*) filter (where 'blockchain' = any(${members.blocks}))::int`,
       finance: sql<number>`count(*) filter (where 'finance' = any(${members.blocks}))::int`,
       ai: sql<number>`count(*) filter (where 'ai' = any(${members.blocks}))::int`,
-      countries: sql<number>`count(distinct ${members.country})::int`,
+      countries: sql<number>`count(distinct ${members.country}) filter (where ${members.country} <> 'Unrecognized')::int`,
     }).from(members);
     const picks = r.blockchain + r.finance + r.ai;
     const stats: ChainStats | null = r.n < chainStatsMinMembers ? null : {
