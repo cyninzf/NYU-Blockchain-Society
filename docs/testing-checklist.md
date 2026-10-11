@@ -269,6 +269,10 @@ treated as bots: they see the thank-you and nothing is stored).
 - [ ] `/sitemap.xml` lists `/networking` and `/networking/<slug>` only (no `/events`). An event
       page's canonical tag, og:url and JSON-LD url are `/networking/<slug>`; its share image loads.
 
+> Verified on production by the maintainer on October 11, 2026 (deployment
+> `dpl_DPN3tLQKT1CCHQBbFtABWxvpVzrA`): the ticked items in sections 12 to 16. Sentry and Vercel
+> logs were clean after that deploy. Unticked items haven't been reported as checked.
+
 ## 12. Privacy, Sentry and analytics (round 16)
 
 Privacy links
@@ -308,10 +312,10 @@ Sentry (after setting the environment variables and redeploying)
       "[params removed]", and no email address or token anywhere in the chain.
 
 Analytics (after enabling Web Analytics in Vercel and redeploying)
-- [ ] Visit `/`, `/conference`, `/networking` and `/accelerator` (ad blockers off): they appear
+- [x] Visit `/`, `/conference`, `/networking` and `/accelerator` (ad blockers off): they appear
       under Analytics → Pages within a few minutes. `/admin`, `/update`, a check-in confirm link
       and a live screen never appear; a `?src=…` visit shows the src and no other query.
-- [ ] Analytics → Events: "Get notified" on Block 02 → `get_notified_clicked` (block
+- [x] Analytics → Events: "Get notified" on Block 02 → `get_notified_clicked` (block
       accelerator); a join from it → `join_completed` (src chain-accelerator, notify accelerator);
       a conference inquiry and each accelerator form → `inquiry_submitted` with its type; a real
       check-in (not test mode) → `checkin_completed` with the event slug. No event carries a name
@@ -335,7 +339,7 @@ Use an address you own. Wait a few seconds after the page loads before sending.
       "Verified" with the time. Open the same link again: "expired or was already used".
 - [ ] Privacy request: delete my data: same as access; leave the link unclicked and check the row
       stays "Unverified" (the link stops working after 48 hours).
-- [ ] Deleted before confirming (round 23): send another privacy request, delete it in admin, then
+- [x] Deleted before confirming (round 23): send another privacy request, delete it in admin, then
       open its link and press "Confirm my request": "This request is no longer open. If you still
       need help, send us a new message." with a link to /contact (no error page, no "confirmed").
       An expired or used link says "This link has expired or was already used…" with the same link.
@@ -395,16 +399,16 @@ Join sources (a private window each time, so the tab session is fresh):
 - [ ] Delete the test members afterwards (`member.delete` in the audit log).
 
 Welcome email:
-- [ ] Settings → "Send test welcome email to me": one `[Test] Block added. You're on the chain.`
+- [x] Settings → "Send test welcome email to me": one `[Test] Block added. You're on the chain.`
       arrives, only to you. Two paragraphs, "Update your profile" button (→ `/update`), "Follow us
       on LinkedIn and X" (LinkedIn → the company page, X → @NYU_Blockchain), the small print and
       Unsubscribe. The plain-text part (View source / Show original) matches. Audit: `welcome.test`.
-- [ ] Footer and join section "LinkedIn" open https://www.linkedin.com/company/nyu-blockchain-society/.
+- [x] Footer and join section "LinkedIn" open https://www.linkedin.com/company/nyu-blockchain-society/.
 
 Daily digest:
 - [ ] Settings → "Digest recipients": saving an address that isn't on Team is refused with a clear
       message; an active admin's address saves (`settings.edit` with old → new).
-- [ ] "Send test digest to me": one `[Test] Daily digest: …` arrives, only to you, with "Waiting
+- [x] "Send test digest to me": one `[Test] Daily digest: …` arrives, only to you, with "Waiting
       for review" first (if anything waits, each with how long), verified privacy requests, new
       members (name, affiliation, source, no email addresses) and new messages by type, plus
       "Open admin". Audit: `digest.test`.
@@ -414,10 +418,17 @@ Daily digest:
 
 ## 16. Admin paging (round 23)
 
-- [ ] `/admin/contacts`: "Showing 1–100 of <n>" and Next; Next shows "Showing 101–200 of <n>" with
+- [x] `/admin/contacts`: "Showing 1–100 of <n>" and Next; Next shows "Showing 101–200 of <n>" with
       Previous; the last page shows the remainder and no active Next.
 - [ ] Search or filter (e.g. a source), go to page 2: the search box and filters keep their
       values and every row matches. Press Filter again: back to page 1.
 - [ ] "Export CSV (n)" shows the full match count and the file has every matching row.
 - [ ] `/admin` (Members): the same pager once there are more than 100 members (until then, just
       "Showing 1–<n> of <n>").
+
+## 17. Footer copy (round 24)
+
+- [ ] The site footer reads "NYU Blockchain Society · Official NYU Alumni Club" (no "Based in New
+      York"); the home mission ends "Based in New York, open to NYU alumni worldwide."
+- [ ] Any email (e.g. Settings → "Send test welcome email to me") ends with "NYU Blockchain Society
+      · Official NYU Alumni Club" and nothing about New York.

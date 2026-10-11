@@ -3,6 +3,15 @@
 Repo: https://github.com/cyninzf/NYU-Blockchain-Society
 Maintainer: Fang. Co-leads: two society organizers (names kept out of this public repo).
 
+## Current state (October 11, 2026: development paused)
+- Live at https://www.nyublockchainsociety.com, auto-deployed from `main`. Latest production deployment: `dpl_Ey5u1cAbnwGqVaCBJHk8ph3rgWpQ` (commit 8e35d0f, round 24 footer copy); the later docs-only commit redeploys the same code. The previous one, `dpl_DPN3tLQKT1CCHQBbFtABWxvpVzrA` (round 23), was verified on production by the maintainer.
+- Live: the site and join flow, "Update your block", events with check-in and the live screen, the 2027 conference hub and inquiry form, the accelerator interest forms, the contact form with verified privacy requests, invites, announcements, the admin (paging on Members and Contacts), the welcome email, the daily admin digest, Vercel Web Analytics and Sentry.
+- Verified by the maintainer on production after round 23: Contacts paging, the welcome email test, the daily digest test, the privacy-link fix (a deleted request's link says it's no longer open), the LinkedIn company-page links and analytics; Sentry and Vercel logs clean. What's checked is ticked in `docs/testing-checklist.md`; unticked items are still open (round 24's footer copy, section 17, among them).
+- Known follow-ups:
+  - The KPMG networking evening: after the event, import the Luma attendee export as contacts (`/admin/contacts/import`, never committed) and send a thank-you email. That email isn't built yet; decide whether it's an announcement to members, an invite-style email to contacts, or both.
+  - Accelerator applications, once the program is defined (today only interest forms; never promise funding, cohorts or dates until then).
+  - NYU Blockchain Conference 2027: add the date and venue to `content/conferences.ts` once confirmed (both stay empty until then).
+
 ## Public repo rules
 - Never commit secrets: database URLs, passwords, API keys. Use .env.local locally and Vercel environment variables in production. Provide a .env.example with empty values only.
 - Never commit member data: no CSVs, Luma exports, spreadsheets, or real names/emails in seed data or tests. Use obviously fake test data (e.g. test@example.com). Local test fixtures (fake imports) live in `fixtures/local/`, which is git-ignored; `*.csv`, `*.tsv`, `*.xlsx`, `*.xls` and `*.xlsm` are ignored everywhere (round 9.1). Checked in round 9.1: no spreadsheet or export file has ever been in git history (all refs and unreachable objects).
@@ -24,7 +33,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 - Domain stays registered at Wix; DNS will point to Vercel later. Don't build anything on Wix.
 
 ## Commands
-- Production testing after deploys that touch email, sign-in, members or events: `docs/testing-checklist.md` (section 6 covers events, round 10.1; section 7 check-in, QR, live screen, calendar and share previews, on a draft in test mode since round 12.1; section 8 invites, round 12; section 9 the 2027 conference hub and inquiries, round 13; section 10 the accelerator, round 14; section 11 canonical URLs and /events redirects, round 15; section 12 privacy, Sentry and analytics, round 16; section 13 the contact form and privacy requests, round 19; section 14 suspected spam and form validation, rounds 20 and 21; section 15 Members by country, join sources, the welcome email and the daily digest, round 22; section 16 admin paging, round 23).
+- Production testing after deploys that touch email, sign-in, members or events: `docs/testing-checklist.md` (section 6 covers events, round 10.1; section 7 check-in, QR, live screen, calendar and share previews, on a draft in test mode since round 12.1; section 8 invites, round 12; section 9 the 2027 conference hub and inquiries, round 13; section 10 the accelerator, round 14; section 11 canonical URLs and /events redirects, round 15; section 12 privacy, Sentry and analytics, round 16; section 13 the contact form and privacy requests, round 19; section 14 suspected spam and form validation, rounds 20 and 21; section 15 Members by country, join sources, the welcome email and the daily digest, round 22; section 16 admin paging, round 23; section 17 footer copy, round 24).
 - `npm run dev`: dev server (Codespaces: open forwarded port 3000)
 - `npm run build`: must pass before every commit
 - `npm run lint`
