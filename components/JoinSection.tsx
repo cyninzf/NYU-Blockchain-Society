@@ -12,7 +12,7 @@ export default function JoinSection() {
           <OpenJoin className="btn btn-w">Add your block</OpenJoin>
         </div>
         <ul className="also">
-          <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn group <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></li>
+          <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></li>
           <li><a href={links.x} target="_blank" rel="noopener">Follow on X <Icon name="arrow-up-right" /><span className="sr"> (opens in a new tab)</span></a></li>
         </ul>
       </div>

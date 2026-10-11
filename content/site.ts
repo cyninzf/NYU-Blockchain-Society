@@ -36,7 +36,7 @@ export const footerLinks = siteNav;
 
 export const links = {
   x: "https://x.com/NYU_Blockchain",
-  linkedin: "https://www.linkedin.com/groups/8652445/",
+  linkedin: "https://www.linkedin.com/company/nyu-blockchain-society/",
   nyuAlumni:
     "https://www.nyu.edu/alumni/get-involved/alumni-clubs/special-interest-clubs/nyu-blockchain-society.html",
 };
