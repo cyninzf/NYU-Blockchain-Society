@@ -639,3 +639,9 @@ footer ul{gap:0 22px}
 .privacy li a{color:var(--ink-fg)}
 .privacy p a{color:var(--ink-fg)}
 .iq-topics{flex-direction:column; align-items:flex-start}
+/* Field errors next to their fields (round 21) */
+.field-err{margin:2px 0 0; color:#FFB4C8; font-size:14px; font-weight:500}
+.iq-form [aria-invalid="true"],.ci-step [aria-invalid="true"]{border-color:#FFB4C8 !important}
+.iq-form .iq-pick:has(input[aria-invalid="true"]){border-color:#FFB4C8}
+.iq-field{display:grid; gap:4px; min-width:0}
+.iq-two > .iq-field{align-content:start}

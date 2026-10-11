@@ -9,6 +9,7 @@ import type { Defer } from "./defer";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
 import { optText } from "./member-fields";
+import { zodFieldErrors } from "./form-errors";
 
 // Accelerator interest from /accelerator (round 14), the round 13 inquiry pattern: stored, then
 // one notification to SUPER_ADMIN_EMAIL with reply-to set to the submitter, who gets no email.
@@ -59,10 +60,10 @@ export function parseInterest(type: InterestType, fd: FormData) {
   const all = (k: string) => fd.getAll(k).map(String);
   if (type === "founder") {
     const r = FounderInput.safeParse({ name: s("name"), email: s("email"), affiliation: s("affiliation"), company: s("company"), oneLiner: s("oneLiner"), stage: s("stage"), focus: all("focus"), website: s("url"), addMember: fd.get("addMember") === "on" });
-    return r.success ? { ok: true as const, data: { type, ...r.data } as InterestFields } : { ok: false as const, error: r.error.issues[0]?.message ?? "Check the form and try again." };
+    return r.success ? { ok: true as const, data: { type, ...r.data } as InterestFields } : { ok: false as const, error: r.error.issues[0]?.message ?? "Check the form and try again.", fieldErrors: zodFieldErrors(r.error, { website: "url" }) };
   }
   const r = SupporterInput.safeParse({ name: s("name"), email: s("email"), organization: s("organization"), help: all("help"), message: s("message") });
-  return r.success ? { ok: true as const, data: { type, ...r.data } as InterestFields } : { ok: false as const, error: r.error.issues[0]?.message ?? "Check the form and try again." };
+  return r.success ? { ok: true as const, data: { type, ...r.data } as InterestFields } : { ok: false as const, error: r.error.issues[0]?.message ?? "Check the form and try again.", fieldErrors: zodFieldErrors(r.error) };
 }
 
 /** `spam`: the bot guard's reason; a flagged row is saved but sends nothing (and joins no one) until "Not spam". */

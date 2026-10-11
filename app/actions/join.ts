@@ -12,6 +12,7 @@ import { savePendingJoin } from "@/lib/pending-joins";
 import { invitedEmail, spendInviteToken } from "@/lib/invite-join";
 import { gradYear, linkedinUrl, location, optText } from "@/lib/member-fields";
 import { countIsPublic } from "@/lib/chain-stats";
+import { MSG, zodFieldErrors, type FieldErrors } from "@/lib/form-errors";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
 import { rateLimited, seal, sign, unseal } from "@/lib/security";
 
@@ -24,7 +25,7 @@ const GENERIC = "Something went wrong on our side. Please try again in a moment.
 
 export type JoinResult =
   | { ok: true; n: number | null; token: string | null; devNotice?: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; fieldErrors?: FieldErrors };
 
 export type SaveResult = { ok: true; devNotice?: string } | { ok: false; error: string };
 
@@ -43,8 +44,8 @@ export async function startJoin(): Promise<string> {
 const joinSchema = z.object({
   formToken: z.string().max(200),
   blocks: z.array(z.enum(INDUSTRY_IDS)).max(3),
-  name: z.string().trim().min(1, "Add your name.").max(120),
-  email: z.email("Enter an email we can reach you at, like name@example.com.").trim().max(254),
+  name: z.string().trim().min(1, MSG.name).max(120),
+  email: z.email(MSG.email).trim().max(254),
   // "friend" is kept for old rows only; the flow no longer offers it.
   affiliation: z.enum(AFFILIATIONS).exclude(["friend"]),
   notify: z.enum(NOTIFY).optional(),
@@ -55,7 +56,7 @@ const joinSchema = z.object({
 
 export async function join(input: z.input<typeof joinSchema>): Promise<JoinResult> {
   const parsed = joinSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again.", fieldErrors: zodFieldErrors(parsed.error) };
   const d = parsed.data;
 
   const guard = formGuard("join", d.formToken);

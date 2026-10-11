@@ -6,9 +6,11 @@ import { getDb } from "@/lib/db";
 import type { InterestType } from "@/lib/db/schema";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
+import { submittedValues, type FieldErrors } from "@/lib/form-errors";
 
 import { reportError } from "@/lib/monitoring";
-export type InterestResult = { ok: true } | { ok: false; error: string } | null;
+/** On a validation error: every field's error and what was typed (the form keeps it too). */
+export type InterestResult = { ok: true } | { ok: false; error: string; fieldErrors?: FieldErrors; values?: Record<string, string | string[]> };
 
 const GENERIC = "Something went wrong on our side. Please try again in a moment.";
 
@@ -23,7 +25,7 @@ async function submit(type: InterestType, fd: FormData): Promise<InterestResult>
   // Suspected bots are saved flagged (no notification, no member) and see the normal thank-you.
   const spam = guard.spam;
   const parsed = parseInterest(type, fd);
-  if (!parsed.ok) return parsed;
+  if (!parsed.ok) return { ...parsed, values: submittedValues(fd) };
   const d = parsed.data;
   const db = getDb();
   if (!db) return { ok: false, error: process.env.VERCEL ? GENERIC : "DATABASE_URL isn't set, so nothing was saved. This message only appears outside Vercel." };
@@ -39,10 +41,10 @@ async function submit(type: InterestType, fd: FormData): Promise<InterestResult>
   }
 }
 
-export async function submitFounder(_prev: InterestResult, fd: FormData) {
+export async function submitFounder(_prev: InterestResult | null, fd: FormData) {
   return submit("founder", fd);
 }
 
-export async function submitSupporter(_prev: InterestResult, fd: FormData) {
+export async function submitSupporter(_prev: InterestResult | null, fd: FormData) {
   return submit("supporter", fd);
 }

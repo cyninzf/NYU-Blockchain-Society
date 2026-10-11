@@ -16,8 +16,8 @@ import type { JoinEvent } from "@/app/api/events/[slug]/route";
 
 import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
+import { EMAIL_RE, MSG } from "@/lib/form-errors";
 const STEPS = ["blocks", "name", "email", "you"] as const;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const YOU: [Exclude<Affiliation, "friend">, string][] = [
   ["alumni", "Alumni"],
   ["industry", "Industry professional"],
@@ -83,8 +83,8 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     if (sending) return;
     setErr("");
     const id = STEPS[step];
-    if (id === "name" && !name.trim()) { setErr("Add your name."); return; }
-    if (id === "email" && !EMAIL_RE.test(email.trim())) { setErr("Enter an email we can reach you at, like name@example.com."); return; }
+    if (id === "name" && !name.trim()) { setErr(MSG.name); return; }
+    if (id === "email" && !EMAIL_RE.test(email.trim())) { setErr(MSG.email); return; }
     if (id !== "you") { setStep(step + 1); return; }
 
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
@@ -106,7 +106,12 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
         src,
         invite: storedInvite(),
       });
-      if (!res.ok) { setErr(res.error); return; }
+      if (!res.ok) {
+        // A field the server refused: back to that question, everything typed kept, the error under it.
+        const refused = (["name", "email"] as const).find((k) => res.fieldErrors?.[k]);
+        if (refused) { setStep(STEPS.indexOf(refused)); setErr(res.fieldErrors![refused]); return; }
+        setErr(res.error); return;
+      }
       clearInvite();
       trackEvent("join_completed", { src: src ?? "none", notify: n ?? "none" });
       setDone({ n: res.n, token: res.token, devNotice: res.devNotice, notify: n });
@@ -148,13 +153,13 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
         {id === "name" && (
           <label className="q" htmlFor="jf-name">
             <span id="jf-q">What&apos;s your name?</span>
-            <input id="jf-name" name="name" autoComplete="name" enterKeyHint="next" required value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!err} aria-describedby="jf-err" />
+            <input id="jf-name" name="name" autoComplete="name" enterKeyHint="next" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!err} aria-describedby="jf-err" />
           </label>
         )}
         {id === "email" && (
           <label className="q" htmlFor="jf-email">
             <span id="jf-q">And your email?</span>
-            <input id="jf-email" name="email" type="email" autoComplete="email" inputMode="email" enterKeyHint="next" required value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!err} aria-describedby="jf-err" />
+            <input id="jf-email" name="email" type="email" autoComplete="email" inputMode="email" enterKeyHint="next" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!err} aria-describedby="jf-err" />
           </label>
         )}
         {id === "you" && (

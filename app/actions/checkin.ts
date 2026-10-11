@@ -25,6 +25,7 @@ import { eventPath, eventSource } from "@/lib/event-fields";
 import { consumeLinkToken } from "@/lib/magic-link";
 import { upsertMember } from "@/lib/member-join";
 import { memberIdFromSession } from "@/lib/member-session";
+import { zodFieldErrors, type FieldErrors } from "@/lib/form-errors";
 import { EXPIRED, formGuard, type GuardResult } from "@/lib/form-guard";
 import { savePendingJoin } from "@/lib/pending-joins";
 import { rateLimited, rateLimitedEmail, verify } from "@/lib/security";
@@ -33,8 +34,8 @@ import { createSession } from "@/lib/sessions";
 
 import { reportError } from "@/lib/monitoring";
 import { trackServer } from "@/lib/analytics-server";
-export type CheckinResult = { ok: true; n: number | null; viaJoin?: boolean; fake?: boolean } | { ok: false; error: string };
-export type EmailStep = { ok: true } | { ok: false; error: string };
+export type CheckinResult = { ok: true; n: number | null; viaJoin?: boolean; fake?: boolean } | { ok: false; error: string; fieldErrors?: FieldErrors };
+export type EmailStep = { ok: true } | { ok: false; error: string; fieldErrors?: FieldErrors };
 
 const GENERIC = "Something went wrong on our side. Please try again in a moment.";
 const LIMITED = "Too many attempts. Please try again in a few minutes.";
@@ -70,7 +71,7 @@ const Email = z.email("Enter your email, like name@example.com.").trim().max(254
 /** Step 1 without a session: the same answer for any valid email; members get a one-tap link. */
 export async function requestCheckin(slug: string, email: string, test = false): Promise<EmailStep> {
   const parsed = Email.safeParse(email);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check your email." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check your email.", fieldErrors: { email: parsed.error.issues[0]?.message ?? "Check your email." } };
   const o = await openEvent(slug, test);
   if (!o) return { ok: false, error: CLOSED };
   // Per IP and per email, counted before anything depends on whether the email is a member.
@@ -99,7 +100,7 @@ const JoinInput = z.object({
  */
 export async function checkinJoin(input: z.input<typeof JoinInput>): Promise<CheckinResult> {
   const parsed = JoinInput.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again.", fieldErrors: zodFieldErrors(parsed.error) };
   const d = parsed.data;
   const test = Boolean(d.test);
   // Test mode skips the bot checks so super admins can test quickly.

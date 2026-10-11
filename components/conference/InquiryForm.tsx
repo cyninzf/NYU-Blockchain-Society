@@ -1,48 +1,39 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { submitInquiry, type InquiryResult } from "@/app/actions/inquiry";
 import { startJoin } from "@/app/actions/join";
-
-import PrivacyNote from "../PrivacyNote";
 import { trackEvent } from "@/lib/analytics";
-const INTERESTS = [["sponsor", "Sponsor"], ["speak", "Speak"], ["other", "Other"]] as const;
+import { MSG } from "@/lib/form-errors";
+import { CheckedForm, Choice, FormError, TextArea, TextField } from "../forms/Fields";
+import { useCheckedForm } from "../forms/useCheckedForm";
+import PrivacyNote from "../PrivacyNote";
 
-/** "Interested in sponsoring or speaking?" Name, email, company, interest, message (1,000 characters). */
+const INTERESTS: [string, string][] = [["sponsor", "Sponsor"], ["speak", "Speak"], ["other", "Other"]];
+
+/** "Interested in sponsoring or speaking?" Name, email, company, interest, message. Never cleared on an error. */
 export default function InquiryForm() {
-  const [state, action, pending] = useActionState<InquiryResult, FormData>(submitInquiry, null);
+  const form = useCheckedForm<InquiryResult>(submitInquiry);
   const [token, setToken] = useState("");
-  const [len, setLen] = useState(0);
   // The signed minimum-fill-time token, as for the join form.
   useEffect(() => { startJoin().then(setToken).catch(() => {}); }, []);
+  useEffect(() => { if (form.state?.ok) trackEvent("inquiry_submitted", { type: "conference" }); }, [form.state]);
 
-  useEffect(() => { if (state?.ok) trackEvent("inquiry_submitted", { type: "conference" }); }, [state]);
-  if (state?.ok) {
-    return <p className="iq-done" role="status">Thank you. We&apos;ve received your note and will reply by email.</p>;
-  }
+  if (form.state?.ok) return <p className="iq-done" role="status">Thank you. We&apos;ve received your note and will reply by email.</p>;
   return (
-    <form action={action} className="iq-form" noValidate>
+    <CheckedForm form={form}>
       <input type="hidden" name="formToken" value={token} />
       <div className="iq-two">
-        <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
-        <label>Email<input name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} /></label>
+        <TextField label="Name" name="name" autoComplete="name" required maxLength={120} msgRequired={MSG.name} />
+        <TextField label="Email" name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} />
       </div>
-      <label>Company<input name="company" autoComplete="organization" maxLength={120} /></label>
-      <fieldset>
-        <legend>I&apos;m interested in</legend>
-        <div className="picks">
-          {INTERESTS.map(([v, label]) => (
-            <label key={v} className="iq-pick"><input type="radio" name="interest" value={v} required />{label}</label>
-          ))}
-        </div>
-      </fieldset>
-      <label>Message <span className="iq-count" aria-live="polite">{len}/1,000</span>
-        <textarea name="message" rows={5} maxLength={1000} required onChange={(e) => setLen(e.target.value.length)} />
-      </label>
-      <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
+      <TextField label="Company" name="company" autoComplete="organization" maxLength={120} />
+      <Choice legend="I'm interested in" name="interest" options={INTERESTS} msg="Pick Sponsor, Speak or Other." />
+      <TextArea label="Message" name="message" rows={5} required minLength={10} msgRequired={MSG.message(10)} />
+      <FormError />
+      <button className="btn btn-w" type="submit" disabled={form.pending || !token}>{form.pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">We use these details only to reply about the conference. You won&apos;t be added to any list.</p>
       <PrivacyNote />
-      <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
-    </form>
+    </CheckedForm>
   );
 }

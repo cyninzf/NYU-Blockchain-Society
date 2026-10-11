@@ -1,53 +1,43 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { startJoin } from "@/app/actions/join";
 import { submitContact, type ContactResult } from "@/app/actions/contact";
 import { TOPIC_LABELS } from "@/content/contact";
-import type { ContactTopic } from "@/lib/db/schema";
+import { MSG } from "@/lib/form-errors";
+import { CheckedForm, Choice, FormError, TextArea, TextField } from "../forms/Fields";
+import { useCheckedForm } from "../forms/useCheckedForm";
 import PrivacyNote from "../PrivacyNote";
 
-const TOPICS = Object.entries(TOPIC_LABELS) as [ContactTopic, string][];
-
-/** /contact: name, email, topic, message (1,000 characters). */
+/** /contact: name, email, topic, message (10 to 1,000 characters). Never cleared on an error. */
 export default function ContactForm() {
-  const [state, action, pending] = useActionState<ContactResult, FormData>(submitContact, null);
+  const form = useCheckedForm<ContactResult>(submitContact);
   const [token, setToken] = useState("");
-  const [len, setLen] = useState(0);
   // The signed minimum-fill-time token, as for the join form.
   useEffect(() => { startJoin().then(setToken).catch(() => {}); }, []);
 
-  if (state?.ok) {
+  if (form.state?.ok) {
     return (
       <p className="iq-done" role="status">
-        Thank you. We&apos;ve received your message{state.privacy
+        Thank you. We&apos;ve received your message{form.state.privacy
           ? <>. Check your inbox: we&apos;ve sent a link to confirm the request comes from you. We act on privacy requests only once it&apos;s confirmed.</>
           : <> and will reply by email.</>}
       </p>
     );
   }
   return (
-    <form action={action} className="iq-form" noValidate>
+    <CheckedForm form={form}>
       <input type="hidden" name="formToken" value={token} />
       <div className="iq-two">
-        <label>Name<input name="name" autoComplete="name" required maxLength={120} /></label>
-        <label>Email<input name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} /></label>
+        <TextField label="Name" name="name" autoComplete="name" required maxLength={120} msgRequired={MSG.name} />
+        <TextField label="Email" name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} />
       </div>
-      <fieldset>
-        <legend>Topic</legend>
-        <div className="picks iq-topics">
-          {TOPICS.map(([v, label]) => (
-            <label key={v} className="iq-pick"><input type="radio" name="topic" value={v} required defaultChecked={v === "general"} />{label}</label>
-          ))}
-        </div>
-      </fieldset>
-      <label><span>Message <span className="iq-count" aria-live="polite">{len}/1,000</span></span>
-        <textarea name="message" rows={5} maxLength={1000} required onChange={(e) => setLen(e.target.value.length)} />
-      </label>
-      <button className="btn btn-w" type="submit" disabled={pending || !token}>{pending ? "Sending…" : "Send"}</button>
+      <Choice legend="Topic" name="topic" options={Object.entries(TOPIC_LABELS)} defaultValue="general" msg="Pick a topic." className="picks iq-topics" />
+      <TextArea label="Message" name="message" rows={5} required minLength={10} msgRequired={MSG.message(10)} />
+      <FormError />
+      <button className="btn btn-w" type="submit" disabled={form.pending || !token}>{form.pending ? "Sending…" : "Send"}</button>
       <p className="iq-fine">For a privacy request we&apos;ll first email you a link to confirm it&apos;s you.</p>
       <PrivacyNote />
-      <p className="iq-err" role="alert">{state && !state.ok ? state.error : ""}</p>
-    </form>
+    </CheckedForm>
   );
 }
