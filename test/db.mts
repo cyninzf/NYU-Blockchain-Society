@@ -298,5 +298,35 @@ const pj2 = await savePendingJoin(db, { kind: "join", name: "Del Ete", email: "d
 ok(await deletePendingJoin(db, pj2, "super@example.com"), "a pending join can be deleted");
 const spamAudit = (await db.select().from(adminAudit)).filter((a: any) => /not_spam|pending\.delete/.test(a.action));
 ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@example.com" && !/@example\.com|Hal|Tia|Pia|Sam|faster|privacy|Send me/i.test(a.detail ?? "")), "Not spam and delete are logged without content");
+// Round 21: no honeypot; validation never wipes the form; too fast is flagged, never dropped.
+{
+  const { submitContact } = await import(`${P}/app/actions/contact.ts`);
+  const { submitFounder } = await import(`${P}/app/actions/accelerator.ts`);
+  const short = fd({ formToken: tokenAt(5_000), name: "Val Idate", email: "val@example.com", topic: "general", message: "short" });
+  const r: any = await submitContact(null, short);
+  ok(!r.ok && r.fieldErrors?.message === "Tell us a little more (at least 10 characters)." && Object.keys(r.fieldErrors).length === 1, "a short message returns its error, keyed to the message field");
+  ok(r.values?.name === "Val Idate" && r.values?.email === "val@example.com" && r.values?.message === "short" && r.values?.topic === "general" && !("formToken" in r.values), "the error answer carries back what was typed (never the form token)");
+  const rf: any = await submitFounder(null, fd({ formToken: tokenAt(5_000), name: "Fay", email: "nope", affiliation: "alumni", company: "", oneLiner: "x", stage: "idea", url: "not a site" }));
+  ok(!rf.ok && rf.fieldErrors?.email && rf.fieldErrors?.company && rf.fieldErrors?.oneLiner && rf.fieldErrors?.focus && rf.fieldErrors?.url && rf.values?.name === "Fay", "every founder field error is keyed to its form field (website → url), input kept");
+
+  // A normal submission saves an unflagged row and sends the notification ...
+  const g1 = formGuard("contact", tokenAt(5_000));
+  ok(g1.kind === "ok" && g1.spam === null, "a normal submission is not flagged");
+  let s1 = sends();
+  const okId = await receiveContact(db, ContactInput.parse({ name: "Nora Normal", email: "nora@example.com", topic: "general", message: "A normal question, typed by a person." }), (g1 as any).spam, defer);
+  await flush();
+  const [nora] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, okId));
+  ok(nora && !nora.suspectedSpam && nora.spamReason === null, "it is saved unflagged");
+  ok(sends() === s1 + 1 && lastSend().to.includes("super@example.com") && lastSend().reply_to === "nora@example.com", "and sends the notification, Reply to the sender");
+  // ... and a too-fast one saves a flagged row and sends nothing.
+  const g2 = formGuard("contact", tokenAt(400));
+  ok(g2.kind === "ok" && g2.spam === "too_fast", "a too-fast submission is flagged, not dropped");
+  s1 = sends();
+  const fastId = await receiveContact(db, ContactInput.parse({ name: "Quinn Quick", email: "quinn@example.com", topic: "general", message: "Sent in under two seconds." }), (g2 as any).spam, defer);
+  await flush();
+  const [quinn] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, fastId));
+  ok(quinn && quinn.suspectedSpam && quinn.spamReason === "too_fast", "it is saved, flagged too_fast");
+  ok(sends() === s1, "and sends nothing");
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
