@@ -1,7 +1,7 @@
 // /privacy (round 16): plain English, matching what the code actually does. Review with the
 // maintainer before changing a promise here; update `privacyUpdated` with every change.
 
-export const privacyUpdated = "October 10, 2026";
+export const privacyUpdated = "October 11, 2026";
 
 export const privacyDescription =
   "How NYU Blockchain Society collects, uses and protects your details: what we keep, who sees it, the services we use, and your choices and rights.";
@@ -28,7 +28,7 @@ export const privacySections: PrivacySection[] = [
     id: "collect",
     title: "What we collect",
     items: [
-      "When you add your block: your name, email, which of Alumni, Industry professional, Faculty/Staff or Student fits you, the blocks you pick (Blockchain, Finance, AI), the updates you ask for, and which link you joined from (for example an event's page).",
+      "When you add your block: your name, email, which of Alumni, Industry professional, Faculty/Staff or Student fits you, the blocks you pick (Blockchain, Finance, AI), the updates you ask for, and how you found us: the link you joined from (for example an event's page) or, without one, the website that sent you (for example linkedin.com, never the page or post).",
       "Optional profile details, only if you add them: LinkedIn URL, role, company, NYU school, graduation year, and city and country.",
       "Contacts from our events and the LinkedIn group: when you registered for one of our events, the registration list (name, email and whether you checked in); from the society's LinkedIn group, the name and headline shown in its member list. Contacts are not members. We may invite a contact with an email address once; we won't email them again unless they join.",
       "Messages you send through the conference inquiry form and the accelerator forms, as you entered them.",
