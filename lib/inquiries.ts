@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
 import { adminAudit, conferenceInquiries, INQUIRY_INTERESTS, type InquiryStatus, type SpamReason } from "./db/schema";
+import type { Defer } from "./defer";
 import { renderEmail, sendEmail } from "./email";
 
 // Sponsor and speaker inquiries from /conference (round 13). Stored, then one notification to
@@ -76,4 +77,11 @@ export async function markInquiryNotSpam(db: Db, id: number, actor: string): Pro
   await db.insert(adminAudit).values(auditRow(actor, "inquiry.not_spam", `Marked conference inquiry #${id} not spam`));
   await notifyInquiry(db, id, { name: r.name, email: r.email, company: r.company, interest: r.interest, message: r.message }, r.edition);
   return true;
+}
+
+/** Save, then (unless flagged as suspected spam) the notification after the response. */
+export async function receiveInquiry(db: Db, d: InquiryFields, edition: string, spam: SpamReason | null, defer: Defer) {
+  const id = await saveInquiry(db, d, edition, spam);
+  if (!spam) defer(() => notifyInquiry(db, id, d, edition));
+  return id;
 }

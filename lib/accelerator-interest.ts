@@ -5,6 +5,7 @@ import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } fr
 import { auditRow } from "./admin";
 import type { Db } from "./db";
 import { type AcceleratorInterest, acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, SUPPORT_KINDS, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
+import type { Defer } from "./defer";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
 import { optText } from "./member-fields";
@@ -173,4 +174,16 @@ export async function markInterestNotSpam(db: Db, id: number, actor: string): Pr
   if (d.type === "founder" && d.addMember) await joinFounder(db, d);
   await notifyInterest(db, id, d);
   return true;
+}
+
+/**
+ * Save, then (unless flagged as suspected spam) the member join for "Also add me as a member"
+ * and the notification after the response. The same result whether or not the email was a member.
+ */
+export async function receiveInterest(db: Db, d: InterestFields, spam: SpamReason | null, defer: Defer) {
+  const id = await saveInterest(db, d, spam);
+  if (spam) return id;
+  if (d.type === "founder" && d.addMember) await joinFounder(db, d);
+  defer(() => notifyInterest(db, id, d));
+  return id;
 }

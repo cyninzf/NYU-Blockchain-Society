@@ -6,6 +6,7 @@ import type { Db } from "./db";
 import { TOPIC_LABELS } from "@/content/contact";
 import { auditRow } from "./admin";
 import { adminAudit, CONTACT_TOPICS, contactMessages, type ContactStatus, type SpamReason } from "./db/schema";
+import type { Defer } from "./defer";
 import { renderEmail, sendEmail } from "./email";
 import { CONTACT_LINK_TTL_MS, consumeLinkToken, createLinkToken } from "./magic-link";
 
@@ -115,4 +116,15 @@ export async function markContactNotSpam(db: Db, id: number, actor: string): Pro
   if (r.topic !== "general") await sendContactVerification(db, id, r.email);
   await notifyContactMessage(db, id, { name: r.name, email: r.email, topic: r.topic, message: r.message });
   return true;
+}
+
+/** Save, then (unless flagged as suspected spam) the privacy confirmation and the notification after the response. */
+export async function receiveContact(db: Db, d: ContactFields, spam: SpamReason | null, defer: Defer) {
+  const id = await saveContactMessage(db, d, spam);
+  if (spam) return id;
+  // Privacy requests: one confirmation email to the address given.
+  if (d.topic !== "general") defer(() => sendContactVerification(db, id, d.email));
+  // And one notification to the super admin, Reply going to the sender.
+  defer(() => notifyContactMessage(db, id, d));
+  return id;
 }

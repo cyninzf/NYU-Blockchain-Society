@@ -3,7 +3,7 @@
 import { getDb } from "@/lib/db";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { ContactInput, notifyContactMessage, saveContactMessage, sendContactVerification, verifyContactMessage } from "@/lib/contact-messages";
+import { ContactInput, receiveContact, verifyContactMessage } from "@/lib/contact-messages";
 import { reportError } from "@/lib/monitoring";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
@@ -30,12 +30,8 @@ export async function submitContact(_prev: ContactResult, fd: FormData): Promise
   try {
     if (await rateLimited(db, "contact", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "contact", d.email, 3, 86400)) return { ok: false, error: "This message wasn't sent: you've already sent us 3 today. We'll reply to those; for anything new, please try again tomorrow." };
-    const id = await saveContactMessage(db, d, spam);
-    if (spam) return { ok: true, privacy: d.topic !== "general" };
-    // Privacy requests: one confirmation email to the address given, after the response.
-    if (d.topic !== "general") after(() => sendContactVerification(db, id, d.email).catch((e) => reportError("forms", "contact verification failed", e)));
-    // And one notification to the super admin, Reply going to the sender.
-    after(() => notifyContactMessage(db, id, d).catch((e) => reportError("forms", "contact notification failed", e)));
+    // Flagged messages are saved and send nothing; the sender sees the same thank-you.
+    await receiveContact(db, d, spam, (work) => after(() => work().catch((e) => reportError("forms", "contact email failed", e))));
     return { ok: true, privacy: d.topic !== "general" };
   } catch (e) {
     reportError("forms", "contact message failed", e);

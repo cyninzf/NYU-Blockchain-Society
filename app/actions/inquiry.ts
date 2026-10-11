@@ -3,7 +3,7 @@
 import { after } from "next/server";
 import { nextEdition } from "@/content/conferences";
 import { getDb } from "@/lib/db";
-import { InquiryInput, notifyInquiry, saveInquiry } from "@/lib/inquiries";
+import { InquiryInput, receiveInquiry } from "@/lib/inquiries";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
 import { HONEYPOT_FIELD } from "@/lib/honeypot";
@@ -31,8 +31,7 @@ export async function submitInquiry(_prev: InquiryResult, fd: FormData): Promise
     if (await rateLimited(db, "inquiry", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "inquiry", parsed.data.email, 3, 86400)) return { ok: false, error: "This message wasn't sent: you've already sent us 3 today. We'll reply to those; for anything new, please try again tomorrow." };
     const edition = String(nextEdition?.year ?? "next");
-    const id = await saveInquiry(db, parsed.data, edition, spam);
-    if (!spam) after(() => notifyInquiry(db, id, parsed.data, edition).catch((e) => reportError("forms", "inquiry email failed", e)));
+    await receiveInquiry(db, parsed.data, edition, spam, (work) => after(() => work().catch((e) => reportError("forms", "inquiry email failed", e))));
     return { ok: true };
   } catch (e) {
     reportError("forms", "inquiry failed", e);

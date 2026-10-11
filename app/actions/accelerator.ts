@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { joinFounder, notifyInterest, parseInterest, saveInterest } from "@/lib/accelerator-interest";
+import { parseInterest, receiveInterest } from "@/lib/accelerator-interest";
 import { getDb } from "@/lib/db";
 import type { InterestType } from "@/lib/db/schema";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
@@ -31,11 +31,8 @@ async function submit(type: InterestType, fd: FormData): Promise<InterestResult>
   try {
     if (await rateLimited(db, "accelerator", 5, 3600)) return { ok: false, error: "Too many messages from here. Please try again later." };
     if (await rateLimitedEmail(db, "accelerator", d.email, 3, 86400)) return { ok: false, error: "This wasn't sent: you've already sent us 3 today. We'll reply to those; for anything new, please try again tomorrow." };
-    const id = await saveInterest(db, d, spam);
-    if (spam) return { ok: true };
-    // The same thank-you whether or not the email was already a member.
-    if (d.type === "founder" && d.addMember) await joinFounder(db, d);
-    after(() => notifyInterest(db, id, d).catch((e) => reportError("forms", "accelerator email failed", e)));
+    // Flagged rows are saved and send nothing (and join no one); the same thank-you either way.
+    await receiveInterest(db, d, spam, (work) => after(() => work().catch((e) => reportError("forms", "accelerator email failed", e))));
     return { ok: true };
   } catch (e) {
     reportError("forms", "accelerator interest failed", e);
