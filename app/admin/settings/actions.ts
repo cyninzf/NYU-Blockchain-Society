@@ -5,6 +5,8 @@ import { z } from "zod";
 import { auditRow, requireSuperOr403 } from "@/lib/admin";
 import { adminAudit, settings } from "@/lib/db/schema";
 import { postalAddress } from "@/lib/settings";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/lib/member-email";
 
 export type SettingsState = { ok: true; message: string } | { ok: false; error: string } | null;
 
@@ -25,4 +27,13 @@ export async function savePostalAddress(_prev: SettingsState, fd: FormData): Pro
   ]);
   refresh();
   return { ok: true, message: value ? "Saved. It appears in invite and announcement footers." : "Cleared. Invites can't be sent until an address is set." };
+}
+
+/** Super admins only: the welcome email exactly as a new member gets it, to the signed-in super admin. */
+export async function sendWelcomeTest(): Promise<SettingsState> {
+  const { db, admin, actor } = await requireSuperOr403("send a test welcome email");
+  const r = await sendEmail(db, "welcome-test", welcomeEmail(admin.email, null, false, null));
+  if (!r.ok) return { ok: false, error: r.error };
+  await db.insert(adminAudit).values(auditRow(actor, "welcome.test", `Test welcome email sent to ${admin.email}`));
+  return { ok: true, message: `Sent to ${admin.email}.` };
 }

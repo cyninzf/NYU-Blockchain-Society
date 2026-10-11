@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
-import { boilerplate } from "@/content/boilerplate";
 import { notifyMessages } from "@/content/notify";
+import { links } from "@/content/site";
 import { baseUrl } from "./base-url";
 import type { Db } from "./db";
 import { members } from "./db/schema";
@@ -39,29 +39,44 @@ export async function setUnsubscribed(db: Db, memberId: number, on: boolean): Pr
   return Boolean(m);
 }
 
-const short = boilerplate.find((b) => b.id === "short")!.text;
+// The welcome email's copy (round 22, set by the maintainer).
+export const WELCOME = {
+  paragraphs: [
+    "NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI, and an official NYU Alumni Club.",
+    "Through events, programs, and support for NYU founders, we connect the alumni, builders, investors, and institutions shaping these industries.",
+  ],
+  cta: "Update your profile",
+  note: "You joined at nyublockchainsociety.com. This is our only automatic email; after this, we'll only write about relevant events and programs.",
+};
+
+/**
+ * The welcome email for one member. `memberId` null: a test for an admin ("[Test]" subject, an
+ * unsubscribe link that does nothing, no one-click headers).
+ */
+export function welcomeEmail(to: string, memberId: number | null, numbered: boolean, notify: string | null): Message {
+  const heading = numbered && memberId !== null ? `Block #${memberId} added. You're on the chain.` : "Block added. You're on the chain.";
+  const note = notify && notify in notifyMessages ? notifyMessages[notify as keyof typeof notifyMessages] : null;
+  return {
+    to,
+    subject: memberId === null ? `[Test] ${heading}` : heading,
+    ...renderEmail({
+      kicker: memberId === null ? "Test · Welcome" : numbered ? `Block #${memberId}` : "Welcome",
+      heading,
+      paragraphs: [...WELCOME.paragraphs, ...(note ? [note] : [])],
+      cta: { label: WELCOME.cta, href: `${baseUrl()}/update` },
+      linksLine: ["Follow us on ", { label: "LinkedIn", href: links.linkedin }, " and ", { label: "X", href: links.x }],
+      note: WELCOME.note,
+      unsubscribeUrl: memberId === null ? `${baseUrl()}/unsubscribe` : unsubscribeUrl(memberId),
+    }),
+    ...(memberId === null ? {} : { headers: unsubscribeHeaders(memberId) }),
+  };
+}
 
 /** The one welcome email, sent once when a new member joins (never on re-submits, never retroactively). */
 export async function sendWelcome(db: Db, memberId: number, notify: string | null) {
   const [m] = await db.select({ email: members.email, unsubscribedAt: members.unsubscribedAt }).from(members).where(eq(members.id, memberId));
   if (!m || m.unsubscribedAt) return;
   // The block number is join order, so it only appears once the member count is public.
-  const numbered = await countIsPublic(db);
-  const heading = numbered ? `Block #${memberId} added. You're on the chain.` : "Block added. You're on the chain.";
-  const note = notify && notify in notifyMessages ? notifyMessages[notify as keyof typeof notifyMessages] : null;
-  const msg: Message = {
-    to: m.email,
-    subject: heading,
-    ...renderEmail({
-      kicker: numbered ? `Block #${memberId}` : "Welcome",
-      heading,
-      paragraphs: [short, ...(note ? [note] : []), "You can add or change your blocks, details and email preferences any time."],
-      cta: { label: "Update your block", href: `${baseUrl()}/update` },
-      note: "You're getting this because you added your block at nyublockchainsociety.com. This is the only automatic email; after this we only write about events and programs.",
-      unsubscribeUrl: unsubscribeUrl(memberId),
-    }),
-    headers: unsubscribeHeaders(memberId),
-  };
-  const r = await sendEmail(db, "welcome", msg);
+  const r = await sendEmail(db, "welcome", welcomeEmail(m.email, memberId, await countIsPublic(db), notify));
   if (!r.ok) console.error(`welcome email for #${memberId} not sent:`, r.error);
 }

@@ -14,13 +14,14 @@ export const DAILY_EMAIL_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT) || 100;
 /** Resend's batch endpoint takes at most 100 emails per request. */
 const BATCH_MAX = 100;
 
-export type EmailKind = "welcome" | "admin-link" | "member-link" | "checkin-link" | "announcement" | "announcement-test" | "invite" | "invite-test" | "inquiry" | "accelerator" | "contact-verify" | "contact";
+export type EmailKind = "welcome" | "admin-link" | "member-link" | "checkin-link" | "announcement" | "announcement-test" | "invite" | "invite-test" | "inquiry" | "accelerator" | "contact-verify" | "contact" | "welcome-test" | "digest" | "digest-test";
 /** `replyTo` overrides REPLY_TO_EMAIL, e.g. an inquiry notification answers the inquirer. */
 export type Message = { to: string; subject: string; html: string; text: string; headers?: Record<string, string>; replyTo?: string };
 /** Sentry area per email kind (round 16): a failed send is reported once, here. */
 const AREA_BY_KIND: Record<EmailKind, Area> = {
   welcome: "join", "admin-link": "admin", "member-link": "update", "checkin-link": "checkin", announcement: "announcements", "announcement-test": "announcements",
   invite: "invite", "invite-test": "invite", inquiry: "forms", accelerator: "forms", "contact-verify": "forms", contact: "forms",
+  "welcome-test": "admin", digest: "admin", "digest-test": "admin",
 };
 export type SendResult = { ok: true; sent: number } | { ok: false; error: string };
 
@@ -107,6 +108,8 @@ export type EmailContent = {
   /** Plain-text paragraphs (escaped; blank-line separated text from admins arrives here). */
   paragraphs: string[];
   cta?: { label: string; href: string };
+  /** One line after the button mixing text and links, e.g. "Follow us on [LinkedIn] and [X]". */
+  linksLine?: (string | { label: string; href: string })[];
   /** Small print under a rule, e.g. why they got it. */
   note?: string;
   unsubscribeUrl?: string;
@@ -129,6 +132,7 @@ ${c.kicker ? `<p style="margin:0 0 8px;font:500 12px/1.3 ${mono};letter-spacing:
 <h1 style="margin:0 0 18px;font:600 24px/1.2 ${font};letter-spacing:-.02em;color:#120A1C">${esc(c.heading)}</h1>
 ${c.paragraphs.map(p).join("\n")}
 ${c.cta ? `<p style="margin:8px 0 20px"><a href="${esc(c.cta.href)}" style="display:inline-block;background:#57068C;color:#FFFFFF;text-decoration:none;font:600 15px/1 ${font};padding:14px 20px;border-radius:8px">${esc(c.cta.label)}</a></p>` : ""}
+${c.linksLine ? `<p style="margin:0 0 20px;font:15px/1.55 ${font};color:#2A1A3C">${c.linksLine.map((x) => typeof x === "string" ? esc(x) : `<a href="${esc(x.href)}" style="color:#57068C">${esc(x.label)}</a>`).join("")}</p>` : ""}
 ${c.note || c.unsubscribeUrl ? `<hr style="border:0;border-top:1px solid #DED2EA;margin:8px 0 14px">` : ""}
 ${c.note ? `<p style="margin:0 0 8px;font:13px/1.5 ${font};color:#5C4C6C">${esc(c.note)}</p>` : ""}
 ${c.unsubscribeUrl ? `<p style="margin:0;font:13px/1.5 ${font};color:#5C4C6C"><a href="${esc(c.unsubscribeUrl)}" style="color:#57068C">Unsubscribe</a> from NYU Blockchain Society emails.</p>` : ""}
@@ -138,6 +142,7 @@ ${c.unsubscribeUrl ? `<p style="margin:0;font:13px/1.5 ${font};color:#5C4C6C"><a
   const text = [
     c.kicker, c.heading, "", ...c.paragraphs.flatMap((t) => [t, ""]),
     c.cta ? `${c.cta.label}: ${c.cta.href}\n` : "",
+    c.linksLine ? `${c.linksLine.map((x) => typeof x === "string" ? x : `${x.label} (${x.href})`).join("")}\n` : "",
     c.note ?? "",
     c.unsubscribeUrl ? `Unsubscribe: ${c.unsubscribeUrl}` : "",
     "", "NYU Blockchain Society · Official NYU Alumni Club · Based in New York",

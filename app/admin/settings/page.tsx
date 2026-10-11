@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getDb } from "@/lib/db";
 import { postalAddress } from "@/lib/settings";
 import AddressForm from "./AddressForm";
+import TestEmails from "./TestEmails";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
 
@@ -26,6 +27,7 @@ async function Settings() {
   return (
     <>
       <AddressForm value={(await postalAddress(db)) ?? ""} />
+      <TestEmails />
       <p className={styles.note}>Error monitoring: <Link href="/admin/sentry-test">send a Sentry test error</Link>.</p>
     </>
   );
