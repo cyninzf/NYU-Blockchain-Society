@@ -107,6 +107,8 @@ export type EmailContent = {
   heading: string;
   /** Plain-text paragraphs (escaped; blank-line separated text from admins arrives here). */
   paragraphs: string[];
+  /** Titled lists after the paragraphs, e.g. the admin digest's "Waiting for review". */
+  sections?: { title: string; items: string[] }[];
   cta?: { label: string; href: string };
   /** One line after the button mixing text and links, e.g. "Follow us on [LinkedIn] and [X]". */
   linksLine?: (string | { label: string; href: string })[];
@@ -131,6 +133,8 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 ${c.kicker ? `<p style="margin:0 0 8px;font:500 12px/1.3 ${mono};letter-spacing:.08em;text-transform:uppercase;color:#57068C">${esc(c.kicker)}</p>` : ""}
 <h1 style="margin:0 0 18px;font:600 24px/1.2 ${font};letter-spacing:-.02em;color:#120A1C">${esc(c.heading)}</h1>
 ${c.paragraphs.map(p).join("\n")}
+${(c.sections ?? []).map((x) => `<h2 style="margin:20px 0 8px;font:600 16px/1.3 ${font};color:#120A1C">${esc(x.title)}</h2>
+<ul style="margin:0 0 16px;padding:0 0 0 20px;font:15px/1.5 ${font};color:#2A1A3C">${x.items.map((i) => `<li style="margin:0 0 6px">${esc(i)}</li>`).join("")}</ul>`).join("\n")}
 ${c.cta ? `<p style="margin:8px 0 20px"><a href="${esc(c.cta.href)}" style="display:inline-block;background:#57068C;color:#FFFFFF;text-decoration:none;font:600 15px/1 ${font};padding:14px 20px;border-radius:8px">${esc(c.cta.label)}</a></p>` : ""}
 ${c.linksLine ? `<p style="margin:0 0 20px;font:15px/1.55 ${font};color:#2A1A3C">${c.linksLine.map((x) => typeof x === "string" ? esc(x) : `<a href="${esc(x.href)}" style="color:#57068C">${esc(x.label)}</a>`).join("")}</p>` : ""}
 ${c.note || c.unsubscribeUrl ? `<hr style="border:0;border-top:1px solid #DED2EA;margin:8px 0 14px">` : ""}
@@ -141,6 +145,7 @@ ${c.unsubscribeUrl ? `<p style="margin:0;font:13px/1.5 ${font};color:#5C4C6C"><a
 </table></td></tr></table></body></html>`;
   const text = [
     c.kicker, c.heading, "", ...c.paragraphs.flatMap((t) => [t, ""]),
+    ...(c.sections ?? []).flatMap((x) => [x.title, ...x.items.map((i) => `- ${i}`), ""]),
     c.cta ? `${c.cta.label}: ${c.cta.href}\n` : "",
     c.linksLine ? `${c.linksLine.map((x) => typeof x === "string" ? x : `${x.label} (${x.href})`).join("")}\n` : "",
     c.note ?? "",

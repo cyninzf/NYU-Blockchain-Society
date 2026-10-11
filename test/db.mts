@@ -344,5 +344,42 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   ok(!counts.some((x: any) => x.country === "New York City" || x.country === "New York"), "no city or state tiles in Members by country");
   await db.delete(members).where(sql`id in (${a.id}, ${b.id}, ${c.id})`);
 }
+// Daily admin digest (round 22): waiting first, names but never addresses, recipients limited to
+// active organizers, suppressions skipped, one per day, nothing on a quiet day.
+{
+  const { runDigest, digestRecipients, buildDigest } = await import(`${P}/lib/digest.ts`);
+  const { adminUsers, pendingJoins: pj } = schema;
+  await db.insert(adminUsers).values([
+    { email: "org@example.com", role: "admin", addedBy: "test" },
+    { email: "gone@example.com", role: "admin", addedBy: "test", removedAt: new Date() },
+    { email: "bounced@example.com", role: "admin", addedBy: "test" },
+  ]);
+  await db.insert(settings).values({ key: "digest_recipients", value: "org@example.com\ngone@example.com\nstranger@example.com\nbounced@example.com", updatedBy: "test" })
+    .onConflictDoUpdate({ target: settings.key, set: { value: "org@example.com\ngone@example.com\nstranger@example.com\nbounced@example.com" } });
+  const to = await digestRecipients(db);
+  ok(to.join() === "super@example.com,org@example.com,bounced@example.com", "digest recipients: the super admin plus listed active organizers only");
+  await suppress(db, "bounced@example.com", "bounce");
+  await db.insert(pj).values({ kind: "join", name: "Wanda Waiting", email: "wanda@example.com", affiliation: "alumni", spamReason: "too_fast", createdAt: new Date(Date.now() - 3 * 86400000) });
+  await db.insert(members).values({ name: "Newt Newcomer", email: "newt@example.com", affiliation: "industry", source: "ref-linkedin.com" });
+  const d = await buildDigest(db);
+  ok(d.waiting.some((x: string) => x.startsWith("Join: Wanda Waiting (Alumni)") && x.endsWith("waiting 3 days")), "a pending join is listed with how long it has waited");
+  ok(d.newMembers.some((x: string) => x === "Newt Newcomer · Industry professional · source ref-linkedin.com"), "a new member is listed with affiliation and source");
+  const before = sends();
+  const r = await runDigest(db);
+  const batch = sentBodies.slice(before).flat();
+  ok(r.sent === 2 && r.skipped === 1 && batch.length === 2, "the digest goes to each recipient once, skipping a bounced address");
+  const html: string = batch[0]?.html ?? "";
+  ok(html.indexOf("Waiting for review") > -1 && html.indexOf("Waiting for review") < html.indexOf("New members"), "waiting for review comes first");
+  ok(!/wanda@|newt@|ana@example/.test(html + batch[0]?.text), "no member or sender email address in the digest");
+  const [log] = await db.select().from(adminAudit).where(eq(adminAudit.action, "digest.send"));
+  ok(log && log.detail === "Daily digest sent to 2 recipients (1 skipped: bounced or spam)", "the send is logged with the recipient count only");
+  ok((await runDigest(db)).note === "already sent today" && sends() === before + 1, "a second run the same day sends nothing");
+  // A quiet day: nothing waiting, nothing new since the last digest.
+  await db.delete(pj);
+  for (const t of [schema.conferenceInquiries, schema.acceleratorInterest, schema.contactMessages]) await db.update(t).set({ suspectedSpam: false });
+  await db.update(schema.contactMessages).set({ status: "closed" });
+  const quiet = await runDigest(db, new Date(Date.now() + 2 * 86400000));
+  ok(quiet.note === "quiet day" && sends() === before + 1, "a quiet day sends nothing");
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

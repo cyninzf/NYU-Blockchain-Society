@@ -5,7 +5,7 @@ import { settings } from "./db/schema";
 
 // Settings super admins change at /admin/settings, stored in the database.
 
-export const SETTING_KEYS = ["postal_address"] as const;
+export const SETTING_KEYS = ["postal_address", "digest_recipients"] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
 export async function getSetting(db: Db, key: SettingKey): Promise<string | null> {

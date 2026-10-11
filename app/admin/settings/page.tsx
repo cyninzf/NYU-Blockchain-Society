@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getDb } from "@/lib/db";
-import { postalAddress } from "@/lib/settings";
+import { getSetting, postalAddress } from "@/lib/settings";
+import { superAdminEmail } from "@/lib/admin";
+import { maskEmail } from "@/lib/contacts-import";
 import AddressForm from "./AddressForm";
 import TestEmails from "./TestEmails";
+import DigestForm from "./DigestForm";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
 
@@ -27,6 +30,7 @@ async function Settings() {
   return (
     <>
       <AddressForm value={(await postalAddress(db)) ?? ""} />
+      <DigestForm value={(await getSetting(db, "digest_recipients")) ?? ""} superEmail={superAdminEmail() ? maskEmail(superAdminEmail()!) : null} />
       <TestEmails />
       <p className={styles.note}>Error monitoring: <Link href="/admin/sentry-test">send a Sentry test error</Link>.</p>
     </>
