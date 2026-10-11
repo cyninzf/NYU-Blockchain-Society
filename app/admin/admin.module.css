@@ -87,3 +87,7 @@
 .mailPreview{width:100%; height:560px; border:1px solid var(--line); border-radius:10px; background:#F5F1F9}
 .subtabs{margin:-6px 0 18px}
 .spam{border-color:#C0392B; color:#C0392B}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:12px 0}
+.pager p{margin:0;display:flex;align-items:center;gap:12px}
+.pager a,.pager span[aria-disabled]{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+.pager span[aria-disabled]{opacity:.45}

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
 import { contacts, inviteQueue, inviteSuppressions, members } from "./db/schema";
 import { eligibleWhere, hashSql } from "./invites";
@@ -40,8 +40,7 @@ export function parseContactFilters(sp: Record<string, string | string[] | undef
   };
 }
 
-/** Contacts (newest first) with the linked member's name, if any. */
-export function listContacts(db: Db, f: ContactFilters) {
+function contactWhere(f: ContactFilters): SQL | undefined {
   const where: SQL[] = [];
   if (f.q) {
     const like = `%${f.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -51,8 +50,20 @@ export function listContacts(db: Db, f: ContactFilters) {
   if (f.linked) where.push(f.linked === "yes" ? isNotNull(contacts.memberId) : isNull(contacts.memberId));
   if (f.checkedIn) where.push(f.checkedIn === "unknown" ? isNull(contacts.checkedIn) : eq(contacts.checkedIn, f.checkedIn === "yes"));
   if (f.invite) where.push(sql`(${inviteStatusSql}) = ${f.invite}`);
-  return db.select({ c: contacts, memberName: members.name, invite: inviteStatusSql }).from(contacts).leftJoin(members, eq(members.id, contacts.memberId))
-    .where(where.length ? and(...where) : undefined).orderBy(desc(contacts.id));
+  return where.length ? and(...where) : undefined;
+}
+
+/** Contacts (newest first) with the linked member's name, if any. Every match, or one page (`page`: limit and offset). */
+export function listContacts(db: Db, f: ContactFilters, page?: { limit: number; offset: number }) {
+  const q = db.select({ c: contacts, memberName: members.name, invite: inviteStatusSql }).from(contacts).leftJoin(members, eq(members.id, contacts.memberId))
+    .where(contactWhere(f)).orderBy(desc(contacts.id)).$dynamic();
+  return page ? q.limit(page.limit).offset(page.offset) : q;
+}
+
+/** How many contacts match, for the pager. */
+export async function countContacts(db: Db, f: ContactFilters) {
+  const [{ n }] = await db.select({ n: count() }).from(contacts).where(contactWhere(f));
+  return n;
 }
 
 export async function listSources(db: Db) {

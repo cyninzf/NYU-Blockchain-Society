@@ -30,13 +30,25 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   };
 }
 
-export function listMembers(db: Db, f: MemberFilters) {
+function memberWhere(f: MemberFilters): SQL | undefined {
   const where: SQL[] = [];
   if (f.affiliation) where.push(eq(members.affiliation, f.affiliation));
   if (f.block) where.push(arrayContains(members.blocks, [f.block]));
   if (f.notify) where.push(arrayContains(members.notify, [f.notify]));
   if (f.country) where.push(f.country === "none" ? isNull(members.country) : eq(members.country, f.country));
-  return db.select(memberColumns).from(members).where(where.length ? and(...where) : undefined).orderBy(desc(members.id));
+  return where.length ? and(...where) : undefined;
+}
+
+/** Members newest first: every match, or one page (`page`: limit and offset). */
+export function listMembers(db: Db, f: MemberFilters, page?: { limit: number; offset: number }) {
+  const q = db.select(memberColumns).from(members).where(memberWhere(f)).orderBy(desc(members.id)).$dynamic();
+  return page ? q.limit(page.limit).offset(page.offset) : q;
+}
+
+/** How many members match, for the pager. */
+export async function countMembers(db: Db, f: MemberFilters) {
+  const [{ n }] = await db.select({ n: count() }).from(members).where(memberWhere(f));
+  return n;
 }
 
 /**

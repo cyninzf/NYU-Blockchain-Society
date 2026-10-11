@@ -6,7 +6,9 @@ import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { adminAudit, AFFILIATIONS, pendingJoins, type AdminAudit, type Affiliation } from "@/lib/db/schema";
-import { AFFILIATION_LABELS, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
+import { AFFILIATION_LABELS, countMembers, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
+import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
+import Pager from "./Pager";
 import { listPendingJoins } from "@/lib/pending-joins";
 import { approvePending, deleteMember, removePending } from "./actions";
 import { NotSpamButton, SpamBadge } from "./Spam";
@@ -49,7 +51,11 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const [{ pending }] = await db.select({ pending: count() }).from(pendingJoins);
   if (sp.show === "pending") return <><ShowFilter show="pending" pending={pending} /><Pending admin={admin} /></>;
-  const [rows, countries] = await Promise.all([listMembers(db, f), membersByCountry(db)]);
+  // Countries first: it re-derives stale country values, which the country filter and count read.
+  const countries = await membersByCountry(db);
+  const total = await countMembers(db, f);
+  const pg = pageWindow(parsePage(sp), total);
+  const rows = await listMembers(db, f, { limit: PAGE_SIZE, offset: pg.offset });
   // The last 3 admin edits per member shown, newest first.
   const audit = new Map<number, AdminAudit[]>();
   if (rows.length) {
@@ -99,7 +105,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
         </label>
         <button type="submit">Filter</button>
         <a href="/admin">Clear</a>
-        {isSuper(admin) && <a className={styles.export} href={`/admin/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
+        {isSuper(admin) && <a className={styles.export} href={`/admin/export${qs ? `?${qs}` : ""}`}>Export CSV ({total})</a>}
       </form>
 
       <div className={styles.scroll}>
@@ -158,6 +164,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
         </table>
         {!rows.length && <p>No members match these filters.</p>}
       </div>
+      <Pager path="/admin" qs={qs} page={pg.page} last={pg.last} total={total} shown={rows.length} label="Members" />
     </>
   );
 }

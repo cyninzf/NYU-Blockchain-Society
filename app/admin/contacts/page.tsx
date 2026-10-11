@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { LINK_LABELS, nameMatches, type Review } from "@/lib/contact-links";
-import { INVITE_STATUS_LABELS, INVITE_STATUSES, listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
+import { countContacts, INVITE_STATUS_LABELS, INVITE_STATUSES, listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
+import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
+import Pager from "../Pager";
 import { deleteContact, linkContact, unlinkContact } from "./actions";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
@@ -29,14 +31,16 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
-const SHOWN = 200;
 const checked = (v: boolean | null) => (v === null ? "Unknown" : v ? "Yes" : "No");
 
 async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
-  const f = parseContactFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseContactFilters(sp);
   const db = getDb();
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
-  const [rows, sources, { review }] = await Promise.all([listContacts(db, f), listSources(db), nameMatches(db)]);
+  const total = await countContacts(db, f);
+  const pg = pageWindow(parsePage(sp), total);
+  const [rows, sources, { review }] = await Promise.all([listContacts(db, f, { limit: PAGE_SIZE, offset: pg.offset }), listSources(db), nameMatches(db)]);
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
@@ -78,7 +82,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
         <a href="/admin/contacts">Clear</a>
         {isSuper(admin) && <Link className={`${styles.button} ${styles.primary}`} href="/admin/contacts/import">Import</Link>}
         {isSuper(admin) && <Link className={styles.button} href="/admin/contacts/invite">Invite</Link>}
-        {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({rows.length})</a>}
+        {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({total})</a>}
       </form>
 
       <div className={styles.scroll}>
@@ -92,7 +96,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, SHOWN).map(({ c, memberName, invite }) => (
+            {rows.map(({ c, memberName, invite }) => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td>{c.name}</td>
@@ -126,8 +130,8 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           </tbody>
         </table>
         {!rows.length && <p className={styles.empty}>No contacts match these filters.</p>}
-        {rows.length > SHOWN && <p className={styles.empty}>Showing the first {SHOWN} of {rows.length}. Search or filter to narrow it down{isSuper(admin) ? "; the CSV export has all of them" : ""}.</p>}
       </div>
+      <Pager path="/admin/contacts" qs={qs} page={pg.page} last={pg.last} total={total} shown={rows.length} label="Contacts" />
     </>
   );
 }
