@@ -141,7 +141,7 @@ ${c.note || c.unsubscribeUrl ? `<hr style="border:0;border-top:1px solid #DED2EA
 ${c.note ? `<p style="margin:0 0 8px;font:13px/1.5 ${font};color:#5C4C6C">${esc(c.note)}</p>` : ""}
 ${c.unsubscribeUrl ? `<p style="margin:0;font:13px/1.5 ${font};color:#5C4C6C"><a href="${esc(c.unsubscribeUrl)}" style="color:#57068C">Unsubscribe</a> from NYU Blockchain Society emails.</p>` : ""}
 </td></tr>
-<tr><td style="padding:14px 28px;font:12px/1.5 ${font};color:#5C4C6C;text-align:center">NYU Blockchain Society · Official NYU Alumni Club · Based in New York${c.postalAddress ? `<br>${esc(c.postalAddress).replace(/\n/g, "<br>")}` : ""}</td></tr>
+<tr><td style="padding:14px 28px;font:12px/1.5 ${font};color:#5C4C6C;text-align:center">NYU Blockchain Society · Official NYU Alumni Club${c.postalAddress ? `<br>${esc(c.postalAddress).replace(/\n/g, "<br>")}` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     c.kicker, c.heading, "", ...c.paragraphs.flatMap((t) => [t, ""]),
@@ -150,7 +150,7 @@ ${c.unsubscribeUrl ? `<p style="margin:0;font:13px/1.5 ${font};color:#5C4C6C"><a
     c.linksLine ? `${c.linksLine.map((x) => typeof x === "string" ? x : `${x.label} (${x.href})`).join("")}\n` : "",
     c.note ?? "",
     c.unsubscribeUrl ? `Unsubscribe: ${c.unsubscribeUrl}` : "",
-    "", "NYU Blockchain Society · Official NYU Alumni Club · Based in New York",
+    "", "NYU Blockchain Society · Official NYU Alumni Club",
     c.postalAddress ?? "",
   ].filter((l) => l !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return { html, text };

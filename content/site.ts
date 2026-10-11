@@ -54,7 +54,7 @@ export const affiliation = {
 
 export const mission = {
   text: "We bring together the institutions, builders, investors, and policymakers shaping what comes next.",
-  muted: "Then we help NYU founders build it.",
+  muted: "Then we help NYU founders build it. Based in New York, open to NYU alumni worldwide.",
 };
 
 export const chainIntro =
