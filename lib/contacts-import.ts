@@ -77,6 +77,12 @@ export function slugifySource(v: string | undefined) {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+/, "").slice(0, 40).replace(/-+$/, "");
 }
 
+/** Personal introductions (round 26): a source starting "via-" (an import row's "via Alex" → via-alex). Never invited in bulk unless chosen explicitly. */
+export const PERSONAL_PREFIX = "via-";
+export const isPersonalSource = (source: string) => source.startsWith(PERSONAL_PREFIX);
+/** Shown, and confirmed, before a personal-introductions source can be invited. */
+export const PERSONAL_WARNING = "These are personal introductions. They'll get the standard society invite.";
+
 /** Today's date in New York, for note stamps: "2026-10-16". */
 export const noteDate = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 

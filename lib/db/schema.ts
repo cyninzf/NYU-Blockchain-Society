@@ -348,6 +348,8 @@ export const inviteCampaigns = pgTable(
     reason: text().notNull(),
     contentHash: text("content_hash").notNull(),
     total: integer().notNull().default(0),
+    /** Round 26: the super admin explicitly chose a personal-introductions source ("via-…") and confirmed the warning. Without it no via- contact is ever queued or sent. */
+    includePersonal: boolean("include_personal").notNull().default(false),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

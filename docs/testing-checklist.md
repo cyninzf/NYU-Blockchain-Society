@@ -466,3 +466,23 @@ Test One Again,TEST1@example.com,,,,,
 - [ ] An admin (not super) doesn't see Import, and `/admin/contacts/import` is refused.
 - [ ] `/privacy` mentions contacts from introductions and shows "Last updated October 16, 2026".
 - [ ] Delete the test contacts (Delete per row).
+
+## 19. Personal introductions in invites (round 26)
+
+On the **preview deployment only**, with fake contacts (`@example.com`). Nothing is sent from a
+preview (real sends are production-only), so this checks the picker, statuses and refusals.
+Import a fake CSV first (section 18), e.g. two rows with source "via Alex Example" and one with none
+(label `fake-list`).
+
+- [ ] `/admin/contacts`: the via- rows show Invite "Personal (not auto-invited)", the `fake-list`
+      row "Eligible". The Invite filter has "Personal (not auto-invited)" and lists only the via-
+      rows; the CSV export shows `personal` for them.
+- [ ] `/admin/contacts/invite`: "Contacts from" is pre-selected to a non-via source (or "Pick a
+      source"); via- sources are listed under "Personal introductions (not auto-invited)".
+- [ ] Pick `via-alex-example`: the warning "These are personal introductions. They'll get the
+      standard society invite." shows with an unticked "Include these personal introductions"
+      box, and the Send button is disabled until it's ticked. Switching source clears the tick.
+- [ ] Ticked, "Send to n contacts" (after a test to yourself) shows the warning again in the
+      confirm dialog; on a preview the server answers that invites only go out from production.
+- [ ] Other sources work exactly as before.
+- [ ] Delete the fake contacts.

@@ -9,16 +9,18 @@ import type { Db } from "@/lib/db";
 import { adminAudit, contacts, events, inviteCampaigns } from "@/lib/db/schema";
 import { sendEmail } from "@/lib/email";
 import { InviteDraft, inviteEmail, inviteHash, type FeaturedEvent } from "@/lib/invite-email";
-import { processInvites } from "@/lib/invite-queue";
+import { processInvites, queueCampaign } from "@/lib/invite-queue";
 import { queueableWhere } from "@/lib/invites";
 import { postalAddress } from "@/lib/settings";
+import { isPersonalSource, PERSONAL_WARNING } from "@/lib/contacts-import";
 
 import { reportError } from "@/lib/monitoring";
 // Invites to contacts: super admins only, every action refused (403, logged) for anyone else.
 // A real send needs a postal address, production, a test of exactly the same invite in the last
-// 24 hours, and the eligible count the admin confirmed.
+// 24 hours, and the eligible count the admin confirmed. Personal introductions (a "via-" source)
+// also need the explicit tick and confirmed warning (`includePersonal`), logged as invite.personal.
 
-export type InviteInput = { subject: string; body: string; reason: string; source: string; eventId: number | null };
+export type InviteInput = { subject: string; body: string; reason: string; source: string; eventId: number | null; includePersonal?: boolean };
 export type InviteResult = { ok: true; message: string } | { ok: false; error: string };
 
 const SOURCE_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
@@ -42,8 +44,9 @@ async function eventFor(db: Db, id: number | null): Promise<FeaturedEvent | null
   return e ?? "invalid";
 }
 
-const eligibleCount = async (db: Db, source: string) =>
-  (await db.select({ n: count() }).from(contacts).where(and(eq(contacts.source, source), queueableWhere())))[0].n;
+/** Who a campaign over `source` would queue; a personal source counts only once it's explicitly included. */
+const eligibleCount = async (db: Db, source: string, includePersonal: boolean) =>
+  (await db.select({ n: count() }).from(contacts).where(and(eq(contacts.source, source), queueableWhere(includePersonal ? source : null))))[0].n;
 
 /** Live preview: the email as the first contact would get it (with a sample name). */
 export async function previewInvite(d: InviteInput): Promise<{ html: string } | { error: string }> {
@@ -55,9 +58,10 @@ export async function previewInvite(d: InviteInput): Promise<{ html: string } | 
   return { html: m.html };
 }
 
+/** For a personal source: how many it would reach once ticked and confirmed (nothing is queued until then). */
 export async function countEligible(source: string): Promise<number> {
   const { db } = await requireSuperOr403("count invite recipients");
-  return SOURCE_RE.test(source) ? eligibleCount(db, source) : 0;
+  return SOURCE_RE.test(source) ? eligibleCount(db, source, isPersonalSource(source)) : 0;
 }
 
 /** The required test: the exact invite to the signed-in admin's own address. */
@@ -91,19 +95,18 @@ export async function startInviteCampaign(d: InviteInput, expected: number): Pro
   const [test] = await db.select({ id: inviteCampaigns.id }).from(inviteCampaigns)
     .where(and(eq(inviteCampaigns.contentHash, hash), eq(inviteCampaigns.status, "test"), gt(inviteCampaigns.createdAt, sql`now() - interval '24 hours'`)));
   if (!test) return { ok: false, error: "Send yourself a test of this exact invite first (any edit, or another event, needs a new test)." };
-  const n = await eligibleCount(db, p.source);
+  // Personal introductions: only this exact source, only with the explicit tick and confirmed warning.
+  const personal = isPersonalSource(p.source);
+  if (personal && d.includePersonal !== true) return { ok: false, error: `${PERSONAL_WARNING} Tick "Include these personal introductions" to send to them.` };
+  const n = await eligibleCount(db, p.source, personal);
   if (!n) return { ok: false, error: "No eligible contacts in that source." };
   if (n !== expected) return { ok: false, error: `The eligible count changed to ${n}. Check it and send again.` };
 
-  const [c] = await db.insert(inviteCampaigns).values({ status: "queued", source: p.source, eventId: p.eventId, ...p.draft, contentHash: hash, createdBy: actor }).returning({ id: inviteCampaigns.id });
-  // Unique on contact: anyone already queued elsewhere (a concurrent campaign) is left out.
-  const queued = await db.execute(sql`
-    insert into invite_queue (campaign_id, contact_id)
-    select ${c.id}, ${contacts.id} from ${contacts} where ${contacts.source} = ${p.source} and ${queueableWhere()}
-    on conflict (contact_id) do nothing returning id`);
-  const total = queued.rows.length;
+  const [c] = await db.insert(inviteCampaigns).values({ status: "queued", source: p.source, eventId: p.eventId, ...p.draft, contentHash: hash, includePersonal: personal, createdBy: actor }).returning({ id: inviteCampaigns.id });
+  const total = await queueCampaign(db, c.id, p.source, personal);
   await db.batch([
     db.update(inviteCampaigns).set({ total, ...(total ? {} : { status: "done" }) }).where(eq(inviteCampaigns.id, c.id)),
+    ...(personal ? [db.insert(adminAudit).values(auditRow(actor, "invite.personal", `Campaign #${c.id}: personal introductions from ${p.source} explicitly included (warning confirmed)`))] : []),
     db.insert(adminAudit).values(auditRow(actor, "invite.campaign", `Campaign #${c.id} "${p.draft.subject}": ${total} contacts from ${p.source} queued${p.eventId ? ` (featuring event #${p.eventId})` : ""}`)),
   ]);
   after(() => processInvites(db).catch((e) => reportError("invite", "invite run failed", e)));

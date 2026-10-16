@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PERSONAL_WARNING } from "@/lib/contacts-import";
 import { countEligible, previewInvite, sendInviteTest, startInviteCampaign, type InviteInput, type InviteResult } from "./actions";
 import styles from "../../admin.module.css";
 
 type Props = {
-  sources: { source: string; eligible: number }[];
+  /** `personal`: a "via-" source (personal introductions): never pre-selected, sent only after the explicit tick and warning. */
+  sources: { source: string; eligible: number; personal: boolean }[];
   events: { id: number; label: string }[];
   defaults: { subject: string; body: string; reason: string };
   hasAddress: boolean;
@@ -13,7 +15,11 @@ type Props = {
 
 /** Pick a source and an optional event, edit the invite, preview it live, test it, then send. */
 export default function Composer({ sources, events, defaults, hasAddress }: Props) {
-  const [source, setSource] = useState(sources.find((s) => s.eligible)?.source ?? sources[0]?.source ?? "");
+  // Never a personal-introductions source by default: those are picked by hand or not at all.
+  const general = sources.filter((s) => !s.personal), personalSources = sources.filter((s) => s.personal);
+  const [source, setSource] = useState(general.find((s) => s.eligible)?.source ?? general[0]?.source ?? "");
+  const [includePersonal, setIncludePersonal] = useState(false);
+  const personal = personalSources.some((s) => s.source === source);
   const [eventId, setEventId] = useState<number | null>(null);
   const [subject, setSubject] = useState(defaults.subject);
   const [body, setBody] = useState(defaults.body);
@@ -22,7 +28,7 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
   const [html, setHtml] = useState("");
   const [result, setResult] = useState<InviteResult | null>(null);
   const [pending, setPending] = useState(false);
-  const input: InviteInput = { subject, body, reason, source, eventId };
+  const input: InviteInput = { subject, body, reason, source, eventId, includePersonal: personal && includePersonal };
 
   useEffect(() => {
     let alive = true;
@@ -44,8 +50,8 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
     try { setResult(await f()); } catch { setResult({ ok: false, error: "That didn't work. Check that you're still signed in and try again." }); } finally { setPending(false); }
   };
   const send = () => {
-    if (n === null) return;
-    if (!confirm(`Queue a one-time invite to ${n} contact${n === 1 ? "" : "s"} from ${source}? Each can only ever be invited once.`)) return;
+    if (n === null || (personal && !includePersonal)) return;
+    if (!confirm(`${personal ? `${PERSONAL_WARNING}\n\n` : ""}Queue a one-time invite to ${n} contact${n === 1 ? "" : "s"} from ${source}? Each can only ever be invited once.`)) return;
     run(() => startInviteCampaign(input, n));
   };
 
@@ -54,8 +60,14 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
       {!hasAddress && <p className={styles.err} role="alert">No postal address is set. Add it in <a href="/admin/settings">Settings</a>: tests and sends are blocked until then.</p>}
       <div className={styles.row}>
         <label className={styles.field}>Contacts from
-          <select value={source} onChange={(e) => setSource(e.target.value)}>
-            {sources.map((s) => <option key={s.source} value={s.source}>{s.source} ({s.eligible} eligible)</option>)}
+          <select value={source} onChange={(e) => { setSource(e.target.value); setN(null); setIncludePersonal(false); }}>
+            {!source && <option value="">Pick a source</option>}
+            {general.map((s) => <option key={s.source} value={s.source}>{s.source} ({s.eligible} eligible)</option>)}
+            {personalSources.length > 0 && (
+              <optgroup label="Personal introductions (not auto-invited)">
+                {personalSources.map((s) => <option key={s.source} value={s.source}>{s.source} ({s.eligible} personal)</option>)}
+              </optgroup>
+            )}
           </select>
         </label>
         <label className={styles.field}>Feature an event (optional)
@@ -65,7 +77,13 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
           </select>
         </label>
       </div>
-      <p className={styles.note} role="status">{n === null ? "Counting…" : `${n} eligible contact${n === 1 ? "" : "s"}: a valid email, not a member, never invited, not unsubscribed or bounced.`}</p>
+      <p className={styles.note} role="status">{!source ? "Pick a source." : n === null ? "Counting…" : `${n} ${personal ? "personal introduction" : "eligible contact"}${n === 1 ? "" : "s"}: a valid email, not a member, never invited, not unsubscribed or bounced.`}</p>
+      {personal && (
+        <div className={styles.warn} role="alert">
+          <p><strong>{PERSONAL_WARNING}</strong> They&apos;re never invited unless you include them here.</p>
+          <label><input type="checkbox" checked={includePersonal} onChange={(e) => setIncludePersonal(e.target.checked)} /> Include these personal introductions ({source}) in this invite</label>
+        </div>
+      )}
       <label className={styles.field}>Subject<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={150} /></label>
       <label className={styles.field}>Message <span className={styles.note}>Blank line = new paragraph. {"{first_name}"} becomes their first name.</span>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} maxLength={4000} />
@@ -75,7 +93,7 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
       <iframe className={styles.mailPreview} title="Invite preview" srcDoc={html} sandbox="" />
       <div className={styles.row}>
         <button type="button" onClick={() => run(() => sendInviteTest(input))} disabled={pending || !hasAddress}>Send a test to me</button>
-        <button type="button" className={styles.primary} onClick={send} disabled={pending || !hasAddress || !n}>{pending ? "Working…" : `Send to ${n ?? 0} contact${n === 1 ? "" : "s"}`}</button>
+        <button type="button" className={styles.primary} onClick={send} disabled={pending || !hasAddress || !n || (personal && !includePersonal)}>{pending ? "Working…" : `Send to ${n ?? 0} contact${n === 1 ? "" : "s"}`}</button>
       </div>
       <p className={result?.ok === false ? styles.err : styles.note} role="status">
         {result ? (result.ok ? result.message : result.error) : "Send yourself a test of the final invite first; the send button checks for it."}

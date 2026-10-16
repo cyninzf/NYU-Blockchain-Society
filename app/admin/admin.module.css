@@ -33,6 +33,9 @@
 .primary{background:var(--accent) !important; color:#fff !important; border-color:var(--accent) !important; font-weight:600}
 .note{color:var(--muted)}
 .notes{white-space:pre-line; min-width:16em; max-width:28em; font-size:.92em}
+.warn{border:1px solid #B4234F; border-radius:8px; padding:10px 12px; margin-block:8px}
+.warn p{margin:0 0 6px}
+.warn label{display:flex; gap:8px; align-items:center; min-height:44px}
 .err{min-height:1.2em; color:#B4234F}
 .empty{padding:12px}
 .page button:disabled{opacity:.6; cursor:progress}

@@ -5,7 +5,7 @@ import type { Db } from "./db";
 import { adminAudit, contacts, events, inviteCampaigns, inviteQueue } from "./db/schema";
 import { emailConfigured, remainingToday, sendBatch } from "./email";
 import { InviteDraft, inviteEmail, type FeaturedEvent } from "./invite-email";
-import { eligibleWhere } from "./invites";
+import { eligibleWhere, personalAllowed, queueableWhere } from "./invites";
 import { postalAddress } from "./settings";
 
 // The invite queue (round 12). A campaign's contacts go out in daily slices: each run sends up
@@ -27,6 +27,19 @@ async function featured(db: Db, eventId: number | null): Promise<FeaturedEvent |
   return e ?? null;
 }
 
+/**
+ * Queues every queueable contact of `source` for a campaign; returns how many. Personal
+ * introductions only when `includePersonal` (the explicit, confirmed choice of that source).
+ * Unique on contact: anyone already queued elsewhere (a concurrent campaign) is left out.
+ */
+export async function queueCampaign(db: Db, campaignId: number, source: string, includePersonal: boolean) {
+  const queued = await db.execute(sql`
+    insert into invite_queue (campaign_id, contact_id)
+    select ${campaignId}, ${contacts.id} from ${contacts} where ${contacts.source} = ${source} and ${queueableWhere(includePersonal ? source : null)}
+    on conflict (contact_id) do nothing returning id`);
+  return queued.rows.length;
+}
+
 export async function processInvites(db: Db, actor = "system"): Promise<RunResult> {
   const out: RunResult = { sent: 0, failed: 0, skipped: 0 };
   if (!emailConfigured()) return { ...out, note: "Email isn't set up here (RESEND_API_KEY)." };
@@ -43,9 +56,10 @@ export async function processInvites(db: Db, actor = "system"): Promise<RunResul
       returning id, contact_id`);
     const rows = claimed.rows.map((r) => ({ id: Number(r.id), contactId: Number(r.contact_id) }));
     if (rows.length) {
-      // Re-checked at its turn: linked, suppressed or invited since it was queued → skipped.
+      // Re-checked at its turn: linked, suppressed or invited since it was queued → skipped. A personal
+      // introduction (via-) is only sent by a campaign that explicitly included its source.
       const ok = await db.select({ id: contacts.id, email: contacts.email, name: contacts.name, source: contacts.source }).from(contacts)
-        .where(and(inArray(contacts.id, rows.map((r) => r.contactId)), eligibleWhere()));
+        .where(and(inArray(contacts.id, rows.map((r) => r.contactId)), eligibleWhere(), personalAllowed(c.includePersonal ? c.source : null)));
       const okIds = new Set(ok.map((x) => x.id));
       const skip = rows.filter((r) => !okIds.has(r.contactId)).map((r) => r.id);
       if (skip.length) await db.update(inviteQueue).set({ status: "skipped" }).where(inArray(inviteQueue.id, skip));

@@ -1,0 +1,1 @@
+ALTER TABLE "invite_campaigns" ADD COLUMN "include_personal" boolean DEFAULT false NOT NULL;

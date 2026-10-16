@@ -2,18 +2,18 @@ import "server-only";
 import { and, count, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
 import { contacts, inviteQueue, inviteSuppressions, members } from "./db/schema";
-import { eligibleWhere, hashSql } from "./invites";
+import { eligibleWhere, hashSql, personalSql } from "./invites";
 
-export const INVITE_STATUSES = ["eligible", "queued", "invited", "joined", "unsubscribed", "bounced", "none"] as const;
+export const INVITE_STATUSES = ["eligible", "personal", "queued", "invited", "joined", "unsubscribed", "bounced", "none"] as const;
 export type InviteStatus = (typeof INVITE_STATUSES)[number];
 export const INVITE_STATUS_LABELS: Record<InviteStatus, string> = {
-  eligible: "Eligible", queued: "Queued", invited: "Invited", joined: "Joined", unsubscribed: "Unsubscribed", bounced: "Bounced / spam", none: "No email",
+  eligible: "Eligible", personal: "Personal (not auto-invited)", queued: "Queued", invited: "Invited", joined: "Joined", unsubscribed: "Unsubscribed", bounced: "Bounced / spam", none: "No email",
 };
 
 /**
  * One invite status per contact (round 12), in this order: joined (linked to a member) →
- * unsubscribed from an invite → bounced or complained → invited → queued in a campaign → eligible
- * → no (valid) email.
+ * unsubscribed from an invite → bounced or complained → invited → queued in a campaign → personal
+ * (eligible, but a "via-" introduction: never auto-invited, round 26) → eligible → no (valid) email.
  */
 const suppressedAs = (reasons: string[]) =>
   sql`exists (select 1 from ${inviteSuppressions} s where s.email_hash = ${hashSql(contacts.email)} and s.reason in (${sql.join(reasons.map((r) => sql`${r}`), sql`, `)}))`;
@@ -23,6 +23,7 @@ export const inviteStatusSql = sql<InviteStatus>`case
   when ${contacts.email} is not null and ${suppressedAs(["bounce", "complaint"])} then 'bounced'
   when ${contacts.invitedAt} is not null then 'invited'
   when exists (select 1 from ${inviteQueue} q where q.contact_id = ${contacts.id} and q.status in ('queued', 'sending')) then 'queued'
+  when ${eligibleWhere()} and ${personalSql} then 'personal'
   when ${eligibleWhere()} then 'eligible'
   else 'none' end`;
 

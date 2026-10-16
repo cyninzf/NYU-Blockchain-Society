@@ -461,5 +461,50 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   ok(formatOf(li[0]) === "linkedin" && liPlan.counts.created === 1 && liPlan.counts.skipped === 0, "LinkedIn exports keep importing without emails");
   await db.delete(contacts).where(sql`lower(${contacts.email}) in ('new1@example.com', 'new2@example.com', 'match1@example.com', 'match2@example.com')`);
 }
+// Round 26: personal introductions (source "via-…") are never queued or sent without the explicit choice of that source.
+{
+  const { queueableWhere } = await import(`${P}/lib/invites.ts`);
+  const { queueCampaign, processInvites } = await import(`${P}/lib/invite-queue.ts`);
+  const { listContacts } = await import(`${P}/lib/contacts-query.ts`);
+  const ids = await db.insert(contacts).values([
+    { name: "Intro One", email: "intro1@example.com", source: "via-alex-example" },
+    { name: "Intro Two", email: "intro2@example.com", source: "via-alex-example" },
+    { name: "Intro Other", email: "intro3@example.com", source: "via-sam-example" },
+    { name: "List Person", email: "list1@example.com", source: "fake-intros-list" },
+  ]).returning({ id: contacts.id });
+  const [i1, i2, i3, l1] = ids.map((x: any) => x.id);
+  const queueable = async (personal: string | null = null) =>
+    (await db.select({ id: contacts.id }).from(contacts).where(queueableWhere(personal))).map((x: any) => x.id);
+  const all = await queueable();
+  ok(all.includes(l1) && ![i1, i2, i3].some((id) => all.includes(id)), "by default no via- contact is queueable");
+  const chosen = await queueable("via-alex-example");
+  ok(chosen.includes(i1) && chosen.includes(i2) && !chosen.includes(i3), "choosing one via- source includes only that source");
+  ok(!(await queueable("fake-intros-list")).includes(i1), "naming a non-personal source never includes via- contacts");
+  const st = Object.fromEntries((await listContacts(db, {})).map((r: any) => [r.c.id, r.invite]));
+  ok(st[i1] === "personal" && st[i3] === "personal" && st[l1] === "eligible", "invite status: Personal (not auto-invited)");
+  ok((await listContacts(db, { invite: "personal" })).length === 3, "Invite filter: personal");
+
+  const camp = async (source: string, includePersonal: boolean) =>
+    (await db.insert(inviteCampaigns).values({ status: "queued", source, includePersonal, subject: "An invitation", body: "Hi {first_name},\n\nJoin us.", reason: "Test reason.", contentHash: `p-${source}-${includePersonal}`, createdBy: "test" }).returning())[0];
+  const notChosen = await camp("via-alex-example", false);
+  ok((await queueCampaign(db, notChosen.id, "via-alex-example", false)) === 0, "a via- source without the explicit choice queues nobody");
+  const general = await camp("fake-intros-list", false);
+  ok((await queueCampaign(db, general.id, "fake-intros-list", false)) === 1, "other sources queue as before");
+
+  // Even a via- contact that ended up in a campaign's queue without the choice is never sent: the run skips it.
+  await db.insert(schema.inviteQueue).values({ campaignId: general.id, contactId: i2 });
+  process.env.RESEND_API_KEY = "test";
+  const to: string[] = [];
+  globalThis.fetch = (async (_u: string, init: any) => { for (const m of JSON.parse(init.body)) to.push(...m.to); return new Response("{}", { status: 200 }); }) as any;
+  const r1 = await processInvites(db);
+  const [c2] = await db.select().from(contacts).where(eq(contacts.id, i2));
+  ok(to.includes("list1@example.com") && !to.includes("intro2@example.com") && !c2.invitedAt && r1.skipped >= 1, "the run skips a via- contact in a campaign that didn't include it");
+
+  // Explicitly chosen and confirmed: that source only.
+  const explicit = await camp("via-alex-example", true);
+  ok((await queueCampaign(db, explicit.id, "via-alex-example", true)) === 1, "explicit choice queues that source's remaining introductions");
+  await processInvites(db);
+  ok(to.includes("intro1@example.com") && !to.includes("intro3@example.com"), "explicit campaign sends its own source only");
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
