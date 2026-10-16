@@ -69,7 +69,11 @@ export const contacts = pgTable(
     email: text(),
     /** From the LinkedIn export's "Title / Headline". */
     headline: text(),
-    /** Import label, e.g. "luma-2024" or "linkedin-2026-10". */
+    /** From an import's "company" column (round 25). Filled only while empty. */
+    company: text(),
+    /** Organizer notes: dated lines ("2026-10-16: …"), only ever appended by imports (round 25). */
+    notes: text(),
+    /** Import label, e.g. "luma-2024", "linkedin-2026-10" or a row's own slugified source ("via-alex"). */
     source: text().notNull(),
     /** Null when the import had no check-in column. */
     checkedIn: boolean("checked_in"),

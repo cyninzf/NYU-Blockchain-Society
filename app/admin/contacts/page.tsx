@@ -49,7 +49,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
 
       <form className={styles.filters} method="get">
         <label>Search
-          <input name="q" type="search" defaultValue={f.q ?? ""} placeholder="Name, email or headline" />
+          <input name="q" type="search" defaultValue={f.q ?? ""} placeholder="Name, email, headline, company or notes" />
         </label>
         <label>Source
           <select name="source" defaultValue={f.source ?? ""}>
@@ -90,7 +90,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           <caption className="sr">Contacts, newest first</caption>
           <thead>
             <tr>
-              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Email</th><th scope="col">Source</th>
+              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Company</th><th scope="col">Email</th><th scope="col">Source</th><th scope="col">Notes</th>
               <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invite</th><th scope="col">Imported</th>
               <th scope="col"><span className="sr">Actions</span></th>
             </tr>
@@ -101,8 +101,10 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
                 <td>{c.id}</td>
                 <td>{c.name}</td>
                 <td>{c.headline}</td>
+                <td>{c.company}</td>
                 <td>{c.email ?? "—"}</td>
                 <td>{c.source}</td>
+                <td className={styles.notes}>{c.notes}</td>
                 <td>{checked(c.checkedIn)}</td>
                 <td>{c.memberId ? (
                   <form action={unlinkContact}>

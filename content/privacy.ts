@@ -1,7 +1,7 @@
 // /privacy (round 16): plain English, matching what the code actually does. Review with the
 // maintainer before changing a promise here; update `privacyUpdated` with every change.
 
-export const privacyUpdated = "October 11, 2026";
+export const privacyUpdated = "October 16, 2026";
 
 export const privacyDescription =
   "How NYU Blockchain Society collects, uses and protects your details: what we keep, who sees it, the services we use, and your choices and rights.";
@@ -30,7 +30,7 @@ export const privacySections: PrivacySection[] = [
     items: [
       "When you add your block: your name, email, which of Alumni, Industry professional, Faculty/Staff or Student fits you, the blocks you pick (Blockchain, Finance, AI), the updates you ask for, and how you found us: the link you joined from (for example an event's page) or, without one, the website that sent you (for example linkedin.com, never the page or post).",
       "Optional profile details, only if you add them: LinkedIn URL, role, company, NYU school, graduation year, and city and country.",
-      "Contacts from our events and the LinkedIn group: when you registered for one of our events, the registration list (name, email and whether you checked in); from the society's LinkedIn group, the name and headline shown in its member list. Contacts are not members. We may invite a contact with an email address once; we won't email them again unless they join.",
+      "Contacts from our events, the LinkedIn group and introductions: when you registered for one of our events, the registration list (name, email and whether you checked in); from the society's LinkedIn group, the name and headline shown in its member list; when someone introduced you to our organizers, your name, email, company and title, how we came to know you, and short notes organizers keep about the introduction. Contacts are not members. We may invite a contact with an email address once; we won't email them again unless they join.",
       "Messages you send through the conference inquiry form and the accelerator forms, as you entered them.",
       "Event check-ins: which event you checked in to, and when.",
       "Email delivery only: whether an email was delivered, bounced or reported as spam, and whether you unsubscribed. We don't track opens or clicks.",
@@ -94,7 +94,7 @@ export const privacySections: PrivacySection[] = [
     id: "gdpr",
     title: "Alumni in the EU and UK",
     paragraphs: [
-      "If you're in the European Union or the United Kingdom, the GDPR (and the UK GDPR) gives you the right to access your data, correct it, have it deleted, restrict or object to how we use it, and receive it in a portable format, as well as the right to complain to your local data protection authority. We use your details because you gave them to us to join or to get in touch, and, for registrants of our past events, because of our legitimate interest in inviting them once to the society. To use these rights, use our contact form (we confirm the request by email first) or reply to any email from the society.",
+      "If you're in the European Union or the United Kingdom, the GDPR (and the UK GDPR) gives you the right to access your data, correct it, have it deleted, restrict or object to how we use it, and receive it in a portable format, as well as the right to complain to your local data protection authority. We use your details because you gave them to us to join or to get in touch, and, for registrants of our past events and people introduced to us, because of our legitimate interest in inviting them once to the society. To use these rights, use our contact form (we confirm the request by email first) or reply to any email from the society.",
     ],
   },
 ];

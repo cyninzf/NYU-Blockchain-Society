@@ -432,3 +432,37 @@ Daily digest:
       York"); the home mission ends "Based in New York, open to NYU alumni worldwide."
 - [ ] Any email (e.g. Settings → "Send test welcome email to me") ends with "NYU Blockchain Society
       · Official NYU Alumni Club" and nothing about New York.
+
+## 18. Contacts import: company, source and notes (round 25)
+
+On the **preview deployment only**, with an obviously fake CSV (every address `@example.com`).
+Delete the test rows afterwards. Example file (save as `fixtures/local/import-test.csv`, git-ignored):
+
+```
+name,email,company,title,source,notes,favourite colour
+Test One,test1@example.com,Example Co,Analyst,via Alex Example,Met at the mixer,blue
+Test Two, TEST2@Example.com ,,Builder,,Follow up,
+No Email,,Some Co,,via Alex Example,,
+Bad Email,bad@,,,,,
+Test One Again,TEST1@example.com,,,,,
+```
+
+- [ ] `/admin/contacts/import` (super admin), choose the file, leave the label empty → Preview: the
+      mapping finds name, email, company, title (headline), source and notes; "favourite colour"
+      isn't used. Counts: 2 new, 0 matched, 3 skipped; "1 row has no source of their own" and
+      Import is disabled.
+- [ ] Type `fake-list` as the label → Update preview: By source shows `via-alex-example` 1 and
+      `fake-list` 1. Skipped rows: 3 "Missing email", 4 "Invalid email", 5 "Duplicate in file".
+      Emails are masked everywhere in the preview.
+- [ ] Import: summary 2 new, 0 matched, 3 skipped; "No members were created and no emails were
+      sent". `/admin/contacts` shows Company and Notes columns ("2026-…: Met at the mixer"); the
+      Source filter lists `via-alex-example` and `fake-list`.
+- [ ] Edit the file: Test Two gets company "Second Co" and source "via Sam Example", notes "Call
+      back". Import again (label `fake-list`): 0 new, 2 matched, 1 updated. Test Two now has
+      company "Second Co" (it was empty), still source `fake-list`, and notes with "Follow up",
+      "Call back" and "Also from via-sam-example" as separate dated lines. Test One is unchanged.
+- [ ] Import the same file a third time: 0 new, 2 matched, 0 updated; notes don't repeat.
+- [ ] Export CSV has `company` and `notes`. `/admin/audit` shows `contacts.import` with counts only.
+- [ ] An admin (not super) doesn't see Import, and `/admin/contacts/import` is refused.
+- [ ] `/privacy` mentions contacts from introductions and shows "Last updated October 16, 2026".
+- [ ] Delete the test contacts (Delete per row).

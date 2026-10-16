@@ -400,5 +400,66 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   ok((await countMembers(db, {})) === (await listMembers(db, {})).length, "member count matches the unpaged list");
   await db.delete(contacts).where(eq(contacts.source, "pager-test"));
 }
+// Round 25: contacts import with company, source and notes columns; dry run, then fill-empty-only matching.
+{
+  const { parseCsv } = await import(`${P}/lib/csv.ts`);
+  const { guessMapping, headerRowIndex, formatOf, slugifySource, newNoteLines, SOURCE_RE } = await import(`${P}/lib/contacts-import.ts`);
+  const { planImport, applyImport } = await import(`${P}/lib/contacts-import-plan.ts`);
+  // Parser and column guesses: unknown columns are ignored; utm_source is never the source column.
+  const csv = "﻿name,email,company,title,source,notes,favourite colour,utm_source\r\n" +
+    "New Person,new1@example.com,\"Example, Inc.\",Analyst,via Alex Example,Met at the mixer,blue,x\r\n" +
+    "Filled Name, MATCH1@Example.com ,New Co,New title,via Alex Example,Follow up,,\r\n" +
+    "Other Name,match2@example.com,Other Co,,VIA alex example,,,\r\n" +
+    "No Email,,Some Co,,via Alex Example,,,\r\n" +
+    "Bad Email,bad@,,,,,,\r\n" +
+    "Twice,NEW1@example.com,,,,,,\r\n" +
+    "Label Person,new2@example.com,,,,,,\r\n";
+  const table = parseCsv(csv);
+  const h = headerRowIndex(table);
+  const headers = table[h], data = table.slice(h + 1);
+  const m = guessMapping(headers);
+  ok(h === 0 && data.length === 7 && data[0][2] === "Example, Inc.", "CSV parser: BOM, CRLF and quoted commas");
+  ok(m.name === 0 && m.email === 1 && m.company === 2 && m.headline === 3 && m.source === 4 && m.notes === 5 && m.checkIn === -1, "guessMapping finds name, email, company, title, source and notes");
+  ok(formatOf(headers) === "list" && guessMapping(["Name", "Email", "utm_source", "Company name"]).source === -1 && guessMapping(["Name", "Company name"]).company === 1, "unknown columns ignored; utm_source isn't a source; 'Company name' is the company");
+  // Slugify.
+  ok(slugifySource("via Alex Example") === "via-alex-example" && slugifySource("  Vía  José! ") === "via-jose" && slugifySource("---") === "" && slugifySource(undefined) === "", "slugifySource: lowercase, accents stripped, dashes, empty stays empty");
+  const long = slugifySource("a".repeat(39) + " b c");
+  ok(long.length <= 40 && SOURCE_RE.test(long) && SOURCE_RE.test(slugifySource("via Alex Example")), "slugified sources fit SOURCE_RE (40 characters, no trailing dash)");
+  ok(newNoteLines("2026-01-01: Follow up", ["Follow up", " New one ", ""], "2026-10-16") === "2026-10-16: New one" && newNoteLines(null, [""]) === null, "notes: dated lines, a note already there isn't added twice");
+
+  await db.insert(contacts).values([
+    { name: null, email: "match1@example.com", headline: "Old title", source: "luma-2024", notes: "2026-01-01: Old note" },
+    { name: "Kept Name", email: "match2@example.com", company: "Kept Co", source: "via-alex-example", checkedIn: true },
+  ]);
+  const membersBefore = (await db.select().from(members)).length;
+  const emailsBefore = (await db.select().from(schema.emailLog)).length;
+  const contactsBefore = (await db.select().from(contacts)).length;
+  // Dry run without a label: one row has no source of its own; nothing is written.
+  const dry = await planImport(db, data, m, "", "list", "2026-10-16");
+  ok(dry.missingSource === 1 && (await db.select().from(contacts)).length === contactsBefore, "dry run writes nothing and counts rows needing a label");
+  const plan = await planImport(db, data, m, "fake-list", "list", "2026-10-16");
+  const c = plan.counts;
+  ok(c.total === 7 && c.created === 2 && c.matched === 2 && c.updated === 1 && c.skipped === 3 && plan.missingSource === 0, "dry run counts: 2 new, 2 matched (1 updated), 3 skipped");
+  ok(c.bySource["via-alex-example"] === 3 && c.bySource["fake-list"] === 1, "per-row sources: a row's own source wins over the label");
+  const reasons = plan.rows.filter((r: any) => r.action === "skip").map((r: any) => `${r.line}:${r.reason}`).join(",");
+  ok(reasons === "4:Missing email,5:Invalid email,6:Duplicate in file", "skipped rows carry their reason");
+  ok(plan.rows.every((r: any) => !/@example\.com/.test(r.email)) && plan.rows[1].action === "match", "preview emails are masked; matched case-insensitive and trimmed");
+
+  ok((await applyImport(db, plan)) === 2, "import creates the new contacts");
+  const by = async (e: string) => (await db.select().from(contacts).where(sql`lower(${contacts.email}) = ${e}`))[0];
+  const n1 = await by("new1@example.com"), n2 = await by("new2@example.com"), m1 = await by("match1@example.com"), m2 = await by("match2@example.com");
+  ok(n1.source === "via-alex-example" && n1.company === "Example, Inc." && n1.headline === "Analyst" && n1.notes === "2026-10-16: Met at the mixer" && n2.source === "fake-list" && n2.notes === null, "new contacts get company, title, source and a dated note");
+  ok(m1.name === "Filled Name" && m1.company === "New Co" && m1.headline === "Old title" && m1.source === "luma-2024", "a match fills empty fields only and keeps its source");
+  ok(m1.notes === "2026-01-01: Old note\n2026-10-16: Follow up\n2026-10-16: Also from via-alex-example", "notes are appended, with the new source noted");
+  ok(m2.name === "Kept Name" && m2.company === "Kept Co" && m2.checkedIn === true && m2.notes === null, "filled fields are never overwritten (same source: no note)");
+  const again = await planImport(db, data, m, "fake-list", "list", "2026-10-16");
+  ok(again.counts.created === 0 && again.counts.matched === 4 && again.counts.updated === 0, "importing the same file again changes nothing");
+  ok((await db.select().from(members)).length === membersBefore && (await db.select().from(schema.emailLog)).length === emailsBefore, "imports create no members and send no email");
+  // The LinkedIn group export still imports rows without emails (name + headline).
+  const li = parseCsv("Name,Title / Headline,Group role\nLi Person,Builder,Member\n");
+  const liPlan = await planImport(db, li.slice(1), guessMapping(li[0]), "linkedin-2026-10", formatOf(li[0]), "2026-10-16");
+  ok(formatOf(li[0]) === "linkedin" && liPlan.counts.created === 1 && liPlan.counts.skipped === 0, "LinkedIn exports keep importing without emails");
+  await db.delete(contacts).where(sql`lower(${contacts.email}) in ('new1@example.com', 'new2@example.com', 'match1@example.com', 'match2@example.com')`);
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

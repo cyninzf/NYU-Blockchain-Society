@@ -32,6 +32,7 @@
 .button{display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:8px; border:1px solid var(--line); text-decoration:none}
 .primary{background:var(--accent) !important; color:#fff !important; border-color:var(--accent) !important; font-weight:600}
 .note{color:var(--muted)}
+.notes{white-space:pre-line; min-width:16em; max-width:28em; font-size:.92em}
 .err{min-height:1.2em; color:#B4234F}
 .empty{padding:12px}
 .page button:disabled{opacity:.6; cursor:progress}

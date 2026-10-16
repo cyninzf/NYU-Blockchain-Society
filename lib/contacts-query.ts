@@ -44,7 +44,7 @@ function contactWhere(f: ContactFilters): SQL | undefined {
   const where: SQL[] = [];
   if (f.q) {
     const like = `%${f.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-    where.push(or(ilike(contacts.name, like), ilike(contacts.email, like), ilike(contacts.headline, like))!);
+    where.push(or(ilike(contacts.name, like), ilike(contacts.email, like), ilike(contacts.headline, like), ilike(contacts.company, like), ilike(contacts.notes, like))!);
   }
   if (f.source) where.push(eq(contacts.source, f.source));
   if (f.linked) where.push(f.linked === "yes" ? isNotNull(contacts.memberId) : isNull(contacts.memberId));

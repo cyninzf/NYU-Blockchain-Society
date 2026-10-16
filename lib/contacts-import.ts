@@ -1,13 +1,15 @@
 // Shared by the import server actions and the admin import screen (no server-only imports).
 // One import for every list: a registrant export with emails (e.g. Luma) or the LinkedIn group
-// export (Name, Title / Headline, Group role; no emails). Only name, email, headline and check-in
-// are ever stored; "Group role" and "Open to work" can't even be mapped.
+// export (Name, Title / Headline, Group role; no emails). Only name, email, headline (or title),
+// company, check-in, source and notes are ever stored; "Group role" and "Open to work" can't even be mapped.
 
 export const SOURCE_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 export const MAX_IMPORT_BYTES = 4 * 1024 * 1024;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type Mapping = { name: number; email: number; headline: number; checkIn: number }; // -1 = not mapped
+export type Mapping = { name: number; email: number; headline: number; company: number; checkIn: number; source: number; notes: number }; // -1 = not mapped
+export const MAPPING_KEYS = ["name", "email", "headline", "company", "checkIn", "source", "notes"] as const;
+export const NO_MAPPING: Mapping = { name: -1, email: -1, headline: -1, company: -1, checkIn: -1, source: -1, notes: -1 };
 export type ImportFormat = "linkedin" | "list";
 
 /** "jane@example.com" → "j***@e***.com". */
@@ -29,7 +31,7 @@ const norm = (h: string) => h.trim().toLowerCase().replace(/[^a-z]/g, "");
 /** Columns that are never read, previewed or stored, whatever the mapping says. */
 export const isIgnoredColumn = (header: string) => ["grouprole", "opentowork"].includes(norm(header));
 
-/** Best guess at which columns hold the name, email, headline and check-in. */
+/** Best guess at which columns hold each field. Source and notes only on an exact header, so a "utm_source" is never read as one. */
 export function guessMapping(headers: string[]): Mapping {
   const h = headers.map((x) => (isIgnoredColumn(x) ? "" : x.trim().toLowerCase()));
   const find = (...res: RegExp[]) => { for (const re of res) { const i = h.findIndex((x) => re.test(x)); if (i >= 0) return i; } return -1; };
@@ -37,7 +39,10 @@ export function guessMapping(headers: string[]): Mapping {
     name: find(/^(full[ _-]?)?name$/, /name/),
     email: find(/^e-?mail$/, /e-?mail/),
     headline: find(/headline/, /^(job )?title$/),
+    company: find(/^company( name)?$/, /^(organi[sz]ation|employer)$/),
     checkIn: find(/check/, /attend/),
+    source: find(/^(contact )?source$/),
+    notes: find(/^notes?$/),
   };
 }
 
@@ -62,15 +67,51 @@ export const clean = (v: string | undefined, max: number) => (v ?? "").replace(/
 /** Dedupe key for rows without an email, matching the unique index on (lower(name), lower(headline)). */
 export const nameHeadlineKey = (name: string, headline: string | null) => `${name.toLowerCase()}\u0000${(headline ?? "").toLowerCase()}`;
 
-export type ImportSummary = {
+/**
+ * A row's own source as a source label: "via Alex Example" → "via-alex-example". Lowercase letters, numbers and
+ * dashes, at most 40 (SOURCE_RE), so invites, the invite link's src and the filter keep working.
+ * Empty (or nothing usable) → "", and the import's label applies.
+ */
+export function slugifySource(v: string | undefined) {
+  return (v ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+/, "").slice(0, 40).replace(/-+$/, "");
+}
+
+/** Today's date in New York, for note stamps: "2026-10-16". */
+export const noteDate = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+
+export const MAX_NOTE = 1000;
+
+/**
+ * The dated lines to append to a contact's notes ("2026-10-16: …"), never replacing what's there.
+ * A text already in the notes (the same file imported twice) isn't added again. Null when there's nothing new.
+ */
+export function newNoteLines(existing: string | null, texts: string[], date = noteDate()): string | null {
+  const have = (existing ?? "").split("\n").map((l) => l.replace(/^\d{4}-\d{2}-\d{2}: /, "").trim());
+  const add = [...new Set(texts.map((t) => t.trim()).filter(Boolean))].filter((t) => !have.includes(t));
+  return add.length ? add.map((t) => `${date}: ${t}`).join("\n") : null;
+}
+
+export type SkipReason = "Missing email" | "Invalid email" | "Duplicate in file" | "No name or email";
+
+/** What an import will do (the dry run) or did. Shared by the preview and the summary. */
+export type ImportCounts = {
   total: number;
-  imported: number;
-  /** Already in contacts (or twice in the file). */
-  duplicates: number;
-  /** No name and no email. */
+  /** New contacts. */
+  created: number;
+  /** Rows that match an existing contact (email, case-insensitive and trimmed; LinkedIn rows: name + headline). */
+  matched: number;
+  /** Matched contacts that gain something: an empty field filled, a note or an "Also from" line. */
+  updated: number;
   skipped: number;
-  /** An email cell that isn't an email address. */
-  invalid: number;
+  /** New and matched rows per source. */
+  bySource: Record<string, number>;
+};
+
+/** One row of the preview: its line in the file, what happens to it and with which source. Emails masked. */
+export type PlanRow = { line: number; name: string; email: string; headline: string; company: string; source: string; action: "new" | "match" | "skip"; reason?: SkipReason };
+
+export type ImportSummary = ImportCounts & {
   /** Linked to members right after the import (lib/contact-links.ts), across all contacts. */
   linkedByEmail: number;
   linkedByName: number;
