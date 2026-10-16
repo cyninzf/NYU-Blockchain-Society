@@ -10,7 +10,8 @@ import { reportError } from "./monitoring";
 // below `chainStatsMinMembers` members nothing count-like leaves either: no count, no breakdowns,
 // no node count (the background then shows a fixed ambient baseline). From that threshold on,
 // the public gets the counter with its breakdowns, and the background derives its member nodes
-// from the same number. Cached under the "chain" tag (joins and deletes refresh it).
+// from the same number. Cached under the "chain" tag (joins and deletes refresh it); the "recent"
+// flag can lag by up to the cache's hour when the last join turns 8 days old, which is harmless.
 
 export type ChainStats = {
   members: number;
@@ -20,8 +21,15 @@ export type ChainStats = {
   countries: number | null;
 };
 
-/** `stats` is null below the threshold: then there is no count of any kind in the response. */
-export type ChainPublic = { stats: ChainStats | null };
+/**
+ * `stats` is null below the threshold: then there is no count of any kind in the response.
+ * `recent` (round 27): whether anyone joined in the last 7 days, a yes/no only (never how many,
+ * who or when), so the background can show a few "new to the chain" pulses.
+ */
+export type ChainPublic = { stats: ChainStats | null; recent: boolean };
+
+/** How far back "new to the chain" looks. */
+export const RECENT_DAYS = 7;
 
 /**
  * Whether the member count is public (at least `chainStatsMinMembers`). Until it is, block numbers
@@ -42,7 +50,7 @@ export async function chainPublic(): Promise<ChainPublic> {
   cacheTag("chain");
   cacheLife("hours");
   const db = getDb();
-  if (!db) return { stats: null };
+  if (!db) return { stats: null, recent: false };
   try {
     const [r] = await db.select({
       n: sql<number>`count(*)::int`,
@@ -50,6 +58,7 @@ export async function chainPublic(): Promise<ChainPublic> {
       finance: sql<number>`count(*) filter (where 'finance' = any(${members.blocks}))::int`,
       ai: sql<number>`count(*) filter (where 'ai' = any(${members.blocks}))::int`,
       countries: sql<number>`count(distinct ${members.country}) filter (where ${members.country} <> 'Unrecognized')::int`,
+      recent: sql<boolean>`coalesce(bool_or(${members.createdAt} > now() - make_interval(days => ${RECENT_DAYS})), false)`,
     }).from(members);
     const picks = r.blockchain + r.finance + r.ai;
     const stats: ChainStats | null = r.n < chainStatsMinMembers ? null : {
@@ -57,9 +66,9 @@ export async function chainPublic(): Promise<ChainPublic> {
       shares: picks ? Object.fromEntries(INDUSTRY_IDS.map((id) => [id, Math.round((r[id] / picks) * 100)])) as Record<IndustryId, number> : null,
       countries: r.countries || null,
     };
-    return { stats };
+    return { stats, recent: Boolean(r.recent) };
   } catch (e) {
     reportError("site", "chain stats failed", e);
-    return { stats: null };
+    return { stats: null, recent: false };
   }
 }

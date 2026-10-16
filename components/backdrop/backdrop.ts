@@ -57,18 +57,30 @@ export function startBackdrop(canvas: HTMLCanvasElement) {
 }
 
 /**
- * The public member count for the background, from /api/chain, remembered per tab session. Null
- * below the threshold (the endpoint sends no count then): the background shows its baseline.
+ * What the background shows of members, from /api/chain, remembered per tab session: the public
+ * count (null below the threshold: the endpoint sends no count then, and the background shows its
+ * baseline) and whether anyone joined in the last 7 days (a yes/no, for the "new" pulses).
  */
-const memberCount = {
+type Chain = { members: number | null; recent: boolean };
+const chainInfo = {
   KEY: "nyubs:chain-members",
-  cached(): number | null { try { const v = Number(sessionStorage.getItem(this.KEY)); return v > 0 ? v : null; } catch { return null; } },
-  load(cb: (n: number | null) => void) {
-    fetch("/api/chain").then((r) => (r.ok ? r.json() : null)).then((j: { stats?: { members?: number } | null } | null) => {
-      const v = Math.floor(Number(j?.stats?.members));
-      const n = v > 0 ? v : null;
-      try { if (n) sessionStorage.setItem(this.KEY, String(n)); else sessionStorage.removeItem(this.KEY); } catch {}
-      cb(n);
+  RECENT: "nyubs:chain-recent",
+  cached(): Chain {
+    try {
+      const v = Number(sessionStorage.getItem(this.KEY));
+      return { members: v > 0 ? v : null, recent: sessionStorage.getItem(this.RECENT) === "1" };
+    } catch { return { members: null, recent: false }; }
+  },
+  load(cb: (c: Chain) => void) {
+    fetch("/api/chain").then((r) => (r.ok ? r.json() : null)).then((j: { stats?: { members?: number } | null; recent?: boolean } | null) => {
+      if (!j) return;
+      const v = Math.floor(Number(j.stats?.members));
+      const c: Chain = { members: v > 0 ? v : null, recent: j.recent === true };
+      try {
+        if (c.members) sessionStorage.setItem(this.KEY, String(c.members)); else sessionStorage.removeItem(this.KEY);
+        sessionStorage.setItem(this.RECENT, c.recent ? "1" : "0");
+      } catch {}
+      cb(c);
     }).catch(() => {});
   },
 };
@@ -77,7 +89,8 @@ function createEngine(cv: HTMLCanvasElement) {
   const ctx = cv.getContext("2d")!;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null, members = memberCount.cached();
+  const cached = chainInfo.cached();
+  let W = 0, H = 0, raf = 0, alive = true, network: ReturnType<typeof createNetwork> | null = null, members = cached.members, recent = cached.recent;
   const t0 = performance.now();
   const core = createCore(rnd);
 
@@ -162,7 +175,7 @@ function createEngine(cv: HTMLCanvasElement) {
 
     ctx.clearRect(0, 0, W, H);
     const logo = [...painters].find((p) => p.anchors);
-    network!.draw(ctx, { now, el, reduce, gk, ambient: liveMode ? .4 : 1, P, W, H, fade, blocked, boxBlocked, boxFade, crossesSolid, near: core.wantNear(now, logo?.anchors?.() ?? null) });
+    network!.draw(ctx, { now, el, reduce, gk, ambient: liveMode ? .4 : 1, P, W, H, fade, blocked, boxBlocked, boxFade, crossesSolid, near: core.wantNear(now, logo?.anchors?.() ?? null), recent: recent && !liveMode });
     for (const p of painters) p.draw(ctx, now);
     // the core: ~30% of the page's node count, so it follows the same desktop/phone density rules
     core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round((network!.density.nodes - network!.density.members) * .3), fade);
@@ -177,9 +190,9 @@ function createEngine(cv: HTMLCanvasElement) {
   if (reduce) addEventListener("scroll", onChange, { passive: true });
   document.addEventListener("visibilitychange", onChange);
   request();
-  // Member nodes: a count only. The last known count (this tab session) applies at once; a
-  // changed count rebuilds the network once, usually before the fade-in has got far.
-  memberCount.load((n) => { if (alive && n !== members) { members = n; request(); } });
+  // Member nodes: a count only (and a yes/no for recent joins). The last known values (this tab
+  // session) apply at once; a changed count rebuilds the network once, usually before the fade-in has got far.
+  chainInfo.load((c) => { if (alive && (c.members !== members || c.recent !== recent)) { members = c.members; recent = c.recent; request(); } });
 
   return {
     request,

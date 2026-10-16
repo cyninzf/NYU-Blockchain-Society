@@ -28,6 +28,11 @@ export const BOX: V3 = [20, 13, 12];
  */
 export const AMBIENT_MEMBER_NODES = 40;
 export const MAX_MEMBER_NODES = 120;
+/**
+ * "New to the chain" (round 27): when anyone joined in the last 7 days (a yes/no from /api/chain),
+ * this many member nodes pulse gently, always the same number, so the pulses never count joins.
+ */
+export const RECENT_PULSES = 3;
 
 /**
  * Density for a viewport. The base is ~140 nodes at 1440×900, scaled by area (phones half).
@@ -35,14 +40,19 @@ export const MAX_MEMBER_NODES = 120;
  * old ratio (base × .19 × 1.5, ~40 at 1440×900), so most of the extra density is motion. If
  * frame time ever needs trimming, cut nodes (the ≥1280 bonus first), not dots.
  * `members` is the public count from /api/chain, or null below the threshold (then only the
- * ambient baseline); member nodes are ordinary nodes, and the edge reach stays tied to the base density.
+ * ambient baseline). Below the threshold member nodes are ordinary nodes, so they can't be told
+ * from the rest and counted; from it on (`accent`) they're drawn slightly brighter, so the network
+ * visibly holds real people. The edge reach stays tied to the base density.
  */
 export function densityFor(W: number, H: number, members: number | null = null) {
   const phone = W < 700;
   const base = Math.min(230, Math.max(26, 140 * (W * H) / (1440 * 900) * (phone ? .5 : 1)));
   const memberNodes = Math.round(Math.min(Math.max(members ?? 0, AMBIENT_MEMBER_NODES), MAX_MEMBER_NODES) * (phone ? .5 : 1));
   const nodes = Math.round(Math.min(300, base * (W >= 1280 ? 1.3 : 1))) + memberNodes;
-  return { nodes, base: Math.round(base), members: memberNodes, dots: Math.round(base * .19 * 1.5), maxFormations: phone ? 1 : 3 };
+  return {
+    nodes, base: Math.round(base), members: memberNodes, dots: Math.round(base * .19 * 1.5), maxFormations: phone ? 1 : 3,
+    accent: members !== null, pulses: phone ? RECENT_PULSES - 1 : RECENT_PULSES,
+  };
 }
 export type Density = ReturnType<typeof densityFor>;
 
@@ -55,7 +65,8 @@ const ease = (t: number) => { const x = Math.min(Math.max(t, 0), 1); return x < 
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-type Node = { home: V3; ph: V3; sp: number; w: number; busy: boolean };
+/** `member`: one of the member nodes (anonymous: nothing about any member, only the count). */
+type Node = { home: V3; ph: V3; sp: number; w: number; busy: boolean; member: boolean };
 /** A screen rectangle. */
 export type Box = { left: number; top: number; right: number; bottom: number };
 const boxOf = (pts: P2[]): Box => ({
@@ -89,6 +100,8 @@ export type DrawOpts = {
   ambient?: number;
   /** When set, the next block prefers to form within this screen circle (e.g. near the hero logo). */
   near?: { x: number; y: number; r: number } | null;
+  /** Someone joined in the last 7 days: a few member nodes pulse ("new to the chain"). */
+  recent?: boolean;
 };
 
 /** What the network drew last frame, for layers drawn on top of it (core.ts, the logo intro). */
@@ -107,8 +120,15 @@ export function createNetwork(rnd: () => number, density: Density) {
   for (let tries = 0; nodes.length < density.nodes && tries < 30000; tries++) {
     const p: V3 = [(rnd() - .5) * BOX[0], (rnd() - .5) * BOX[1], (rnd() - .5) * BOX[2]];
     if (nodes.some((n) => dist(n.home, p) < minGap)) continue;
-    nodes.push({ home: p, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], sp: .12 + rnd() * .14, w: 0, busy: false });
+    nodes.push({ home: p, ph: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], sp: .12 + rnd() * .14, w: 0, busy: false, member: false });
   }
+  // Member nodes: a random share of the nodes (placement order is random), so they sit everywhere.
+  const memberN = Math.min(density.members, nodes.length);
+  for (let i = 0; i < memberN; i++) nodes[i].member = true;
+  // The "new to the chain" pulses: a fixed few distinct member nodes, picked at random.
+  const picks = new Set<number>();
+  while (picks.size < Math.min(density.pulses, memberN)) picks.add((rnd() * memberN) | 0);
+  const pulse = [...picks].map((i) => ({ i, ph: rnd() * 6.28 }));
 
   // Faint edges between near neighbours, at most 3 per node. The reach is ~20% longer than the
   // old 2.6 gaps, measured on the base density so the extra nodes on large screens don't shrink it.
@@ -228,14 +248,36 @@ export function createNetwork(rnd: () => number, density: Density) {
       if (p) { p.moveTo(A[0], A[1]); p.lineTo(B[0], B[1]); }
     }
     eb.stroke(ctx, "185,138,232");
-    // nodes
-    const nb = batch();
+    // nodes; from the public threshold on, member nodes in their own slightly brighter accent
+    const nb = batch(), mb = batch(12);
     for (let i = 0; i < sp.length; i++) {
-      const q = sp[i], dz = depth(q[2]), w = nodes[i].w;
-      const p = nb.path((.2 + .38 * dz + .3 * w) * gk * (blockDim.get(i) ?? dim[i]));
-      if (p) dot(p, q[0], q[1], 1 + 1.1 * dz + .6 * w);
+      const q = sp[i], dz = depth(q[2]), w = nodes[i].w, k = gk * (blockDim.get(i) ?? dim[i]);
+      if (density.accent && nodes[i].member) {
+        const p = mb.path(Math.min(1, .34 + .42 * dz + .24 * w) * k);
+        if (p) dot(p, q[0], q[1], 1.3 + 1.2 * dz + .5 * w);
+      } else {
+        const p = nb.path((.2 + .38 * dz + .3 * w) * k);
+        if (p) dot(p, q[0], q[1], 1 + 1.1 * dz + .6 * w);
+      }
     }
     nb.fill(ctx, "216,194,240");
+    mb.fill(ctx, "238,218,255");
+    // "New to the chain": a soft violet halo breathing around a few member nodes (static under
+    // reduced motion), never on a node that's part of a forming block.
+    if (o.recent) {
+      ctx.save();
+      for (const { i, ph } of pulse) {
+        if (nodes[i].w > 0) continue;
+        const q = sp[i], a = gk * dim[i];
+        if (a < .05) continue;
+        const s = reduce ? .5 : .5 + .5 * Math.sin(el * (Math.PI * 2 / 3.4) + ph);
+        ctx.fillStyle = `rgba(155,77,219,${(.1 + .2 * s) * a})`;
+        ctx.beginPath(); ctx.arc(q[0], q[1], 4 + 5 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(238,218,255,${(.45 + .35 * s) * a})`;
+        ctx.beginPath(); ctx.arc(q[0], q[1], 1.8 + .6 * s, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
     // dots travelling along network edges
     if (!reduce) {
       const db = batch();

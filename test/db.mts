@@ -506,5 +506,14 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   await processInvites(db);
   ok(to.includes("intro1@example.com") && !to.includes("intro3@example.com"), "explicit campaign sends its own source only");
 }
+// Round 27: member nodes in the background. Below 50 (no count in /api/chain) a fixed baseline with
+// no accent; from 50 one node per member (capped), in their own accent; the "new" pulses are a fixed few.
+{
+  const { densityFor, AMBIENT_MEMBER_NODES, MAX_MEMBER_NODES, RECENT_PULSES } = await import(`${P}/components/backdrop/network.ts`);
+  const hidden = densityFor(1440, 900, null), sixty = densityFor(1440, 900, 60), many = densityFor(1440, 900, 300), phone = densityFor(390, 844, 300);
+  ok(hidden.members === AMBIENT_MEMBER_NODES && !hidden.accent, "below 50: the ambient baseline, no accent (members can't be told apart)");
+  ok(sixty.members === 60 && sixty.accent && many.members === MAX_MEMBER_NODES && phone.members === MAX_MEMBER_NODES / 2, "from 50: one node per member, capped (phones half), with the accent");
+  ok(hidden.pulses === RECENT_PULSES && many.pulses === RECENT_PULSES && phone.pulses === RECENT_PULSES - 1, "recent pulses are a fixed number, whatever the count");
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");
