@@ -503,3 +503,54 @@ Read-only on production; the counts below 50 and from 50 are best checked on a p
 - [ ] Reduced motion (OS setting or DevTools "prefers-reduced-motion: reduce"): the halos are
       static, nothing breathes.
 - [ ] The live screen (`/networking/<slug>/live?test=1`, super admin) shows no pulses.
+
+## 21. Investor network, quick-add and the accelerator investor list (round 28)
+
+On the **preview deployment only**, with fake data (every address `@example.com`, LinkedIn URLs like
+`linkedin.com/in/example-test`). Nothing here sends to anyone but the super admin's own inbox.
+Delete every test row afterwards (contacts and accelerator rows: deleting one doesn't delete the other).
+
+Public page, `/accelerator` (check at 1440 and 390 px):
+- [ ] The intro says "blockchain, finance and AI" (not "digital assets"); "still being built" is
+      there; no funding, cohorts or dates; "Mentor" appears nowhere. Block 02 on the home page and
+      the share image (`/accelerator/opengraph-image-…`) say the same.
+- [ ] Two cards: "I'm a founder" and "I'm an investor" ("Join the investor list" jumps to the form);
+      under them "Interested in partnering or sponsoring? Get in touch." opens `/contact`.
+- [ ] Founder form: the old fields plus optional LinkedIn URL, NYU school, Grad year and "What would
+      help most?". A non-LinkedIn URL or a 2-digit year shows its error under the field, nothing typed
+      is lost. Submit (fake data, Alumni, LinkedIn set, two needs): "Thank you…".
+- [ ] Investor form: Name, Email, Firm ("optional, or 'Angel'"), Focus. No focus → error under Focus.
+      Submit once with Firm "Example Ventures", once with Firm empty.
+- [ ] The super admin gets one email each ("Accelerator founder: …", "Accelerator investor: …").
+
+Admin:
+- [ ] `/admin/inquiries/accelerator`: the rows show Founder / Investor; Type filter has Founders,
+      Investors, Supporters (legacy); any old supporter rows read "Supporter (legacy)". The founder
+      row shows LinkedIn, school and year, "Would help most"; each row's Contact column says
+      "Contact #n" and opens Contacts searched by that email. Export CSV has the new columns.
+- [ ] `/admin/contacts`: the founder is type Founder, source `accelerator-form`, relationship Replied,
+      NYU alum Yes, focus copied, notes "…: Accelerator founder form (#n)", Last touch today. The
+      investors are VC (company Example Ventures) and Angel (no company), source `investor-list`.
+- [ ] Submit the investor form again with the founder's email: no second contact; the founder keeps
+      type Founder, company and relationship (never back), and gains a dated note and "Also from investor-list".
+- [ ] Filters: Type, Focus, Stage, Relationship each narrow the list; "Clear" resets. Export CSV
+      (super admin) has linkedinUrl, contactType, focus, stage, nyuAlum, relationship, lastTouchAt.
+- [ ] `/admin` (Members): "Investor network" shows the counts by type and relationship; a figure
+      opens Contacts with that filter.
+- [ ] Quick-add, `/admin/contacts/new` ("Add contact" on Contacts), as an Admin (not super) too:
+      Source is pre-filled `via-<your email name>` with the personal-introduction note. Add a
+      LinkedIn-only person (no email), type Angel, a first note: "Added contact #n". On Contacts their
+      note is dated today and Last touch is today; Invite reads "No email".
+- [ ] Add them again with the same LinkedIn URL written differently (`https://www.LinkedIn.com/in/…/`)
+      plus a fake email: "Already a contact (same LinkedIn URL)" with their details. "Add note and fill
+      empty fields": the email and empty fields fill, filled ones stay, relationship doesn't move
+      back, the note is appended. Audit log: `contact.create`, `contact.fill` (no names or emails).
+- [ ] A quick-added via- contact with an email shows Invite "Personal (not auto-invited)" and isn't
+      pre-selected in `/admin/contacts/invite`.
+- [ ] Import (super admin) a fake CSV with columns `name,email,type,focus,stage,linkedin url,nyu alum,relationship`
+      (e.g. `Test Vc,testvc@example.com,VC,"Blockchain, AI",Seed,linkedin.com/in/test-vc,yes,Contacted`):
+      the mapping finds the six new columns; the contact gets them. Re-import with relationship Cold:
+      it stays Contacted.
+- [ ] `/privacy` shows "Last updated October 17, 2026" and mentions the LinkedIn URL, NYU school,
+      graduation year, investor focus and that founders and investors are kept with contacts.
+- [ ] Delete the test contacts (Contacts, Delete) and the test accelerator rows (Inquiries → Accelerator, Delete).
