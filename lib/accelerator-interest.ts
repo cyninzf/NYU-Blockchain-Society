@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, NEEDS_LABELS, STAGE_LABELS } from "@/content/accelerator";
 import { auditRow } from "./admin";
 import type { Db } from "./db";
-import { type AcceleratorInterest, acceleratorInterest, adminAudit, FOUNDER_AFFILIATIONS, FOUNDER_NEEDS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
+import { type AcceleratorInterest, acceleratorInterest, adminAudit, contacts, FOUNDER_AFFILIATIONS, FOUNDER_NEEDS, FOUNDER_STAGES, INTEREST_STATUSES, INTEREST_TYPES, type InterestStatus, type InterestType, type SpamReason } from "./db/schema";
 import type { Defer } from "./defer";
 import { renderEmail, sendEmail } from "./email";
 import { upsertMember, type NewMember } from "./member-join";
@@ -12,6 +12,7 @@ import { gradYear, linkedinUrl, optText } from "./member-fields";
 import { zodFieldErrors } from "./form-errors";
 import { saveContact } from "./contact-save";
 import { CONTACT_FOCUS, normalizeLinkedin, type ContactType } from "./contact-fields";
+import { FORM_SOURCES } from "./contacts-import";
 import { reportError } from "./monitoring";
 
 // Accelerator interest from /accelerator (round 14), the round 13 inquiry pattern: stored, then
@@ -22,8 +23,8 @@ import { reportError } from "./monitoring";
 
 export const FOUNDER_SOURCE = "accelerator-founder";
 /** The contacts' sources (round 28). Not "via-": these people wrote to us themselves. */
-export const FOUNDER_CONTACT_SOURCE = "accelerator-form";
-export const INVESTOR_CONTACT_SOURCE = "investor-list";
+// Both are protected sources: never in a bulk invite unless explicitly chosen (FORM_SOURCES, round 28.1).
+export const [FOUNDER_CONTACT_SOURCE, INVESTOR_CONTACT_SOURCE] = FORM_SOURCES;
 
 const name = z.string().trim().min(1, "Add your name.").max(120, "Keep the name under 120 characters.");
 const email = z.email("Enter an email we can reply to, like name@example.com.").trim().max(254);
@@ -203,12 +204,19 @@ export async function setInterestStatus(db: Db, id: number, status: InterestStat
 
 /**
  * For removal requests (round 17); super admins only (checked by the caller). Permanent. Logged
- * as who, when and which row (founder or supporter), never its content.
+ * as who, when and which row (founder, investor or supporter), never its content. With
+ * `alsoContact` (round 28.1) the linked contact goes too.
  */
-export async function deleteInterest(db: Db, id: number, actor: string): Promise<boolean> {
-  const [gone] = await db.delete(acceleratorInterest).where(eq(acceleratorInterest.id, id)).returning({ type: acceleratorInterest.type });
-  if (gone) await db.insert(adminAudit).values(auditRow(actor, "accelerator.delete", `Deleted accelerator ${gone.type} #${id}`));
-  return Boolean(gone);
+export async function deleteInterest(db: Db, id: number, actor: string, alsoContact = false): Promise<boolean> {
+  const [gone] = await db.delete(acceleratorInterest).where(eq(acceleratorInterest.id, id)).returning({ type: acceleratorInterest.type, contactId: acceleratorInterest.contactId });
+  if (!gone) return false;
+  // Round 28.1: "Also delete the linked record" (a removal request covers both). Logged without content.
+  const contact = alsoContact && gone.contactId ? (await db.delete(contacts).where(eq(contacts.id, gone.contactId)).returning({ id: contacts.id }))[0] : undefined;
+  await db.batch([
+    db.insert(adminAudit).values(auditRow(actor, "accelerator.delete", `Deleted accelerator ${gone.type} #${id}${contact ? ` and its linked contact #${contact.id}` : ""}`)),
+    ...(contact ? [db.insert(adminAudit).values(auditRow(actor, "contact.delete", `Deleted contact #${contact.id} (linked to deleted accelerator ${gone.type} #${id})`))] : []),
+  ]);
+  return true;
 }
 
 /** A stored row back into the form's fields (for the notification and the member join). */

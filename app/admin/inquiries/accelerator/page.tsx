@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, NEEDS_LABELS, STAGE_LABELS } from "@/content/accelerator";
 import { listInterest, parseInterestFilters } from "@/lib/accelerator-interest";
@@ -110,7 +111,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
                 </td>
                 <td>
                   {r.contactId
-                    ? <a href={`/admin/contacts?q=${encodeURIComponent(r.email)}`}>Contact #{r.contactId}</a>
+                    ? <Link href={`/admin/contacts/${r.contactId}`}>Contact #{r.contactId}</Link>
                     : <span className={styles.note}>{r.suspectedSpam ? "After Not spam" : "None"}</span>}
                 </td>
                 <td>
@@ -130,6 +131,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
                       <form action={removeInterest}>
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="confirm" value="yes" />
+                        {r.contactId && <label className={styles.row}><input type="checkbox" name="alsoLinked" /> Also delete the linked record (contact #{r.contactId})</label>}
                         <button type="submit">Delete #{r.id} permanently</button>
                       </form>
                     </details>

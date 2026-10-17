@@ -3,9 +3,10 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
-import { auditRow, isSuperAdminEmail, requireAdmin } from "@/lib/admin";
+import { auditRow, isSuperAdminEmail, requireAdmin, superAdminEmail } from "@/lib/admin";
 import { adminAudit, ADMIN_ROLES, adminUsers } from "@/lib/db/schema";
 import { revokeAllFor } from "@/lib/sessions";
+import { DisplayName, setDisplayName } from "@/lib/admin-profiles";
 
 export type TeamResult = { ok: true; message: string } | { ok: false; error: string } | null;
 
@@ -58,4 +59,21 @@ export async function removeAdmin(fd: FormData) {
     db.insert(adminAudit).values(auditRow(actor, "team.remove", `Removed ${u.email} (${u.role})`, { changes: { [u.email]: [u.role, null] } })),
   ]);
   refresh();
+}
+
+/** A display name (round 28.1) for an active admin or the recovery super admin (`recovery`). Super admins only. */
+export async function saveDisplayName(_prev: TeamResult, fd: FormData): Promise<TeamResult> {
+  const { db, actor } = await requireAdmin("super_admin");
+  const name = DisplayName.safeParse(String(fd.get("displayName") ?? ""));
+  if (!name.success) return { ok: false, error: name.error.issues[0]?.message ?? "Check the name." };
+  let email: string | null = null;
+  if (fd.get("recovery") === "1") email = superAdminEmail();
+  else {
+    const [u] = await db.select().from(adminUsers).where(and(eq(adminUsers.id, Number(fd.get("id"))), isNull(adminUsers.removedAt)));
+    email = u?.email ?? null;
+  }
+  if (!email) return { ok: false, error: "That admin no longer exists." };
+  const changed = await setDisplayName(db, email, name.data, actor);
+  refresh();
+  return { ok: true, message: changed ? (name.data ? `Saved: ${name.data}.` : "Cleared.") : "No change." };
 }

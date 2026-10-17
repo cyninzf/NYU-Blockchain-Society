@@ -75,7 +75,7 @@ export function InvestorForm() {
   const form = useCheckedForm<InterestResult>(submitInvestor);
   const token = useFormToken();
   return (
-    <Shell type="accelerator_investor" form={form} token={token} fine="We use these details only for the investor list: invitations to founder showcases as we launch them, and replies to you.">
+    <Shell type="accelerator_investor" form={form} token={token} fine="We use these details only for the investor list: emails about the accelerator and founder showcases, each with an unsubscribe link, and replies to you. Nothing else.">
       <NameEmail />
       <TextField label="Firm" hint={<>optional, or &ldquo;Angel&rdquo;</>} name="firm" autoComplete="organization" maxLength={120} />
       <Choice legend="Focus" name="focus" options={entries(FOCUS_LABELS)} multi msg="Pick at least one focus: Blockchain, Finance or AI." />

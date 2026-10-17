@@ -10,6 +10,7 @@ import {
   type ContactFocus,
 } from "@/lib/contact-fields";
 import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
+import { linkedInterest } from "@/lib/contact-save";
 import Pager from "../Pager";
 import { deleteContact, linkContact, unlinkContact } from "./actions";
 import Guard from "../Guard";
@@ -45,6 +46,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
   const total = await countContacts(db, f);
   const pg = pageWindow(parsePage(sp), total);
   const [rows, sources, { review }] = await Promise.all([listContacts(db, f, { limit: PAGE_SIZE, offset: pg.offset }), listSources(db), nameMatches(db)]);
+  const linked = await linkedInterest(db, rows.map((r) => r.c.id));
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
@@ -108,7 +110,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           </select>
         </label>
         <button type="submit">Filter</button>
-        <a href="/admin/contacts">Clear</a>
+        <Link href="/admin/contacts">Clear</Link>
         <Link className={styles.button} href="/admin/contacts/new">Add contact</Link>
         {isSuper(admin) && <Link className={`${styles.button} ${styles.primary}`} href="/admin/contacts/import">Import</Link>}
         {isSuper(admin) && <Link className={styles.button} href="/admin/contacts/invite">Invite</Link>}
@@ -154,12 +156,14 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
                 <td>{INVITE_STATUS_LABELS[invite]}{c.invitedAt && <div className={styles.note}>Invited {dateFmt.format(c.invitedAt)}</div>}</td>
                 <td>{dateFmt.format(c.importedAt)}</td>
                 <td>
+                  <Link href={`/admin/contacts/${c.id}`}>Edit</Link>
                   {isSuper(admin) && (
                     <details className={styles.del}>
                       <summary>Delete</summary>
                       <form action={deleteContact}>
                         <input type="hidden" name="id" value={c.id} />
                         <input type="hidden" name="confirm" value="yes" />
+                        {linked.get(c.id) && <label className={styles.row}><input type="checkbox" name="alsoLinked" /> Also delete the linked {linked.get(c.id)!.length === 1 ? "record" : "records"} (accelerator {linked.get(c.id)!.map((l) => `#${l.id}`).join(", ")})</label>}
                         <button type="submit">Delete contact {c.id} permanently</button>
                       </form>
                     </details>

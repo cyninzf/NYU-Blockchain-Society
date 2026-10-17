@@ -5,11 +5,12 @@ import "server-only";
 // empty fields, a dated note and a relationship further along; never a duplicate, never an email,
 // never a member. A "via-" source stays a personal introduction (never in bulk invites, round 26).
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "./db";
-import { contacts } from "./db/schema";
-import { MAX_NOTE, noteDate, slugifySource, SOURCE_RE } from "./contacts-import";
+import { acceleratorInterest, adminAudit, contacts, type AuditChanges } from "./db/schema";
+import { auditRow } from "./admin";
+import { MAX_NOTE, newNoteLines, noteDate, slugifySource, SOURCE_RE } from "./contacts-import";
 import { CONTACT_FOCUS, CONTACT_TYPES, INVESTOR_STAGES, normalizeLinkedin, RELATIONSHIPS } from "./contact-fields";
 import { zodFieldErrors, type FieldErrors } from "./form-errors";
 import { existingCols, fillQuery, newContactRow, planFill, type Candidate, type Existing } from "./contacts-import-plan";
@@ -61,8 +62,12 @@ export async function saveContact(db: Db, d: ContactDraft, note: string, date = 
   return { id: again.id, created: false, filled: await fillContact(db, again, d, note, date) };
 }
 
-/** Quick-add's default source: the signed-in organizer's own introductions, "via-<their email name>". */
-export const organizerSource = (email: string) => slugifySource(`via ${email.split("@")[0]}`) || "via-organizer";
+/**
+ * Quick-add's default source: the signed-in organizer's own introductions, "via-<display name>"
+ * (round 28.1, set on /admin/team), else "via-<their email name>".
+ */
+export const organizerSource = (email: string, displayName?: string | null) =>
+  slugifySource(`via ${displayName?.trim() || email.split("@")[0]}`) || "via-organizer";
 
 const opt = (max: number, msg: string) => z.string().trim().max(max, msg).transform((v) => v || null);
 const optEnum = <T extends readonly [string, ...string[]]>(values: T) => z.union([z.literal(""), z.enum(values)]).transform((v) => (v || null) as T[number] | null);
@@ -97,4 +102,72 @@ export function draftOf(q: QuickAdd): ContactDraft {
   const d: Partial<QuickAdd> = { ...q };
   delete d.note;
   return d as ContactDraft;
+}
+
+// The contact edit page (/admin/contacts/<id>, round 28.1), both roles: a deliberate organizer
+// edit, so any field may change in any direction (the relationship too, unlike imports and forms),
+// each change logged with old → new. A note is appended as a dated line and moves the last touch.
+
+export const ContactEditInput = QuickAddInput.pick({ company: true, headline: true, linkedinUrl: true, contactType: true, focus: true, stage: true, nyuAlum: true, relationship: true, note: true });
+export type ContactEdit = z.output<typeof ContactEditInput>;
+
+export function parseContactEdit(fd: FormData): { ok: true; data: ContactEdit } | { ok: false; error: string; fieldErrors: FieldErrors } {
+  const s = (k: string) => String(fd.get(k) ?? "");
+  const r = ContactEditInput.safeParse({
+    company: s("company"), headline: s("headline"), linkedinUrl: s("linkedinUrl"), contactType: s("contactType"), focus: fd.getAll("focus").map(String),
+    stage: s("stage"), nyuAlum: s("nyuAlum"), relationship: s("relationship"), note: s("note"),
+  });
+  return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error.issues[0]?.message ?? "Check the form.", fieldErrors: zodFieldErrors(r.error) };
+}
+
+const EDIT_FIELDS = ["company", "headline", "linkedinUrl", "contactType", "focus", "stage", "nyuAlum", "relationship"] as const;
+const asText = (v: unknown) => (v === null || v === undefined ? null : Array.isArray(v) ? (v.length ? v.join(", ") : null) : String(v));
+
+/** Applies an edit; returns null when the contact is gone, else the logged changes (a note shows as `note: [null, "added"]`, never its text). */
+export async function editContact(db: Db, id: number, d: ContactEdit, actor: string, date = noteDate()): Promise<AuditChanges | null> {
+  const [c] = await db.select().from(contacts).where(eq(contacts.id, id));
+  if (!c) return null;
+  const set: Record<string, unknown> = {}, changes: AuditChanges = {};
+  for (const k of EDIT_FIELDS) {
+    const before = asText(c[k]), after = asText(d[k]);
+    if (before !== after) { set[k] = d[k]; changes[k] = [before, after]; }
+  }
+  const notes = newNoteLines(c.notes, [d.note], date);
+  if (notes) {
+    set.notes = sql`case when coalesce(trim(${contacts.notes}), '') = '' then ${notes} else ${contacts.notes} || E'\\n' || ${notes} end`;
+    set.lastTouchAt = sql`greatest(coalesce(${contacts.lastTouchAt}, ${date}::date), ${date}::date)`;
+    changes.note = [null, "added"];
+  }
+  if (!Object.keys(set).length) return changes;
+  await db.batch([
+    db.update(contacts).set(set).where(eq(contacts.id, id)),
+    db.insert(adminAudit).values(auditRow(actor, "contact.edit", `Edited contact #${id}`, { changes })),
+  ]);
+  return changes;
+}
+
+/**
+ * For removal requests (round 28.1, super admins, checked by the caller): deletes a contact and,
+ * with `alsoLinked`, the accelerator submissions linked to it. Permanent; logged without content.
+ * Returns the ids deleted, or null when the contact was already gone.
+ */
+export async function deleteContactWithLinked(db: Db, id: number, actor: string, alsoLinked: boolean): Promise<{ accelerator: number[] } | null> {
+  const linked = alsoLinked ? await db.select({ id: acceleratorInterest.id, type: acceleratorInterest.type }).from(acceleratorInterest).where(eq(acceleratorInterest.contactId, id)) : [];
+  const [gone] = await db.delete(contacts).where(eq(contacts.id, id)).returning({ id: contacts.id });
+  if (!gone) return null;
+  if (linked.length) await db.delete(acceleratorInterest).where(inArray(acceleratorInterest.id, linked.map((l) => l.id)));
+  await db.batch([
+    db.insert(adminAudit).values(auditRow(actor, "contact.delete", `Deleted contact #${id}${linked.length ? ` and its linked accelerator ${linked.length === 1 ? "row" : "rows"} ${linked.map((l) => `#${l.id}`).join(", ")}` : ""}`)),
+    ...linked.map((l) => db.insert(adminAudit).values(auditRow(actor, "accelerator.delete", `Deleted accelerator ${l.type} #${l.id} (linked to deleted contact #${id})`))),
+  ]);
+  return { accelerator: linked.map((l) => l.id) };
+}
+
+/** Accelerator rows linked to these contacts, for the contacts list's delete step and the edit page. */
+export async function linkedInterest(db: Db, contactIds: number[]) {
+  if (!contactIds.length) return new Map<number, { id: number; type: string }[]>();
+  const rows = await db.select({ id: acceleratorInterest.id, type: acceleratorInterest.type, contactId: acceleratorInterest.contactId }).from(acceleratorInterest).where(inArray(acceleratorInterest.contactId, contactIds));
+  const m = new Map<number, { id: number; type: string }[]>();
+  for (const r of rows) m.set(r.contactId!, [...(m.get(r.contactId!) ?? []), { id: r.id, type: r.type }]);
+  return m;
 }

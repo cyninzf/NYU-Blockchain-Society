@@ -211,6 +211,13 @@
       "when": 1792271569850,
       "tag": "0029_investor_network",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792273612582,
+      "tag": "0030_admin_display_names",
+      "breakpoints": true
     }
   ]
 }

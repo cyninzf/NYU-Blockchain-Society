@@ -190,6 +190,18 @@ export const adminUsers = pgTable(
   (t) => [uniqueIndex("admin_users_email_idx").on(sql`lower(${t.email})`)],
 );
 
+/**
+ * Organizers' display names (round 28.1), keyed by lowercase email so the recovery super admin
+ * (SUPER_ADMIN_EMAIL, never in admin_users) has one too. Set by super admins on /admin/team; used
+ * for quick-add's default source ("via-fang").
+ */
+export const adminProfiles = pgTable("admin_profiles", {
+  email: text().primaryKey(),
+  displayName: text("display_name").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type AdminUser = typeof adminUsers.$inferSelect;
 
 /**

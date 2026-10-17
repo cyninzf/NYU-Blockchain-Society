@@ -633,5 +633,89 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   const [fRow28b] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, fId));
   ok(fRow28b && fRow28b.contactId === null, "deleting the contact keeps the submission, unlinked");
 }
+
+// Round 28.1: form submissions protected from bulk invites, display names, the contact edit page, linked deletes.
+{
+  const CI = await import(`${P}/lib/contacts-import.ts`);
+  const { queueableWhere } = await import(`${P}/lib/invites.ts`);
+  const { queueCampaign, processInvites } = await import(`${P}/lib/invite-queue.ts`);
+  const { listContacts } = await import(`${P}/lib/contacts-query.ts`);
+  const { editContact, parseContactEdit, deleteContactWithLinked, organizerSource } = await import(`${P}/lib/contact-save.ts`);
+  const { deleteInterest } = await import(`${P}/lib/accelerator-interest.ts`);
+  const { DisplayName, displayNameFor, setDisplayName } = await import(`${P}/lib/admin-profiles.ts`);
+  const auditOf = async (action: string) => (await db.select().from(adminAudit)).filter((a: any) => a.action === action);
+
+  ok(CI.protectedKind("via-alex") === "personal" && CI.protectedKind("accelerator-form") === "form" && CI.protectedKind("investor-list") === "form" && CI.protectedKind("luma-2024") === null && CI.protectedKind("investor-list-2") === null, "protected sources: via- and exactly the two form sources");
+
+  const ids = (await db.insert(contacts).values([
+    { name: "Form Founder", email: "formf@example.com", source: "accelerator-form" },
+    { name: "Form Investor", email: "formi@example.com", source: "investor-list" },
+    { name: "Plain Listed", email: "plainl@example.com", source: "fake-r281" },
+  ]).returning({ id: contacts.id })).map((x: any) => x.id);
+  const [ff, fi, pl] = ids;
+  const queueable = async (chosen: string | null = null) => (await db.select({ id: contacts.id }).from(contacts).where(queueableWhere(chosen))).map((x: any) => x.id);
+  const all = await queueable();
+  ok(all.includes(pl) && !all.includes(ff) && !all.includes(fi), "form submissions are never queueable by default");
+  const chosen = await queueable("investor-list");
+  ok(chosen.includes(fi) && !chosen.includes(ff), "choosing investor-list includes that form source, not the other");
+  ok(!(await queueable("via-alex-example")).includes(fi) && !(await queueable("fake-r281")).includes(ff), "choosing another source never includes form submissions");
+  const st = Object.fromEntries((await listContacts(db, {})).map((r: any) => [r.c.id, r.invite]));
+  ok(st[ff] === "form" && st[fi] === "form" && st[pl] === "eligible", "invite status: Form submission (not auto-invited)");
+  ok((await listContacts(db, { invite: "form" })).every((r: any) => CI.isFormSource(r.c.source)), "Invite filter: form submissions");
+
+  const camp = async (source: string, includePersonal: boolean) =>
+    (await db.insert(inviteCampaigns).values({ status: "queued", source, includePersonal, subject: "An invitation", body: "Hi {first_name},\n\nJoin us.", reason: "Test reason.", contentHash: `f-${source}-${includePersonal}`, createdBy: "test" }).returning())[0];
+  const notChosen = await camp("investor-list", false);
+  ok((await queueCampaign(db, notChosen.id, "investor-list", false)) === 0, "a form source without the explicit choice queues nobody");
+  const general = await camp("fake-r281", false);
+  ok((await queueCampaign(db, general.id, "fake-r281", false)) === 1, "other sources queue as before");
+  await db.insert(schema.inviteQueue).values({ campaignId: general.id, contactId: ff });
+  const to: string[] = [];
+  globalThis.fetch = (async (_u: string, init: any) => { for (const m of [JSON.parse(init.body)].flat()) to.push(...[m.to].flat()); return new Response("{}", { status: 200 }); }) as any;
+  const run = await processInvites(db);
+  const [ffRow] = await db.select().from(contacts).where(eq(contacts.id, ff));
+  ok(to.includes("plainl@example.com") && !to.includes("formf@example.com") && !ffRow.invitedAt && run.skipped >= 1, "the run skips a form submission in a campaign that didn't include it");
+  const explicit = await camp("investor-list", true);
+  const queuedN = await queueCampaign(db, explicit.id, "investor-list", true);
+  const queuedRows = await db.select({ source: contacts.source, id: contacts.id }).from(schema.inviteQueue).innerJoin(contacts, eq(contacts.id, schema.inviteQueue.contactId)).where(eq(schema.inviteQueue.campaignId, explicit.id));
+  ok(queuedN >= 1 && queuedRows.length === queuedN && queuedRows.some((r: any) => r.id === fi) && queuedRows.every((r: any) => r.source === "investor-list"), "explicitly chosen and confirmed: that form source (only) queues");
+
+  // Display names.
+  ok(organizerSource("fz.475@example.com", "Fang") === "via-fang" && organizerSource("fz.475@example.com", null) === "via-fz-475" && organizerSource("x@example.com", "  ") === "via-x", "default source: via-<display name>, else the email name");
+  ok(DisplayName.safeParse("Fang").success && DisplayName.safeParse("Ana-María O'Neil").success && !DisplayName.safeParse("<b>x</b>").success && !DisplayName.safeParse("x".repeat(41)).success, "display names: letters, spaces, hyphens, apostrophes; 40 at most");
+  ok(await setDisplayName(db, "Organizer@Example.com", "Fang", "super@example.com") && (await displayNameFor(db, "organizer@example.com")) === "Fang", "display name saved, keyed by lowercase email");
+  ok(!(await setDisplayName(db, "organizer@example.com", "Fang", "super@example.com")), "saving the same name is a no-op");
+  ok(await setDisplayName(db, "organizer@example.com", "", "super@example.com") && (await displayNameFor(db, "organizer@example.com")) === null, "an empty name clears it");
+  const dn = await auditOf("team.display_name");
+  ok(dn.length === 2 && dn[0].changes.displayName.join() === ",Fang" && dn[1].changes.displayName[0] === "Fang" && dn[1].changes.displayName[1] === null, "display name changes logged old → new");
+
+  // The edit page: any direction, every change logged old → new, notes appended.
+  await db.update(contacts).set({ relationship: "partner", contactType: "vc", focus: ["ai"], company: "Old Co" }).where(eq(contacts.id, fi));
+  const form = (o: Record<string, string | string[]>) => parseContactEdit(fd({ company: "Old Co", headline: "", linkedinUrl: "", contactType: "vc", focus: ["ai"], stage: "", nyuAlum: "", relationship: "partner", note: "", ...o }));
+  ok(!form({ linkedinUrl: "example.com/x" }).ok && !form({ relationship: "friends" }).ok, "edit refuses a non-LinkedIn URL and an unknown relationship");
+  const e1 = await editContact(db, fi, (form({ relationship: "cold", contactType: "angel", focus: ["ai", "finance"], company: "", linkedinUrl: "linkedin.com/in/form-i", nyuAlum: "no", note: "Called back" }) as any).data, "admin@example.com", "2026-10-18");
+  const [fiRow] = await db.select().from(contacts).where(eq(contacts.id, fi));
+  ok(fiRow.relationship === "cold" && fiRow.contactType === "angel" && fiRow.focus.join() === "finance,ai" && fiRow.company === null && fiRow.linkedinUrl === "https://www.linkedin.com/in/form-i" && fiRow.nyuAlum === false, "an organizer edit can move the relationship back and clear fields");
+  ok(fiRow.notes === "2026-10-18: Called back" && fiRow.lastTouchAt === "2026-10-18", "the note is a dated line and moves the last touch");
+  ok(e1.relationship.join() === "partner,cold" && e1.contactType.join() === "vc,angel" && e1.company[0] === "Old Co" && e1.company[1] === null && e1.note[1] === "added", "changes come back old → new");
+  const ed = await auditOf("contact.edit");
+  ok(ed.length === 1 && ed[0].actor === "admin@example.com" && ed[0].changes.relationship.join() === "partner,cold" && !JSON.stringify(ed[0]).includes("Called back"), "contact.edit logged with old → new, never the note's text");
+  const e2 = await editContact(db, fi, (form({ relationship: "cold", contactType: "angel", focus: ["finance", "ai"], company: "", linkedinUrl: "https://www.linkedin.com/in/form-i", nyuAlum: "no" }) as any).data, "admin@example.com", "2026-10-18");
+  ok(Object.keys(e2).length === 0 && (await auditOf("contact.edit")).length === 1, "saving without changes logs nothing");
+  ok((await editContact(db, 999999, (form({}) as any).data, "admin@example.com")) === null, "a missing contact is reported");
+
+  // Linked deletes: a contact with its accelerator rows, or a row with its contact; logged without content.
+  const [r1] = await db.insert(schema.acceleratorInterest).values({ type: "investor", name: "Form Investor", email: "formi@example.com", focus: ["ai"], contactId: fi }).returning();
+  const [r2] = await db.insert(schema.acceleratorInterest).values({ type: "founder", name: "Form Founder", email: "formf@example.com", focus: ["ai"], contactId: ff }).returning();
+  const [r3] = await db.insert(schema.acceleratorInterest).values({ type: "investor", name: "Keep Me", email: "keep@example.com", focus: ["ai"], contactId: pl }).returning();
+  ok((await deleteContactWithLinked(db, fi, "super@example.com", true))!.accelerator.join() === String(r1.id), "deleting a contact can also delete its linked accelerator rows");
+  ok((await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, r1.id))).length === 0, "the linked row is gone");
+  ok(await deleteInterest(db, r2.id, "super@example.com", true) && (await db.select().from(contacts).where(eq(contacts.id, ff))).length === 0, "deleting an accelerator row can also delete its contact");
+  await deleteContactWithLinked(db, pl, "super@example.com", false);
+  const [r3b] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, r3.id));
+  ok(r3b && r3b.contactId === null, "without the tick, the other record stays (unlinked)");
+  const dels = (await db.select().from(adminAudit)).filter((a: any) => (a.action === "contact.delete" || a.action === "accelerator.delete") && /linked/.test(a.detail));
+  ok(dels.length === 4 && dels.every((a: any) => !/example\.com|Form |Keep Me/.test(a.detail)), "linked deletes logged for each record, without content");
+}
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

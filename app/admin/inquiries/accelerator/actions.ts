@@ -14,12 +14,12 @@ export async function changeInterestStatus(fd: FormData) {
   refresh();
 }
 
-/** For removal requests (round 17): super admins only, after the confirm step; logged without content. */
+/** For removal requests (round 17): super admins only, after the confirm step; logged without content. Round 28.1: optionally the linked contact too. */
 export async function removeInterest(fd: FormData) {
   const id = Number(fd.get("id"));
   const { db, actor } = await requireSuperOr403(`delete accelerator interest #${id}`);
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
-  await deleteInterest(db, id, actor);
+  await deleteInterest(db, id, actor, fd.get("alsoLinked") === "on");
   refresh();
 }
 

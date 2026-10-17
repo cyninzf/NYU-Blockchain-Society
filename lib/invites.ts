@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { and, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
-import { isPersonalSource, PERSONAL_PREFIX } from "./contacts-import";
+import { FORM_SOURCES, isProtectedSource, PERSONAL_PREFIX } from "./contacts-import";
 import { contacts, inviteQueue, inviteSuppressions, type SuppressionReason } from "./db/schema";
 
 // One-time invites to contacts (round 12). The rules, enforced here and nowhere else:
@@ -13,6 +13,8 @@ import { contacts, inviteQueue, inviteSuppressions, type SuppressionReason } fro
 // - personal introductions (round 26): contacts whose source starts "via-" are eligible but never
 //   queued unless a super admin picked that exact source, ticked it and confirmed the warning
 //   (`invite_campaigns.include_personal`); the queue re-checks this at send time too.
+// - form submissions (round 28.1): sources accelerator-form and investor-list follow the same rule
+//   (`formSql`); together with via- they're the "protected" sources (`protectedSql`).
 
 /**
  * The suppression key: SHA-256 of a fixed prefix and the lowercased, trimmed address, hex. No
@@ -35,20 +37,25 @@ export const notQueuedSql = sql`not exists (select 1 from ${inviteQueue} q where
 
 /** A personal introduction: source "via-…" (`PERSONAL_PREFIX`). */
 export const personalSql = sql`${contacts.source} like ${PERSONAL_PREFIX + "%"}`;
+/** A form submission: source accelerator-form or investor-list (`FORM_SOURCES`). */
+export const formSql = sql`${contacts.source} in (${sql.join(FORM_SOURCES.map((f) => sql`${f}`), sql`, `)})`;
+/** Never in a bulk invite without the explicit choice of that source. */
+export const protectedSql = sql`(${personalSql} or ${formSql})`;
 
 /**
- * Personal introductions only when a campaign explicitly includes that source: `personal` is the
- * source chosen and confirmed for it, or null. Anything else leaves every via- contact out.
+ * Protected sources (personal introductions and form submissions) only when a campaign explicitly
+ * includes that source: `chosen` is the source chosen and confirmed for it, or null. Anything else
+ * leaves every protected contact out.
  */
-export const personalAllowed = (personal: string | null): SQL =>
-  personal && isPersonalSource(personal) ? sql`(not ${personalSql} or ${contacts.source} = ${personal})` : sql`not ${personalSql}`;
+export const protectedAllowed = (chosen: string | null): SQL =>
+  chosen && isProtectedSource(chosen) ? sql`(not ${protectedSql} or ${contacts.source} = ${chosen})` : sql`not ${protectedSql}`;
 
 /**
- * Eligible and not already queued in a campaign: who a new campaign would add. Personal
- * introductions are left out unless `personal` names their source (explicitly chosen and confirmed).
+ * Eligible and not already queued in a campaign: who a new campaign would add. Protected sources
+ * are left out unless `chosen` names their source (explicitly chosen and confirmed).
  */
-export const queueableWhere = (personal: string | null = null): SQL =>
-  and(eligibleWhere(), personalAllowed(personal), notQueuedSql)!;
+export const queueableWhere = (chosen: string | null = null): SQL =>
+  and(eligibleWhere(), protectedAllowed(chosen), notQueuedSql)!;
 
 /** Adds an address to the suppression list (the first reason is kept). */
 export async function suppress(db: Db, email: string, reason: SuppressionReason) {

@@ -15,6 +15,7 @@ import {
   type ImportCounts, type ImportFormat, type ImportSummary, type Mapping, type PlanRow,
 } from "@/lib/contacts-import";
 import { applyImport, planImport } from "@/lib/contacts-import-plan";
+import { deleteContactWithLinked } from "@/lib/contact-save";
 import { readXlsx } from "@/lib/xlsx";
 
 import { reportError } from "@/lib/monitoring";
@@ -132,13 +133,12 @@ async function linkAfterImport(db: Db, s: ImportSummary) {
   }
 }
 
-/** For removal requests; super admins only. Permanent. */
+/** For removal requests; super admins only. Permanent. Round 28.1: optionally its linked accelerator rows too. Logged without content. */
 export async function deleteContact(fd: FormData) {
   const { db, actor } = await requireAdmin("super_admin");
   const id = Number(fd.get("id"));
   if (!Number.isInteger(id) || id < 1 || fd.get("confirm") !== "yes") throw new Error("Bad request");
-  const [gone] = await db.delete(contacts).where(eq(contacts.id, id)).returning({ id: contacts.id });
-  if (gone) await audit(db, actor, "contact.delete", `Deleted contact #${id}`);
+  await deleteContactWithLinked(db, id, actor, fd.get("alsoLinked") === "on");
   refresh();
 }
 

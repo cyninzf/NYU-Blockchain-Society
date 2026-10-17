@@ -7,6 +7,8 @@ import { adminUsers } from "@/lib/db/schema";
 import { maskEmail } from "@/lib/contacts-import";
 import Guard from "../Guard";
 import AddAdmin from "./AddAdmin";
+import DisplayNameForm from "./DisplayNameForm";
+import { displayNames } from "@/lib/admin-profiles";
 import { removeAdmin, setAdminRole } from "./actions";
 import styles from "../admin.module.css";
 
@@ -19,7 +21,7 @@ export default function TeamPage() {
   return (
     <>
       <h1>Team</h1>
-      <p className={styles.lede}>Who can sign in to the admin. Admins can view and edit members, link contacts and send announcements. Only super admins can manage events, import, export, delete, manage the team or change settings. Every change here is in the audit log.</p>
+      <p className={styles.lede}>Who can sign in to the admin. Admins can view and edit members, link contacts and send announcements. Only super admins can manage events, import, export, delete, manage the team or change settings. Display names (e.g. Fang) set quick-add&apos;s default source to via-fang; without one it uses the email name. Every change here is in the audit log.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard min="super_admin">{() => <Team />}</Guard>
       </Suspense>
@@ -34,17 +36,19 @@ async function Team() {
   if (!db) return <p>DATABASE_URL is not set for this environment.</p>;
   const rows = await db.select().from(adminUsers).where(isNull(adminUsers.removedAt)).orderBy(desc(adminUsers.createdAt));
   const recovery = superAdminEmail();
+  const names = await displayNames(db, [...rows.map((u) => u.email), ...(recovery ? [recovery] : [])]);
   return (
     <>
       <AddAdmin />
       <div className={styles.scroll}>
         <table className={styles.table}>
           <caption className="sr">Admins</caption>
-          <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Added</th><th scope="col"><span className="sr">Actions</span></th></tr></thead>
+          <thead><tr><th scope="col">Email</th><th scope="col">Display name</th><th scope="col">Role</th><th scope="col">Added</th><th scope="col"><span className="sr">Actions</span></th></tr></thead>
           <tbody>
             {recovery && (
               <tr>
                 <td>{maskEmail(recovery)}</td>
+                <td><DisplayNameForm recovery current={names.get(recovery) ?? null} who="the recovery super admin" /></td>
                 <td>{ROLE_LABELS.super_admin}</td>
                 <td>Recovery key (set in Vercel as SUPER_ADMIN_EMAIL)</td>
                 <td>Always a super admin: can&apos;t be changed or removed.</td>
@@ -53,6 +57,7 @@ async function Team() {
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>{u.email}</td>
+                <td><DisplayNameForm id={u.id} current={names.get(u.email.toLowerCase()) ?? null} who={u.email} /></td>
                 <td>
                   <form className={styles.row} action={setAdminRole}>
                     <input type="hidden" name="id" value={u.id} />

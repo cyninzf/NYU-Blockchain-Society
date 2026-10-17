@@ -5,7 +5,7 @@ import type { Db } from "./db";
 import { adminAudit, contacts, events, inviteCampaigns, inviteQueue } from "./db/schema";
 import { emailConfigured, remainingToday, sendBatch } from "./email";
 import { InviteDraft, inviteEmail, type FeaturedEvent } from "./invite-email";
-import { eligibleWhere, personalAllowed, queueableWhere } from "./invites";
+import { eligibleWhere, protectedAllowed, queueableWhere } from "./invites";
 import { postalAddress } from "./settings";
 
 // The invite queue (round 12). A campaign's contacts go out in daily slices: each run sends up
@@ -29,7 +29,7 @@ async function featured(db: Db, eventId: number | null): Promise<FeaturedEvent |
 
 /**
  * Queues every queueable contact of `source` for a campaign; returns how many. Personal
- * introductions only when `includePersonal` (the explicit, confirmed choice of that source).
+ * introductions and form submissions only when `includePersonal` (the explicit, confirmed choice of that source).
  * Unique on contact: anyone already queued elsewhere (a concurrent campaign) is left out.
  */
 export async function queueCampaign(db: Db, campaignId: number, source: string, includePersonal: boolean) {
@@ -57,9 +57,9 @@ export async function processInvites(db: Db, actor = "system"): Promise<RunResul
     const rows = claimed.rows.map((r) => ({ id: Number(r.id), contactId: Number(r.contact_id) }));
     if (rows.length) {
       // Re-checked at its turn: linked, suppressed or invited since it was queued → skipped. A personal
-      // introduction (via-) is only sent by a campaign that explicitly included its source.
+      // introduction (via-) or form submission is only sent by a campaign that explicitly included its source.
       const ok = await db.select({ id: contacts.id, email: contacts.email, name: contacts.name, source: contacts.source }).from(contacts)
-        .where(and(inArray(contacts.id, rows.map((r) => r.contactId)), eligibleWhere(), personalAllowed(c.includePersonal ? c.source : null)));
+        .where(and(inArray(contacts.id, rows.map((r) => r.contactId)), eligibleWhere(), protectedAllowed(c.includePersonal ? c.source : null)));
       const okIds = new Set(ok.map((x) => x.id));
       const skip = rows.filter((r) => !okIds.has(r.contactId)).map((r) => r.id);
       if (skip.length) await db.update(inviteQueue).set({ status: "skipped" }).where(inArray(inviteQueue.id, skip));

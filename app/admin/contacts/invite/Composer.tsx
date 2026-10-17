@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PERSONAL_WARNING } from "@/lib/contacts-import";
+import { PROTECTED_TICK, PROTECTED_WARNING, type ProtectedKind } from "@/lib/contacts-import";
 import { countEligible, previewInvite, sendInviteTest, startInviteCampaign, type InviteInput, type InviteResult } from "./actions";
 import styles from "../../admin.module.css";
 
 type Props = {
-  /** `personal`: a "via-" source (personal introductions): never pre-selected, sent only after the explicit tick and warning. */
-  sources: { source: string; eligible: number; personal: boolean }[];
+  /**
+   * `kind`: a protected source, "personal" (via-, personal introductions) or "form" (accelerator-form,
+   * investor-list): never pre-selected, sent only after the explicit tick and warning. Null for the rest.
+   */
+  sources: { source: string; eligible: number; kind: ProtectedKind | null }[];
   events: { id: number; label: string }[];
   defaults: { subject: string; body: string; reason: string };
   hasAddress: boolean;
@@ -15,11 +18,11 @@ type Props = {
 
 /** Pick a source and an optional event, edit the invite, preview it live, test it, then send. */
 export default function Composer({ sources, events, defaults, hasAddress }: Props) {
-  // Never a personal-introductions source by default: those are picked by hand or not at all.
-  const general = sources.filter((s) => !s.personal), personalSources = sources.filter((s) => s.personal);
+  // Never a protected source by default: those are picked by hand or not at all.
+  const general = sources.filter((s) => !s.kind), personalSources = sources.filter((s) => s.kind === "personal"), formSources = sources.filter((s) => s.kind === "form");
   const [source, setSource] = useState(general.find((s) => s.eligible)?.source ?? general[0]?.source ?? "");
   const [includePersonal, setIncludePersonal] = useState(false);
-  const personal = personalSources.some((s) => s.source === source);
+  const kind = sources.find((s) => s.source === source)?.kind ?? null, personal = kind !== null;
   const [eventId, setEventId] = useState<number | null>(null);
   const [subject, setSubject] = useState(defaults.subject);
   const [body, setBody] = useState(defaults.body);
@@ -51,7 +54,7 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
   };
   const send = () => {
     if (n === null || (personal && !includePersonal)) return;
-    if (!confirm(`${personal ? `${PERSONAL_WARNING}\n\n` : ""}Queue a one-time invite to ${n} contact${n === 1 ? "" : "s"} from ${source}? Each can only ever be invited once.`)) return;
+    if (!confirm(`${kind ? `${PROTECTED_WARNING[kind]}\n\n` : ""}Queue a one-time invite to ${n} contact${n === 1 ? "" : "s"} from ${source}? Each can only ever be invited once.`)) return;
     run(() => startInviteCampaign(input, n));
   };
 
@@ -68,6 +71,11 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
                 {personalSources.map((s) => <option key={s.source} value={s.source}>{s.source} ({s.eligible} personal)</option>)}
               </optgroup>
             )}
+            {formSources.length > 0 && (
+              <optgroup label="Form submissions (not auto-invited)">
+                {formSources.map((s) => <option key={s.source} value={s.source}>{s.source} ({s.eligible} from forms)</option>)}
+              </optgroup>
+            )}
           </select>
         </label>
         <label className={styles.field}>Feature an event (optional)
@@ -77,11 +85,11 @@ export default function Composer({ sources, events, defaults, hasAddress }: Prop
           </select>
         </label>
       </div>
-      <p className={styles.note} role="status">{!source ? "Pick a source." : n === null ? "Counting…" : `${n} ${personal ? "personal introduction" : "eligible contact"}${n === 1 ? "" : "s"}: a valid email, not a member, never invited, not unsubscribed or bounced.`}</p>
-      {personal && (
+      <p className={styles.note} role="status">{!source ? "Pick a source." : n === null ? "Counting…" : `${n} ${kind === "personal" ? "personal introduction" : kind === "form" ? "form submission" : "eligible contact"}${n === 1 ? "" : "s"}: a valid email, not a member, never invited, not unsubscribed or bounced.`}</p>
+      {kind && (
         <div className={styles.warn} role="alert">
-          <p><strong>{PERSONAL_WARNING}</strong> They&apos;re never invited unless you include them here.</p>
-          <label><input type="checkbox" checked={includePersonal} onChange={(e) => setIncludePersonal(e.target.checked)} /> Include these personal introductions ({source}) in this invite</label>
+          <p><strong>{PROTECTED_WARNING[kind]}</strong> They&apos;re never invited unless you include them here.</p>
+          <label><input type="checkbox" checked={includePersonal} onChange={(e) => setIncludePersonal(e.target.checked)} /> {PROTECTED_TICK[kind]} ({source}) in this invite</label>
         </div>
       )}
       <label className={styles.field}>Subject<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={150} /></label>

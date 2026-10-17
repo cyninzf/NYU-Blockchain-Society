@@ -2,19 +2,20 @@ import "server-only";
 import { and, arrayContains, count, desc, eq, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./db";
 import { contacts, inviteQueue, inviteSuppressions, members } from "./db/schema";
-import { eligibleWhere, hashSql, personalSql } from "./invites";
+import { eligibleWhere, formSql, hashSql, personalSql } from "./invites";
 import { CONTACT_FOCUS, CONTACT_TYPES, INVESTOR_STAGES, RELATIONSHIPS, type ContactFocus, type ContactType, type InvestorStage, type Relationship } from "./contact-fields";
 
-export const INVITE_STATUSES = ["eligible", "personal", "queued", "invited", "joined", "unsubscribed", "bounced", "none"] as const;
+export const INVITE_STATUSES = ["eligible", "personal", "form", "queued", "invited", "joined", "unsubscribed", "bounced", "none"] as const;
 export type InviteStatus = (typeof INVITE_STATUSES)[number];
 export const INVITE_STATUS_LABELS: Record<InviteStatus, string> = {
-  eligible: "Eligible", personal: "Personal (not auto-invited)", queued: "Queued", invited: "Invited", joined: "Joined", unsubscribed: "Unsubscribed", bounced: "Bounced / spam", none: "No email",
+  eligible: "Eligible", personal: "Personal (not auto-invited)", form: "Form submission (not auto-invited)", queued: "Queued", invited: "Invited", joined: "Joined", unsubscribed: "Unsubscribed", bounced: "Bounced / spam", none: "No email",
 };
 
 /**
  * One invite status per contact (round 12), in this order: joined (linked to a member) →
  * unsubscribed from an invite → bounced or complained → invited → queued in a campaign → personal
- * (eligible, but a "via-" introduction: never auto-invited, round 26) → eligible → no (valid) email.
+ * (eligible, but a "via-" introduction: never auto-invited, round 26) → form (eligible, but from the
+ * accelerator forms: never auto-invited, round 28.1) → eligible → no (valid) email.
  */
 const suppressedAs = (reasons: string[]) =>
   sql`exists (select 1 from ${inviteSuppressions} s where s.email_hash = ${hashSql(contacts.email)} and s.reason in (${sql.join(reasons.map((r) => sql`${r}`), sql`, `)}))`;
@@ -25,6 +26,7 @@ export const inviteStatusSql = sql<InviteStatus>`case
   when ${contacts.invitedAt} is not null then 'invited'
   when exists (select 1 from ${inviteQueue} q where q.contact_id = ${contacts.id} and q.status in ('queued', 'sending')) then 'queued'
   when ${eligibleWhere()} and ${personalSql} then 'personal'
+  when ${eligibleWhere()} and ${formSql} then 'form'
   when ${eligibleWhere()} then 'eligible'
   else 'none' end`;
 

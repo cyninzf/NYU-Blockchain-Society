@@ -8,7 +8,7 @@ import { eventWhen } from "@/lib/event-time";
 import { DEFAULT_INVITE } from "@/lib/invite-email";
 import { campaignProgress, INVITE_RESERVE } from "@/lib/invite-queue";
 import { eligibleWhere, notQueuedSql } from "@/lib/invites";
-import { isPersonalSource } from "@/lib/contacts-import";
+import { protectedKind } from "@/lib/contacts-import";
 import { postalAddress } from "@/lib/settings";
 import { DAILY_EMAIL_LIMIT } from "@/lib/email";
 import { setCampaignPaused } from "./actions";
@@ -51,7 +51,7 @@ async function Invite() {
     <>
       {sources.length ? (
         <Composer
-          sources={(sources.filter((s) => s.eligible > 0).length ? sources.filter((s) => s.eligible > 0) : sources).map((s) => ({ ...s, personal: isPersonalSource(s.source) }))}
+          sources={(sources.filter((s) => s.eligible > 0).length ? sources.filter((s) => s.eligible > 0) : sources).map((s) => ({ ...s, kind: protectedKind(s.source) }))}
           events={upcoming.map((e) => ({ id: e.id, label: `${e.title} · ${eventWhen(e.startsAt, e.endsAt)}` }))}
           defaults={DEFAULT_INVITE}
           hasAddress={Boolean(address)}
@@ -68,7 +68,7 @@ async function Invite() {
               return (
                 <tr key={c.id}>
                   <td>{dateFmt.format(c.createdAt)}</td>
-                  <td>#{c.id} · {c.subject}<div className={styles.note}>{c.source}{c.includePersonal ? " (personal introductions, explicitly included)" : ""} · {c.total} contacts · by {c.createdBy}</div></td>
+                  <td>#{c.id} · {c.subject}<div className={styles.note}>{c.source}{c.includePersonal ? ` (${protectedKind(c.source) === "form" ? "form submissions" : "personal introductions"}, explicitly included)` : ""} · {c.total} contacts · by {c.createdBy}</div></td>
                   <td>{(p.queued ?? 0) + (p.sending ?? 0)}</td>
                   <td>{p.sent ?? 0}</td>
                   <td>{p.failed ?? 0}</td>

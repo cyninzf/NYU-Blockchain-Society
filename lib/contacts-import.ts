@@ -93,6 +93,22 @@ export const isPersonalSource = (source: string) => source.startsWith(PERSONAL_P
 /** Shown, and confirmed, before a personal-introductions source can be invited. */
 export const PERSONAL_WARNING = "These are personal introductions. They'll get the standard society invite.";
 
+/**
+ * Form submissions (round 28.1): people who wrote to us through the accelerator forms. Never
+ * invited in bulk unless chosen explicitly, exactly like personal introductions.
+ */
+export const FORM_SOURCES = ["accelerator-form", "investor-list"] as const;
+export const isFormSource = (source: string) => (FORM_SOURCES as readonly string[]).includes(source);
+export const FORM_WARNING = "These people wrote to us through a form on the site. They'll get the standard society invite.";
+
+/** Sources never in a bulk invite unless a super admin picks that exact source, ticks it and confirms: "personal" (via-) or "form". */
+export type ProtectedKind = "personal" | "form";
+export const protectedKind = (source: string): ProtectedKind | null => (isPersonalSource(source) ? "personal" : isFormSource(source) ? "form" : null);
+export const isProtectedSource = (source: string) => protectedKind(source) !== null;
+export const PROTECTED_WARNING: Record<ProtectedKind, string> = { personal: PERSONAL_WARNING, form: FORM_WARNING };
+/** The tick box's label, per kind. */
+export const PROTECTED_TICK: Record<ProtectedKind, string> = { personal: "Include these personal introductions", form: "Include these form submissions" };
+
 /** Today's date in New York, for note stamps: "2026-10-16". */
 export const noteDate = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
