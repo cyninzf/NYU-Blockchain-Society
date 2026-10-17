@@ -42,6 +42,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 
 ## Positioning (decided)
 - Headline: "Blockchain, Finance & AI." (capital F) everywhere: hero, page titles, metadata, OG/Twitter images, media kit, boilerplate.
+- Headline keeps its trailing period: "Blockchain, Finance & AI." (reviewed and confirmed by Fang, Oct 17, 2026). Don't remove or restyle it.
 - Mission: NYU Blockchain Society is the professional network for NYU alumni at the intersection of blockchain, finance, and AI. We bring together the institutions, builders, investors, and policymakers shaping what comes next, connect NYU alumni and industry professionals worldwide, and help NYU founders build.
 - Global (round 8): a global network for NYU alumni wherever they are, based in New York. No copy may limit the audience to New York ("across New York", "in New York", "for founders in New York"). Facts genuinely about New York stay: the conference at New York University, 44 West 4th Street, and the hero's New York clock. Footer: "NYU Blockchain Society · Official NYU Alumni Club" (round 24: "Based in New York" read as local-only, so it left the site footer and every email footer). The home mission ends "Based in New York, open to NYU alumni worldwide." (`mission.muted`); the approved boilerplate is unchanged.
 - Audience: a professional network for NYU alumni and industry professionals, not a student body. No copy may read like a student club. Historical facts stay as they are (e.g. a 2024 speaker's title "President, NYU Blockchain and Fintech Club").

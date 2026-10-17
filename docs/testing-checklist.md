@@ -486,3 +486,20 @@ Import a fake CSV first (section 18), e.g. two rows with source "via Alex Exampl
       confirm dialog; on a preview the server answers that invites only go out from production.
 - [ ] Other sources work exactly as before.
 - [ ] Delete the fake contacts.
+
+## 20. Member nodes (round 27)
+
+Read-only on production; the counts below 50 and from 50 are best checked on a preview with fake
+/api/chain data (or production builds locally, as in round 27).
+
+- [ ] `https://www.nyublockchainsociety.com/api/chain` returns only `{"stats":…,"recent":…}`: no
+      count field below 50 members (`stats` is `null`), no member ids, block numbers, names or
+      join times, and `recent` is `true` or `false`, never a number.
+- [ ] Below 50 members no background node stands out: member nodes look exactly like the ambient
+      ones (same size and brightness), so nothing can be counted.
+- [ ] When `recent` is true, exactly 3 nodes breathe a soft violet halo on desktop and 2 on a phone
+      (390 px), whatever the number of recent joins; never a node inside a forming block. When it's
+      false, no node pulses.
+- [ ] Reduced motion (OS setting or DevTools "prefers-reduced-motion: reduce"): the halos are
+      static, nothing breathes.
+- [ ] The live screen (`/networking/<slug>/live?test=1`, super admin) shows no pulses.
