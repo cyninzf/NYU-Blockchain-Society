@@ -82,7 +82,7 @@ export async function buildDigest(db: Db, now = new Date()): Promise<Digest> {
     newMembers: newMembers.map((m) => `${oneLine(m.name)} · ${AFFILIATION_LABELS[m.affiliation]} · source ${m.source ?? "none"}`),
     newMessages: [
       ...(inq.length ? [`Conference inquiries: ${tally(inq.map((r) => INTEREST_LABELS[r.interest]))}`] : []),
-      ...(acc.length ? [`Accelerator: ${tally(acc.map((r) => (r.type === "founder" ? "founder" : "supporter")))}`] : []),
+      ...(acc.length ? [`Accelerator: ${tally(acc.map((r) => r.type))}`] : []),
       ...(contact.length ? [`Contact messages: ${tally(contact.map((r) => TOPIC_LABELS[r.topic]))}`] : []),
     ],
   };

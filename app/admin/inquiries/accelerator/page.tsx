@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, STAGE_LABELS } from "@/content/accelerator";
+import { AFFILIATION_LABELS, FOCUS, FOCUS_LABELS, HELP_LABELS, NEEDS_LABELS, STAGE_LABELS } from "@/content/accelerator";
 import { listInterest, parseInterestFilters } from "@/lib/accelerator-interest";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
-import { FOUNDER_STAGES, INTEREST_STATUSES, type InterestStatus } from "@/lib/db/schema";
+import { FOUNDER_STAGES, INTEREST_STATUSES, type InterestStatus, type InterestType } from "@/lib/db/schema";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 import InquiryTabs from "../InquiryTabs";
@@ -20,7 +20,7 @@ export default function AcceleratorInterestPage({ searchParams }: { searchParams
     <>
       <h1>Inquiries</h1>
       <InquiryTabs current="accelerator" />
-      <p className={styles.lede}>Founders and supporters from /accelerator. Each one also went by email to the recovery super admin, with Reply going to the submitter. They aren&apos;t contacts or members unless a founder ticked &ldquo;Also add me as a member&rdquo;.</p>
+      <p className={styles.lede}>Founders and investors from /accelerator. Each one also went by email to the recovery super admin, with Reply going to the submitter, and (unless suspected spam) became or filled a contact: founders as Founder (source accelerator-form), investors as VC or Angel (source investor-list), relationship Replied. They aren&apos;t members unless a founder ticked &ldquo;Also add me as a member&rdquo;. Supporter rows are from the earlier mentor, invest or partner form and stay read-only.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Interest admin={admin} searchParams={searchParams} />}</Guard>
       </Suspense>
@@ -31,6 +31,7 @@ export default function AcceleratorInterestPage({ searchParams }: { searchParams
 const SHOWN = 300;
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" });
 const LABEL: Record<InterestStatus, string> = { new: "New", contacted: "Contacted", closed: "Closed" };
+const TYPE_LABEL: Record<InterestType, string> = { founder: "Founder", investor: "Investor", supporter: "Supporter (legacy)" };
 const list = <K extends string>(keys: K[], labels: Record<K, string>) => keys.map((k) => labels[k] ?? k).join(", ");
 
 async function Interest({ admin, searchParams }: { admin: Admin; searchParams: SP }) {
@@ -44,7 +45,7 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
       <form className={styles.filters} method="get">
         <label>Type
           <select name="type" defaultValue={f.type ?? ""}>
-            <option value="">Any</option><option value="founder">Founders</option><option value="supporter">Supporters</option>
+            <option value="">Any</option><option value="founder">Founders</option><option value="investor">Investors</option><option value="supporter">Supporters (legacy)</option>
           </select>
         </label>
         <label>Stage
@@ -71,23 +72,33 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
           ? <a className={styles.export} href={`/admin/inquiries/accelerator/export${qs ? `?${qs}` : ""}`}>Export CSV</a>
           : <span className={styles.note}>Read-only: super admins change the status, export and delete.</span>}
       </form>
-      {(f.stage || f.focus) && <p className={styles.note}>Stage and focus apply to founders only.</p>}
+      {(f.stage || f.focus) && <p className={styles.note}>{f.stage ? "Stage applies to founders only." : "Focus applies to founders and investors."}</p>}
       <div className={styles.scroll}>
         <table className={styles.table}>
           <caption className="sr">Accelerator interest, newest first</caption>
-          <thead><tr><th scope="col">Received (ET)</th><th scope="col">From</th><th scope="col">Type</th><th scope="col">Details</th><th scope="col">Status</th></tr></thead>
+          <thead><tr><th scope="col">Received (ET)</th><th scope="col">From</th><th scope="col">Type</th><th scope="col">Details</th><th scope="col">Contact</th><th scope="col">Status</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{dateFmt.format(r.createdAt)}<div className={styles.note}>#{r.id}</div></td>
                 <td>{r.name}<div><a href={`mailto:${r.email}`}>{r.email}</a></div>{r.affiliation && <div className={styles.note}>{AFFILIATION_LABELS[r.affiliation]}</div>}</td>
-                <td>{r.type === "founder" ? "Founder" : "Supporter"}{r.addMember && <div className={styles.note}>Also joined as a member</div>}</td>
+                <td>{TYPE_LABEL[r.type] ?? r.type}{r.addMember && <div className={styles.note}>Also joined as a member</div>}</td>
                 <td style={{ maxWidth: 460 }}>
                   {r.type === "founder" ? (
                     <>
                       <b>{r.company}</b>{r.website && <> · <a href={r.website} target="_blank" rel="noopener noreferrer nofollow">{r.website.replace(/^https?:\/\//, "")}</a></>}
                       <div>{r.oneLiner}</div>
                       <div className={styles.note}>{r.stage && STAGE_LABELS[r.stage]} · {list(r.focus as (typeof FOCUS)[number][], FOCUS_LABELS)}</div>
+                      {(r.linkedinUrl || r.school || r.gradYear) && <div className={styles.note}>
+                        {r.linkedinUrl && <a href={r.linkedinUrl} target="_blank" rel="noopener noreferrer nofollow">LinkedIn</a>}
+                        {r.linkedinUrl && (r.school || r.gradYear) && " · "}{[r.school, r.gradYear].filter(Boolean).join(" ")}
+                      </div>}
+                      {r.needs.length > 0 && <div className={styles.note}>Would help most: {list(r.needs as (keyof typeof NEEDS_LABELS)[], NEEDS_LABELS)}</div>}
+                    </>
+                  ) : r.type === "investor" ? (
+                    <>
+                      <b>{r.organization ?? "No firm (angel)"}</b>
+                      <div className={styles.note}>Focus: {list(r.focus as (typeof FOCUS)[number][], FOCUS_LABELS)}</div>
                     </>
                   ) : (
                     <>
@@ -96,6 +107,11 @@ async function Interest({ admin, searchParams }: { admin: Admin; searchParams: S
                       {r.message && <div style={{ whiteSpace: "pre-line" }}>{r.message}</div>}
                     </>
                   )}
+                </td>
+                <td>
+                  {r.contactId
+                    ? <a href={`/admin/contacts?q=${encodeURIComponent(r.email)}`}>Contact #{r.contactId}</a>
+                    : <span className={styles.note}>{r.suspectedSpam ? "After Not spam" : "None"}</span>}
                 </td>
                 <td>
                   {r.suspectedSpam && <><SpamBadge reason={r.spamReason} />{isSuper(admin) && <NotSpamButton action={notSpamInterest} id={r.id} what="accelerator interest" />}</>}

@@ -4,7 +4,8 @@
 // mapping or label changes) → confirm → summary. The file stays in this browser tab between steps
 // and is sent again each time, so the server never keeps a copy.
 // Takes a registrant export with emails (e.g. Luma), any list with name, email, company, title,
-// source and notes columns, or the LinkedIn group export (no emails).
+// source and notes columns (plus, round 28, LinkedIn URL, type, focus, stage, NYU alum and
+// relationship), or the LinkedIn group export (no emails).
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -20,6 +21,9 @@ const COLS: { k: keyof Mapping; label: string }[] = [
   { k: "headline", label: "Title / headline column (optional)" }, { k: "company", label: "Company column (optional)" },
   { k: "source", label: "Source column (optional)" }, { k: "notes", label: "Notes column (optional)" },
   { k: "checkIn", label: "Check-in column (optional)" },
+  { k: "linkedin", label: "LinkedIn URL column (optional)" }, { k: "contactType", label: "Type column (optional)" },
+  { k: "focus", label: "Focus column (optional)" }, { k: "stage", label: "Stage column (optional)" },
+  { k: "nyuAlum", label: "NYU alum column (optional)" }, { k: "relationship", label: "Relationship column (optional)" },
 ];
 const ACTION = { new: "New", match: "Matched", skip: "Skipped" } as const;
 
@@ -159,7 +163,7 @@ export default function ImportContacts() {
           {counts.skipped > preview.skippedRows.length && <p className={styles.note}>The first {preview.skippedRows.length} are shown.</p>}
         </>}
 
-        <p className={styles.note}>Rows match existing contacts by email (case-insensitive, trimmed){preview.format === "linkedin" ? "; rows without one by name + headline" : ""}. A match only fills empty fields; it keeps its original source, and a different source is added to its notes as &ldquo;Also from …&rdquo;. Notes are added as dated lines, never replacing earlier ones. A row&apos;s own source becomes a label like via-alex. Contacts only: no members are created and no emails are sent; after the import, contacts are linked to members by email or a clear name match.{preview.ignored.some(Boolean) ? " Group role and Open to work are never read or stored." : ""}</p>
+        <p className={styles.note}>Rows match existing contacts by email (case-insensitive, trimmed){preview.format === "linkedin" ? "; rows without one by name + headline" : ""}. A match only fills empty fields (a relationship only moves forward, e.g. Cold to Replied, never back); it keeps its original source, and a different source is added to its notes as &ldquo;Also from …&rdquo;. Notes are added as dated lines, never replacing earlier ones, and set the contact&apos;s last touch. Type, focus, stage, NYU alum and relationship values that aren&apos;t recognised are left empty. A row&apos;s own source becomes a label like via-alex. Contacts only: no members are created and no emails are sent; after the import, contacts are linked to members by email or a clear name match.{preview.ignored.some(Boolean) ? " Group role and Open to work are never read or stored." : ""}</p>
         <p className={styles.row}>
           <button type="button" className={styles.primary} onClick={onImport} disabled={busy || blocked || counts.created + counts.matched === 0}>
             {busy ? "Working…" : `Import: ${counts.created} new, ${counts.matched} matched`}
@@ -173,7 +177,7 @@ export default function ImportContacts() {
 
   return (
     <form className={styles.panel} onSubmit={onPreview}>
-      <p>Upload a .csv or .xlsx: a list with columns like name, email, company, title, source and notes (other columns are ignored), a registrant export with emails (e.g. Luma), or the LinkedIn group member export as downloaded (Name, Title / Headline, Group role; only name and headline are kept). It&apos;s read in memory, never stored as a file. Contacts are not members and get no email from this step.</p>
+      <p>Upload a .csv or .xlsx: a list with columns like name, email, company, title, source and notes, and optionally LinkedIn URL, type, focus, stage, NYU alum and relationship (other columns are ignored), a registrant export with emails (e.g. Luma), or the LinkedIn group member export as downloaded (Name, Title / Headline, Group role; only name and headline are kept). It&apos;s read in memory, never stored as a file. Contacts are not members and get no email from this step.</p>
       <div className={styles.filters}>
         <label>File
           <input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />

@@ -4,7 +4,7 @@ import { track } from "@vercel/analytics";
 // program names, form types and block names only.
 type Events = {
   join_completed: { src: string; notify: string };
-  inquiry_submitted: { type: "conference" | "accelerator_founder" | "accelerator_supporter" };
+  inquiry_submitted: { type: "conference" | "accelerator_founder" | "accelerator_investor" };
   get_notified_clicked: { block: "conference" | "networking" | "accelerator" };
 };
 

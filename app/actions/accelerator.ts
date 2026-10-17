@@ -1,9 +1,8 @@
 "use server";
 
 import { after } from "next/server";
-import { parseInterest, receiveInterest } from "@/lib/accelerator-interest";
+import { parseInterest, receiveInterest, type FormType } from "@/lib/accelerator-interest";
 import { getDb } from "@/lib/db";
-import type { InterestType } from "@/lib/db/schema";
 import { rateLimited, rateLimitedEmail } from "@/lib/security";
 import { EXPIRED, formGuard } from "@/lib/form-guard";
 import { submittedValues, type FieldErrors } from "@/lib/form-errors";
@@ -15,11 +14,12 @@ export type InterestResult = { ok: true } | { ok: false; error: string; fieldErr
 const GENERIC = "Something went wrong on our side. Please try again in a moment.";
 
 /**
- * The two forms on /accelerator. Same protection as the conference inquiry form: the
- * signed minimum-fill-time token (startJoin), and rate limits per IP and per email (shared by both
- * forms). Stored, then one email to SUPER_ADMIN_EMAIL after the response; nothing to the submitter.
+ * The two forms on /accelerator (founder and, since round 28, investor). Same protection as the
+ * conference inquiry form: the signed minimum-fill-time token (startJoin), and rate limits per IP
+ * and per email (shared by both forms). Stored and kept as a contact, then one email to
+ * SUPER_ADMIN_EMAIL after the response; nothing to the submitter.
  */
-async function submit(type: InterestType, fd: FormData): Promise<InterestResult> {
+async function submit(type: FormType, fd: FormData): Promise<InterestResult> {
   const guard = formGuard("accelerator", String(fd.get("formToken") ?? ""));
   if (guard.kind === "expired") return { ok: false, error: EXPIRED };
   // Suspected bots are saved flagged (no notification, no member) and see the normal thank-you.
@@ -45,6 +45,6 @@ export async function submitFounder(_prev: InterestResult | null, fd: FormData) 
   return submit("founder", fd);
 }
 
-export async function submitSupporter(_prev: InterestResult | null, fd: FormData) {
-  return submit("supporter", fd);
+export async function submitInvestor(_prev: InterestResult | null, fd: FormData) {
+  return submit("investor", fd);
 }

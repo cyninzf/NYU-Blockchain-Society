@@ -7,6 +7,8 @@ import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
 import { adminAudit, AFFILIATIONS, pendingJoins, type AdminAudit, type Affiliation } from "@/lib/db/schema";
 import { AFFILIATION_LABELS, countMembers, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
+import { investorNetwork } from "@/lib/contacts-query";
+import { CONTACT_TYPE_LABELS, CONTACT_TYPES, RELATIONSHIP_LABELS, RELATIONSHIPS } from "@/lib/contact-fields";
 import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
 import Pager from "./Pager";
 import { listPendingJoins } from "@/lib/pending-joins";
@@ -52,7 +54,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
   const [{ pending }] = await db.select({ pending: count() }).from(pendingJoins);
   if (sp.show === "pending") return <><ShowFilter show="pending" pending={pending} /><Pending admin={admin} /></>;
   // Countries first: it re-derives stale country values, which the country filter and count read.
-  const countries = await membersByCountry(db);
+  const [countries, investors] = await Promise.all([membersByCountry(db), investorNetwork(db)]);
   const total = await countMembers(db, f);
   const pg = pageWindow(parsePage(sp), total);
   const rows = await listMembers(db, f, { limit: PAGE_SIZE, offset: pg.offset });
@@ -75,6 +77,8 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
           </dl>
         </section>
       )}
+
+      {investors.length > 0 && <InvestorNetwork rows={investors} />}
 
       <form className={styles.filters} method="get">
         <label>Affiliation
@@ -223,5 +227,32 @@ async function Pending({ admin }: { admin: Admin }) {
         {!isSuper(admin) && rows.length > 0 && <p className={styles.empty}>Read-only: super admins decide.</p>}
       </div>
     </>
+  );
+}
+
+/** Contacts with a type (round 28), by type and relationship; each figure opens that filter on Contacts. Counts only. */
+function InvestorNetwork({ rows }: { rows: Awaited<ReturnType<typeof investorNetwork>> }) {
+  const n = (t?: string, r?: string) => rows.filter((x) => (!t || x.type === t) && (!r || x.relationship === r)).reduce((a, x) => a + x.n, 0);
+  const types = CONTACT_TYPES.filter((t) => n(t) > 0);
+  const href = (q: Record<string, string>) => `/admin/contacts?${new URLSearchParams(q)}`;
+  return (
+    <section className={styles.mix} aria-labelledby="investor-h">
+      <h2 id="investor-h">Investor network <span>Contacts with a type, by relationship. Organizers only; counts only.</span></h2>
+      <div className={styles.scroll}>
+        <table className={styles.table}>
+          <thead><tr><th scope="col">Type</th>{RELATIONSHIPS.map((r) => <th scope="col" key={r}>{RELATIONSHIP_LABELS[r]}</th>)}<th scope="col">Total</th></tr></thead>
+          <tbody>
+            {types.map((t) => (
+              <tr key={t}>
+                <th scope="row"><a href={href({ type: t })}>{CONTACT_TYPE_LABELS[t]}</a></th>
+                {RELATIONSHIPS.map((r) => <td key={r}>{n(t, r) ? <a href={href({ type: t, relationship: r })}>{n(t, r)}</a> : 0}</td>)}
+                <td><b>{n(t)}</b></td>
+              </tr>
+            ))}
+            <tr><th scope="row">All types</th>{RELATIONSHIPS.map((r) => <td key={r}>{n(undefined, r)}</td>)}<td><b>{n()}</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

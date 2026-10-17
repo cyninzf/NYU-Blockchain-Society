@@ -5,6 +5,10 @@ import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
 import { LINK_LABELS, nameMatches, type Review } from "@/lib/contact-links";
 import { countContacts, INVITE_STATUS_LABELS, INVITE_STATUSES, listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
+import {
+  CONTACT_FOCUS, CONTACT_FOCUS_LABELS, CONTACT_TYPE_LABELS, CONTACT_TYPES, INVESTOR_STAGE_LABELS, INVESTOR_STAGES, nyuAlumLabel, RELATIONSHIP_LABELS, RELATIONSHIPS,
+  type ContactFocus,
+} from "@/lib/contact-fields";
 import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
 import Pager from "../Pager";
 import { deleteContact, linkContact, unlinkContact } from "./actions";
@@ -22,7 +26,7 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <h1>Contacts</h1>
-      <p className={styles.lede}>People imported from lists such as conference registrations (with email) or the LinkedIn group (name and headline, no email). Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins they&apos;re linked to their member automatically: by email, or for contacts without an email by an exact name match. Unclear name matches wait under Needs a look; Undo removes a link for good.</p>
+      <p className={styles.lede}>People imported from lists such as conference registrations (with email) or the LinkedIn group (name and headline, no email), added by hand, or from the accelerator forms. Type, focus, stage, LinkedIn, NYU alum and relationship are for organizers only and never change who can be invited. Contacts aren&apos;t members: they have no block number and aren&apos;t counted as members. When one joins they&apos;re linked to their member automatically: by email, or for contacts without an email by an exact name match. Unclear name matches wait under Needs a look; Undo removes a link for good.</p>
       <Suspense fallback={<p>Loading…</p>}>
         <Guard>{(admin) => <Contacts searchParams={searchParams} admin={admin} />}</Guard>
       </Suspense>
@@ -49,7 +53,7 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
 
       <form className={styles.filters} method="get">
         <label>Search
-          <input name="q" type="search" defaultValue={f.q ?? ""} placeholder="Name, email, headline, company or notes" />
+          <input name="q" type="search" defaultValue={f.q ?? ""} placeholder="Name, email, headline, company, LinkedIn or notes" />
         </label>
         <label>Source
           <select name="source" defaultValue={f.source ?? ""}>
@@ -78,8 +82,34 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
             <option value="unknown">Unknown</option>
           </select>
         </label>
+        <label>Type
+          <select name="type" defaultValue={f.type ?? ""}>
+            <option value="">Any</option>
+            {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
+            <option value="none">Not set</option>
+          </select>
+        </label>
+        <label>Focus
+          <select name="focus" defaultValue={f.focus ?? ""}>
+            <option value="">Any</option>
+            {CONTACT_FOCUS.map((t) => <option key={t} value={t}>{CONTACT_FOCUS_LABELS[t]}</option>)}
+          </select>
+        </label>
+        <label>Stage
+          <select name="stage" defaultValue={f.stage ?? ""}>
+            <option value="">Any</option>
+            {INVESTOR_STAGES.map((t) => <option key={t} value={t}>{INVESTOR_STAGE_LABELS[t]}</option>)}
+          </select>
+        </label>
+        <label>Relationship
+          <select name="relationship" defaultValue={f.relationship ?? ""}>
+            <option value="">Any</option>
+            {RELATIONSHIPS.map((t) => <option key={t} value={t}>{RELATIONSHIP_LABELS[t]}</option>)}
+          </select>
+        </label>
         <button type="submit">Filter</button>
         <a href="/admin/contacts">Clear</a>
+        <Link className={styles.button} href="/admin/contacts/new">Add contact</Link>
         {isSuper(admin) && <Link className={`${styles.button} ${styles.primary}`} href="/admin/contacts/import">Import</Link>}
         {isSuper(admin) && <Link className={styles.button} href="/admin/contacts/invite">Invite</Link>}
         {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({total})</a>}
@@ -90,7 +120,9 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
           <caption className="sr">Contacts, newest first</caption>
           <thead>
             <tr>
-              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Company</th><th scope="col">Email</th><th scope="col">Source</th><th scope="col">Notes</th>
+              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Company</th><th scope="col">Email</th>
+              <th scope="col">Type</th><th scope="col">Focus</th><th scope="col">Stage</th><th scope="col">NYU alum</th><th scope="col">Relationship</th><th scope="col">Last touch</th>
+              <th scope="col">Source</th><th scope="col">Notes</th>
               <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invite</th><th scope="col">Imported</th>
               <th scope="col"><span className="sr">Actions</span></th>
             </tr>
@@ -99,10 +131,16 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
             {rows.map(({ c, memberName, invite }) => (
               <tr key={c.id}>
                 <td>{c.id}</td>
-                <td>{c.name}</td>
+                <td>{c.name}{c.linkedinUrl && <div><a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer nofollow">LinkedIn</a></div>}</td>
                 <td>{c.headline}</td>
                 <td>{c.company}</td>
                 <td>{c.email ?? "—"}</td>
+                <td>{c.contactType ? CONTACT_TYPE_LABELS[c.contactType] : ""}</td>
+                <td>{(c.focus as ContactFocus[]).map((x) => CONTACT_FOCUS_LABELS[x] ?? x).join(", ")}</td>
+                <td>{c.stage ? INVESTOR_STAGE_LABELS[c.stage] : ""}</td>
+                <td>{nyuAlumLabel(c.nyuAlum)}</td>
+                <td>{RELATIONSHIP_LABELS[c.relationship] ?? c.relationship}</td>
+                <td>{c.lastTouchAt ?? ""}</td>
                 <td>{c.source}</td>
                 <td className={styles.notes}>{c.notes}</td>
                 <td>{checked(c.checkedIn)}</td>

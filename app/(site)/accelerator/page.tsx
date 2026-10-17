@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { FounderForm, SupporterForm } from "@/components/accelerator/InterestForms";
+import Link from "next/link";
+import { FounderForm, InvestorForm } from "@/components/accelerator/InterestForms";
 import Icon from "@/components/Icon";
 import { accelerator } from "@/content/accelerator";
 import { siteName } from "@/content/site";
@@ -14,9 +15,10 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: `${title} · ${siteName}`, description },
 };
 
-// Block 02 (round 14): the accelerator is still being built. Two paths, each with its own form.
+// Block 02 (round 14): the accelerator is still being built. Two paths, each with its own form
+// (round 28: founder and investor), and one line for partners and sponsors (the contact form).
 export default function AcceleratorPage() {
-  const [founder, supporter] = accelerator.paths;
+  const [founder, investor] = accelerator.paths;
   return (
     <section className="series acc page-top" aria-labelledby="acc-h">
       <div className="wrap">
@@ -39,6 +41,7 @@ export default function AcceleratorPage() {
             </li>
           ))}
         </ol>
+        <p className="series-sub acc-partner" data-bg="dim">{accelerator.partnerLine.text} <Link href="/contact">{accelerator.partnerLine.link}</Link></p>
 
         <div className="iq acc-form" id={founder.id}>
           <h2 className="conf-proof-h" data-bg="dim">{founder.title}</h2>
@@ -46,10 +49,10 @@ export default function AcceleratorPage() {
           <div data-bg="dim"><FounderForm /></div>
         </div>
 
-        <div className="iq acc-form" id={supporter.id}>
-          <h2 className="conf-proof-h" data-bg="dim">{supporter.title}</h2>
-          <p className="series-sub" data-bg="dim">{supporter.text}</p>
-          <div data-bg="dim"><SupporterForm /></div>
+        <div className="iq acc-form" id={investor.id}>
+          <h2 className="conf-proof-h" data-bg="dim">{investor.title}</h2>
+          <p className="series-sub" data-bg="dim">{investor.text}</p>
+          <div data-bg="dim"><InvestorForm /></div>
         </div>
       </div>
     </section>

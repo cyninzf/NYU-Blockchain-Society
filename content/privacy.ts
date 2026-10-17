@@ -1,7 +1,7 @@
 // /privacy (round 16): plain English, matching what the code actually does. Review with the
 // maintainer before changing a promise here; update `privacyUpdated` with every change.
 
-export const privacyUpdated = "October 16, 2026";
+export const privacyUpdated = "October 17, 2026";
 
 export const privacyDescription =
   "How NYU Blockchain Society collects, uses and protects your details: what we keep, who sees it, the services we use, and your choices and rights.";
@@ -30,8 +30,8 @@ export const privacySections: PrivacySection[] = [
     items: [
       "When you add your block: your name, email, which of Alumni, Industry professional, Faculty/Staff or Student fits you, the blocks you pick (Blockchain, Finance, AI), the updates you ask for, and how you found us: the link you joined from (for example an event's page) or, without one, the website that sent you (for example linkedin.com, never the page or post).",
       "Optional profile details, only if you add them: LinkedIn URL, role, company, NYU school, graduation year, and city and country.",
-      "Contacts from our events, the LinkedIn group and introductions: when you registered for one of our events, the registration list (name, email and whether you checked in); from the society's LinkedIn group, the name and headline shown in its member list; when someone introduced you to our organizers, your name, email, company and title, how we came to know you, and short notes organizers keep about the introduction. Contacts are not members. We may invite a contact with an email address once; we won't email them again unless they join.",
-      "Messages you send through the conference inquiry form and the accelerator forms, as you entered them.",
+      "Contacts from our events, the LinkedIn group and introductions: when you registered for one of our events, the registration list (name, email and whether you checked in); from the society's LinkedIn group, the name and headline shown in its member list; when someone introduced you to our organizers, your name, email, company and title, your LinkedIn URL, how we came to know you, and short notes organizers keep about the introduction, including your focus (blockchain, finance or AI) and, for investors, the kind of investor and the stage you invest in. Contacts are not members. We may invite a contact with an email address once; we won't email them again unless they join.",
+      "Messages you send through the conference inquiry form and the accelerator forms, as you entered them. On the founder form you can also add your LinkedIn URL, NYU school, graduation year and what would help most; on the investor form we ask for your firm and your investment focus (blockchain, finance or AI). Organizers keep founders and investors who write to us with our contacts, so we know who we've spoken with.",
       "Event check-ins: which event you checked in to, and when.",
       "Email delivery only: whether an email was delivered, bounced or reported as spam, and whether you unsubscribed. We don't track opens or clicks.",
       "Security: to stop spam and abuse we keep a one-way code made from your IP address for about a day. We never store your IP address itself.",

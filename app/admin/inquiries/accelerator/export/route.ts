@@ -10,6 +10,6 @@ export async function GET(request: Request) {
   const filters = parseInterestFilters(Object.fromEntries(new URL(request.url).searchParams));
   const rows = await listInterest(db, filters);
   await audit(db, actor, "export.accelerator", `Exported ${rows.length} accelerator interest rows (filters: ${describeFilters(filters)})`);
-  const cols = ["id", "type", "name", "email", "affiliation", "company", "oneLiner", "stage", "focus", "website", "organization", "help", "message", "addMember", "status", "createdAt"] as const;
+  const cols = ["id", "type", "name", "email", "affiliation", "company", "oneLiner", "stage", "focus", "website", "linkedinUrl", "school", "gradYear", "needs", "organization", "help", "message", "addMember", "contactId", "status", "createdAt"] as const;
   return csvResponse("accelerator-interest", cols, rows);
 }

@@ -1,15 +1,16 @@
 // Shared by the import server actions and the admin import screen (no server-only imports).
 // One import for every list: a registrant export with emails (e.g. Luma) or the LinkedIn group
 // export (Name, Title / Headline, Group role; no emails). Only name, email, headline (or title),
-// company, check-in, source and notes are ever stored; "Group role" and "Open to work" can't even be mapped.
+// company, check-in, source, notes and the investor-network fields (round 28: type, focus, stage,
+// LinkedIn URL, NYU alum, relationship) are ever stored; "Group role" and "Open to work" can't even be mapped.
 
 export const SOURCE_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 export const MAX_IMPORT_BYTES = 4 * 1024 * 1024;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type Mapping = { name: number; email: number; headline: number; company: number; checkIn: number; source: number; notes: number }; // -1 = not mapped
-export const MAPPING_KEYS = ["name", "email", "headline", "company", "checkIn", "source", "notes"] as const;
-export const NO_MAPPING: Mapping = { name: -1, email: -1, headline: -1, company: -1, checkIn: -1, source: -1, notes: -1 };
+export const MAPPING_KEYS = ["name", "email", "headline", "company", "checkIn", "source", "notes", "contactType", "focus", "stage", "linkedin", "nyuAlum", "relationship"] as const;
+export type Mapping = Record<(typeof MAPPING_KEYS)[number], number>; // -1 = not mapped
+export const NO_MAPPING = Object.fromEntries(MAPPING_KEYS.map((k) => [k, -1])) as Mapping;
 export type ImportFormat = "linkedin" | "list";
 
 /** "jane@example.com" → "j***@e***.com". */
@@ -31,7 +32,10 @@ const norm = (h: string) => h.trim().toLowerCase().replace(/[^a-z]/g, "");
 /** Columns that are never read, previewed or stored, whatever the mapping says. */
 export const isIgnoredColumn = (header: string) => ["grouprole", "opentowork"].includes(norm(header));
 
-/** Best guess at which columns hold each field. Source and notes only on an exact header, so a "utm_source" is never read as one. */
+/**
+ * Best guess at which columns hold each field. Source, notes and the investor-network fields only on
+ * an exact header, so a "utm_source" is never read as one.
+ */
 export function guessMapping(headers: string[]): Mapping {
   const h = headers.map((x) => (isIgnoredColumn(x) ? "" : x.trim().toLowerCase()));
   const find = (...res: RegExp[]) => { for (const re of res) { const i = h.findIndex((x) => re.test(x)); if (i >= 0) return i; } return -1; };
@@ -43,6 +47,12 @@ export function guessMapping(headers: string[]): Mapping {
     checkIn: find(/check/, /attend/),
     source: find(/^(contact )?source$/),
     notes: find(/^notes?$/),
+    contactType: find(/^(contact |investor )?type$/),
+    focus: find(/^focus( areas?)?$/),
+    stage: find(/^(investment |investor )?stage$/),
+    linkedin: find(/^linkedin( profile)?( url)?$/),
+    nyuAlum: find(/^nyu alum(ni|nus|na)?$/),
+    relationship: find(/^relationship( status)?$/),
   };
 }
 

@@ -146,7 +146,7 @@ const [iqRow] = await db.select().from(schema.conferenceInquiries);
 ok(iqRow.edition === "2027" && iqRow.status === "replied", "inquiry stored with edition and status");
 const [{ asMember }] = await db.select({ asMember: sql<number>`count(*)::int` }).from(members).where(eq(members.email, "gus@example.com"));
 ok(asMember === 0, "an inquirer is not a member");
-// Round 14: accelerator interest (founders and supporters).
+// Round 14: accelerator interest (founders and, since round 28, investors; old supporter rows stay).
 const { parseInterest, saveInterest, founderAsMember } = await import(`${P}/lib/accelerator-interest.ts`);
 const fd = (o: Record<string, string | string[]>) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) for (const x of [v].flat()) f.append(k, x); return f; };
 const founderForm = { name: "Fay Founder", email: "fay@example.com", affiliation: "other", company: "Example Labs", oneLiner: "Test company for the database check.", stage: "building", focus: ["ai", "finance", "ai"], url: "example.com" };
@@ -155,9 +155,11 @@ ok(pf.ok && pf.data.website === "https://example.com" && pf.data.focus.length ==
 ok(!parseInterest("founder", fd({ ...founderForm, focus: [] })).ok, "founder needs at least one focus");
 ok(!parseInterest("founder", fd({ ...founderForm, stage: "series-z" })).ok, "unknown stage refused");
 ok(!parseInterest("founder", fd({ ...founderForm, url: "not a site" })).ok, "bad website refused");
-const ps = parseInterest("supporter", fd({ name: "Sid Supporter", email: "sid@example.com", organization: "Example Fund", help: ["mentor", "invest"], message: "" }));
-ok(ps.ok && ps.data.message === null && ps.data.help.join() === "mentor,invest", "supporter parsed, blank message is null");
-ok(!parseInterest("supporter", fd({ name: "Sid", email: "sid@example.com", organization: "X", help: ["lend"] })).ok, "unknown help kind refused");
+const ps = parseInterest("investor", fd({ name: "Ivy Investor", email: "sid@example.com", firm: "", focus: ["ai", "blockchain"] }));
+ok(ps.ok && ps.data.firm === null && ps.data.focus.join() === "ai,blockchain", "investor parsed, blank firm is null");
+ok(!parseInterest("investor", fd({ name: "Ivy", email: "sid@example.com", firm: "X", focus: ["crypto"] })).ok && !parseInterest("investor", fd({ name: "Ivy", email: "sid@example.com", firm: "X" })).ok, "investor focus required, unknown values refused");
+// Supporter rows from before round 28 stay readable (the form is gone).
+await db.insert(schema.acceleratorInterest).values({ type: "supporter", name: "Old Supporter", email: "oldsup@example.com", organization: "Example Org", help: ["mentor"] });
 const fid = await saveInterest(db, (pf as any).data);
 await saveInterest(db, (ps as any).data);
 const [fRow] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, fid));
@@ -175,8 +177,8 @@ const accAudit = (await db.select().from(adminAudit)).filter((a: any) => a.actio
 ok(accAudit.length === 1 && accAudit[0].changes.status.join() === "new,contacted", "accelerator status change logged with old and new");
 const flt = parseInterestFilters({ type: "founder", focus: "ai", stage: "nope" });
 ok(flt.type === "founder" && flt.focus === "ai" && flt.stage === undefined, "unknown filter values ignored");
-ok((await listInterest(db, flt)).length === 1 && (await listInterest(db, { focus: "blockchain" })).length === 0, "focus filter matches founders' focus");
-ok((await listInterest(db, { type: "supporter", status: "new" })).length === 1, "type and status filters");
+ok((await listInterest(db, flt)).length === 1 && (await listInterest(db, { focus: "blockchain", type: "founder" })).length === 0 && (await listInterest(db, { focus: "blockchain" })).length === 1, "focus filter matches founders' and investors' focus");
+ok((await listInterest(db, { type: "investor", status: "new" })).length === 1 && (await listInterest(db, { type: "supporter" })).length === 1, "type and status filters (legacy supporters still listed)");
 // Round 17: deleting inquiries (removal requests), logged without content.
 const { deleteInquiry } = await import(`${P}/lib/inquiries.ts`);
 const { deleteInterest } = await import(`${P}/lib/accelerator-interest.ts`);
@@ -278,10 +280,13 @@ ok(sends() === s0 + 2 && two.includes("tia@example.com") && two.includes("super@
 ok(!(await markContactNotSpam(db, spamMsg, "super@example.com")) && sends() === s0 + 2, "a second Not spam sends nothing");
 
 s0 = sends();
-const spamSup = await receiveInterest(db, (parseInterest("supporter", fd({ name: "Sam Spam", email: "samspam@example.com", organization: "Example Fund", help: ["mentor"], message: "" })) as any).data, "too_fast", defer);
+const spamSup = await receiveInterest(db, (parseInterest("investor", fd({ name: "Sam Spam", email: "samspam@example.com", firm: "Example Fund", focus: ["ai"] })) as any).data, "too_fast", defer);
 await flush();
 ok(sends() === s0, "a flagged accelerator form sends no email");
+ok((await db.select().from(contacts).where(eq(contacts.email, "samspam@example.com"))).length === 0, "a flagged accelerator form creates no contact");
 ok(await markInterestNotSpam(db, spamSup, "super@example.com") && sends() === s0 + 1, "Not spam sends its notification");
+const [samC] = await db.select().from(contacts).where(eq(contacts.email, "samspam@example.com"));
+ok(samC && samC.source === "investor-list" && samC.contactType === "vc", "Not spam creates the contact it skipped");
 ok(!(await markInterestNotSpam(db, spamSup, "super@example.com")) && sends() === s0 + 1, "once only");
 
 // Joins: a flagged join is never a member until approved; approving joins once (welcome via the join).
@@ -514,6 +519,119 @@ ok(spamAudit.length === 5 && spamAudit.every((a: any) => a.actor === "super@exam
   ok(hidden.members === AMBIENT_MEMBER_NODES && !hidden.accent, "below 50: the ambient baseline, no accent (members can't be told apart)");
   ok(sixty.members === 60 && sixty.accent && many.members === MAX_MEMBER_NODES && phone.members === MAX_MEMBER_NODES / 2, "from 50: one node per member, capped (phones half), with the accent");
   ok(hidden.pulses === RECENT_PULSES && many.pulses === RECENT_PULSES && phone.pulses === RECENT_PULSES - 1, "recent pulses are a fixed number, whatever the count");
+}
+
+// Round 28: investor-network fields on contacts, quick-add, and accelerator submissions as contacts.
+{
+  const F = await import(`${P}/lib/contact-fields.ts`);
+  const { guessMapping, MAPPING_KEYS } = await import(`${P}/lib/contacts-import.ts`);
+  const { planImport, applyImport } = await import(`${P}/lib/contacts-import-plan.ts`);
+  const { parseCsv } = await import(`${P}/lib/csv.ts`);
+  const { saveContact, findContact, fillContact, parseQuickAdd, draftOf, organizerSource } = await import(`${P}/lib/contact-save.ts`);
+  const { listContacts, investorNetwork } = await import(`${P}/lib/contacts-query.ts`);
+  const { queueableWhere } = await import(`${P}/lib/invites.ts`);
+  const { parseInterest, receiveInterest, investorType } = await import(`${P}/lib/accelerator-interest.ts`);
+  const byEmail = async (e: string) => (await db.select().from(contacts).where(sql`lower(${contacts.email}) = ${e}`))[0];
+
+  // Defaults from the migration.
+  const [plain] = await db.insert(contacts).values({ name: "Plain Default", email: "plain@example.com", source: "fake-r28" }).returning();
+  ok(plain.relationship === "cold" && plain.focus.length === 0 && plain.contactType === null && plain.nyuAlum === null && plain.lastTouchAt === null, "new columns default: Cold, no focus, type and NYU alum unknown, no last touch");
+
+  // Lenient readers.
+  const li = F.normalizeLinkedin;
+  ok(li("linkedin.com/in/Ex-Ample/") === "https://www.linkedin.com/in/ex-ample" && li("https://uk.linkedin.com/in/ex-ample?trk=x") === li("http://www.linkedin.com/in/ex-ample") && li("https://example.com/in/x") === null && li("") === null, "LinkedIn URLs normalized; other sites refused");
+  ok(F.parseContactType("LP / family office") === "lp" && F.parseContactType("Corporate VC") === "cvc" && F.parseContactType(" vc ") === "vc" && F.parseContactType("bank") === null, "type labels read, unknown left empty");
+  ok(F.parseInvestorStage("Series A+") === "series_a" && F.parseInvestorStage("Pre-seed") === "pre_seed" && F.parseInvestorStage("Multi-stage") === "multi" && F.parseInvestorStage("late") === null, "stage labels read");
+  ok(F.parseFocus("AI, Blockchain") .join() === "blockchain,ai" && F.parseFocus("finance and ai").join() === "finance,ai" && F.parseFocus("crypto").length === 0, "focus read as block tags");
+  ok(F.parseNyuAlum("Yes") === true && F.parseNyuAlum("no") === false && F.parseNyuAlum("?") === null, "NYU alum yes / no / unknown");
+  ok(F.laterRelationship("met", "replied") === "met" && F.laterRelationship("cold", "contacted") === "contacted", "a relationship only moves forward");
+
+  // Import with the new columns: new rows get them; a match fills only what's empty and never moves a relationship back.
+  await db.insert(contacts).values({ name: "Known Investor", email: "known@example.com", source: "via-alex-example", contactType: "angel", relationship: "met", company: "Kept Fund" });
+  await db.insert(contacts).values({ name: "Cold Investor", email: "cold@example.com", source: "fake-r28" });
+  const csv = parseCsv("name,email,company,type,focus,stage,linkedin url,nyu alum,relationship,notes\n" +
+    "New Vc,newvc@example.com,Example Ventures,VC,\"Blockchain, AI\",Seed,linkedin.com/in/new-vc,yes,Contacted,Met at the mixer\n" +
+    "Known Investor,KNOWN@example.com,Other Fund,VC,Finance,Series A+,,no,Replied,\n" +
+    "Cold Investor,cold@example.com,,LP / family office,,,,,contacted,\n" +
+    "Odd Values,odd@example.com,,bank,crypto,late,example.com/x,maybe,friends,\n");
+  const m = guessMapping(csv[0]);
+  ok(MAPPING_KEYS.length === 13 && m.contactType === 3 && m.focus === 4 && m.stage === 5 && m.linkedin === 6 && m.nyuAlum === 7 && m.relationship === 8, "guessMapping finds type, focus, stage, LinkedIn URL, NYU alum and relationship");
+  const plan = await planImport(db, csv.slice(1), m, "fake-r28", "list", "2026-10-17");
+  ok(plan.counts.created === 2 && plan.counts.matched === 2 && plan.counts.updated === 2, "import plan: 2 new, 2 matched and updated");
+  await applyImport(db, plan);
+  const nv = await byEmail("newvc@example.com"), kn = await byEmail("known@example.com"), cd = await byEmail("cold@example.com"), od = await byEmail("odd@example.com");
+  ok(nv.contactType === "vc" && nv.focus.join() === "blockchain,ai" && nv.stage === "seed" && nv.linkedinUrl === "https://www.linkedin.com/in/new-vc" && nv.nyuAlum === true && nv.relationship === "contacted" && nv.lastTouchAt === "2026-10-17", "new contact gets every investor field and its note's date as last touch");
+  ok(kn.contactType === "angel" && kn.company === "Kept Fund" && kn.relationship === "met" && kn.focus.join() === "finance" && kn.stage === "series_a" && kn.nyuAlum === false && kn.source === "via-alex-example", "a match fills empty fields only and never moves a relationship back");
+  ok(kn.notes === "2026-10-17: Also from fake-r28" && kn.lastTouchAt === null, "an 'Also from' line isn't a touch");
+  ok(cd.relationship === "contacted" && cd.contactType === "lp", "Cold moves forward to Contacted");
+  ok(od.contactType === null && od.focus.length === 0 && od.stage === null && od.linkedinUrl === null && od.nyuAlum === null && od.relationship === "cold", "unknown values are left empty, never guessed");
+
+  // Type and relationship never change invite eligibility; via- stays personal.
+  const queueable = (await db.select({ e: contacts.email }).from(contacts).where(queueableWhere())).map((x: any) => x.e);
+  ok(queueable.includes("newvc@example.com") && queueable.includes("cold@example.com") && queueable.includes("plain@example.com") && !queueable.includes("known@example.com"), "investor fields don't change eligibility; via- contacts stay out of bulk invites");
+
+  // Filters and the dashboard counts.
+  const ids = async (f: any) => (await listContacts(db, f)).map((r: any) => r.c);
+  const [fv, ff, fs, fr] = [await ids({ type: "vc" }), await ids({ focus: "ai" }), await ids({ stage: "series_a" }), await ids({ relationship: "met" })];
+  ok(fv.every((c: any) => c.contactType === "vc") && fv.some((c: any) => c.id === nv.id) && !fv.some((c: any) => c.id === kn.id)
+    && ff.every((c: any) => c.focus.includes("ai")) && ff.some((c: any) => c.id === nv.id) && !ff.some((c: any) => c.id === kn.id)
+    && fs.length === 1 && fs[0].id === kn.id && fr.length === 1 && fr[0].id === kn.id, "filters: type, focus, stage, relationship");
+  ok((await listContacts(db, { type: "none", q: "plain@example.com" })).length === 1, "type filter: not set");
+  const net = await investorNetwork(db);
+  const cell = (t: string, r: string) => net.find((x: any) => x.type === t && x.relationship === r)?.n ?? 0;
+  const [{ typed }] = await db.select({ typed: sql<number>`count(*)::int` }).from(contacts).where(sql`${contacts.contactType} is not null`);
+  ok(cell("vc", "contacted") === 1 && cell("angel", "met") === 1 && cell("lp", "contacted") === 1 && net.every((x: any) => x.type) && net.reduce((a: number, x: any) => a + x.n, 0) === typed, "investor network counts by type and relationship, typed contacts only");
+
+  // Quick-add.
+  ok(organizerSource("alex.organizer@example.com") === "via-alex-organizer", "default source is via-<organizer>");
+  const qa = (o: Record<string, string | string[]>) => parseQuickAdd(fd({ name: "", email: "", company: "", headline: "", linkedinUrl: "", contactType: "", stage: "", nyuAlum: "", relationship: "cold", note: "", source: "via-alex-organizer", ...o }));
+  ok(!qa({ name: "No Link", linkedinUrl: "example.com/in/x" }).ok && !qa({ name: "Bad Source", source: "Via Alex!" }).ok && !qa({}).ok && !qa({ name: "X", contactType: "bank" }).ok, "quick-add refuses a non-LinkedIn URL, a bad source, no name, an unknown type");
+  const linkOnly = qa({ name: "Lin Only", linkedinUrl: "linkedin.com/in/lin-only", contactType: "angel", focus: ["finance"], nyuAlum: "yes", relationship: "contacted", note: "Intro from a friend", company: "Example Angels" });
+  ok(linkOnly.ok && (linkOnly as any).data.email === null && (linkOnly as any).data.nyuAlum === true, "a LinkedIn-only person is fine");
+  const r1 = await saveContact(db, draftOf((linkOnly as any).data), (linkOnly as any).data.note, "2026-10-17");
+  const lo = (await db.select().from(contacts).where(eq(contacts.id, r1.id)))[0];
+  ok(r1.created && lo.email === null && lo.source === "via-alex-organizer" && lo.notes === "2026-10-17: Intro from a friend" && lo.lastTouchAt === "2026-10-17", "quick-add creates the contact with a dated first note");
+  const again = qa({ name: "Lin Only", linkedinUrl: "https://www.LinkedIn.com/in/Lin-Only/", email: "lin@example.com", company: "Other Co", headline: "Partner", relationship: "cold", note: "Second coffee" });
+  const found = await findContact(db, draftOf((again as any).data));
+  ok(found?.id === r1.id, "the same person is found by LinkedIn URL (any form of it)");
+  const filled = await fillContact(db, found, draftOf((again as any).data), "Second coffee", "2026-10-18");
+  const lo2 = (await db.select().from(contacts).where(eq(contacts.id, r1.id)))[0];
+  ok(lo2.company === "Example Angels" && lo2.headline === "Partner" && lo2.email === "lin@example.com" && lo2.relationship === "contacted" && lo2.notes.endsWith("2026-10-18: Second coffee") && lo2.lastTouchAt === "2026-10-18", "fill: empty fields and the email filled, company kept, relationship not moved back, note appended, last touch moved");
+  ok(filled.includes("headline") && filled.includes("email") && filled.includes("notes") && !filled.includes("company"), "fill reports what changed");
+  const st = Object.fromEntries((await listContacts(db, { q: "lin@example.com" })).map((r: any) => [r.c.id, r.invite]));
+  ok(st[r1.id] === "personal", "a quick-added via- contact is a personal introduction, never auto-invited");
+  const dup = await saveContact(db, { name: "Lin Dup", email: "LIN@example.com", source: "via-other" }, "", "2026-10-18");
+  ok(!dup.created && dup.id === r1.id && (await db.select().from(contacts).where(sql`lower(${contacts.email}) = 'lin@example.com'`)).length === 1, "never a duplicate on the same email");
+
+  // Accelerator submissions become contacts (fill-empty-only, on email). Their notifications go to the stubbed Resend API.
+  globalThis.fetch = (async () => new Response("{}", { status: 200 })) as any;
+  ok(investorType(null) === "angel" && investorType(" Angel ") === "angel" && investorType("Example Ventures") === "vc", "investor type: Angel when no firm or 'Angel', else VC");
+  const before = (await db.select().from(members)).length;
+  const founder = parseInterest("founder", fd({ ...founderForm, email: "founder28@example.com", affiliation: "alumni", linkedinUrl: "linkedin.com/in/founder-28", school: "Example School", gradYear: "2018", needs: ["hiring", "investor_intros"] }));
+  ok(founder.ok && (founder as any).data.gradYear === 2018 && (founder as any).data.needs.join() === "investor_intros,hiring", "founder: optional LinkedIn, school, grad year and what would help");
+  ok(!parseInterest("founder", fd({ ...founderForm, gradYear: "18" })).ok && !parseInterest("founder", fd({ ...founderForm, needs: ["cash"] })).ok && !parseInterest("founder", fd({ ...founderForm, linkedinUrl: "example.com" })).ok, "founder: bad grad year, unknown need or non-LinkedIn URL refused");
+  const fId = await receiveInterest(db, (founder as any).data, null, defer);
+  await flush();
+  const fc = await byEmail("founder28@example.com");
+  const [fRow28] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, fId));
+  ok(fc && fc.contactType === "founder" && fc.source === "accelerator-form" && fc.relationship === "replied" && fc.focus.join() === "finance,ai" && fc.nyuAlum === true && fc.company === "Example Labs" && fc.linkedinUrl === "https://www.linkedin.com/in/founder-28" && fRow28.contactId === fc.id && fRow28.school === "Example School", "a founder becomes a Founder contact (accelerator-form, Replied, focus copied) linked from the row");
+  await db.update(contacts).set({ relationship: "partner", company: "Kept Name Fund", contactType: "lp" }).where(eq(contacts.id, kn.id));
+  const inv = parseInterest("investor", fd({ name: "Known Investor", email: "known@example.com", firm: "New Firm", focus: ["ai"] }));
+  const iId = await receiveInterest(db, (inv as any).data, null, defer);
+  await flush();
+  const kn2 = await byEmail("known@example.com");
+  const [iRow] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, iId));
+  ok(kn2.relationship === "partner" && kn2.company === "Kept Name Fund" && kn2.contactType === "lp" && kn2.focus.join() === "finance" && kn2.source === "via-alex-example" && iRow.contactId === kn2.id && iRow.organization === "New Firm", "an investor matching a contact fills nothing filled and never moves a relationship back");
+  ok(/Investor list sign-up/.test(kn2.notes) && /Also from investor-list/.test(kn2.notes), "the submission is noted on the contact");
+  const ang = parseInterest("investor", fd({ name: "Ang El", email: "angel28@example.com", firm: "Angel", focus: ["blockchain"] }));
+  await receiveInterest(db, (ang as any).data, null, defer);
+  await flush();
+  const ac = await byEmail("angel28@example.com");
+  ok(ac.contactType === "angel" && ac.company === null && ac.source === "investor-list" && ac.relationship === "replied", "an angel investor: type Angel, no company");
+  ok((await db.select().from(members)).length === before, "accelerator contacts create no members");
+  await db.delete(contacts).where(eq(contacts.id, fc.id));
+  const [fRow28b] = await db.select().from(schema.acceleratorInterest).where(eq(schema.acceleratorInterest.id, fId));
+  ok(fRow28b && fRow28b.contactId === null, "deleting the contact keeps the submission, unlinked");
 }
 await pg.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nall database checks passed");

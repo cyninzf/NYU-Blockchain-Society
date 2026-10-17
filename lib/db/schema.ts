@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { bigserial, boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigserial, boolean, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import type { ContactType, InvestorStage, Relationship } from "../contact-fields";
 
 // "friend" is no longer offered in the join flow but stays valid for existing rows.
 export const AFFILIATIONS = ["alumni", "industry", "student", "faculty_staff", "friend"] as const;
@@ -84,12 +85,26 @@ export const contacts = pgTable(
     inviteUsedAt: timestamp("invite_used_at", { withTimezone: true }),
     /** How `memberId` was set: email | name (automatic, lib/contact-links.ts) | invite (their invite link) | manual. Null when unlinked. */
     linkMethod: text("link_method"),
+    // Investor network (round 28, lib/contact-fields.ts): organizer-only, never public. Imports,
+    // quick-add and the accelerator forms fill these only while empty; never read by invite eligibility.
+    contactType: text("contact_type").$type<ContactType>(),
+    /** Block tags: blockchain, finance, ai. */
+    focus: text().array().notNull().default(sql`'{}'::text[]`),
+    stage: text().$type<InvestorStage>(),
+    /** Normalized (normalizeLinkedin), so quick-add can match on it. */
+    linkedinUrl: text("linkedin_url"),
+    /** Null = unknown. */
+    nyuAlum: boolean("nyu_alum"),
+    relationship: text().$type<Relationship>().notNull().default("cold"),
+    /** New York date of the latest organizer note (set whenever a dated note is added). */
+    lastTouchAt: date("last_touch_at"),
   },
   (t) => [
     // Dedupe: rows with an email on lower(email); rows without one on (name, headline).
     uniqueIndex("contacts_email_lower_idx").on(sql`lower(${t.email})`),
     uniqueIndex("contacts_name_headline_idx").on(sql`lower(${t.name})`, sql`lower(coalesce(${t.headline}, ''))`).where(sql`${t.email} is null`),
     index("contacts_source_idx").on(t.source),
+    index("contacts_linkedin_idx").on(t.linkedinUrl),
   ],
 );
 
@@ -426,18 +441,22 @@ export const conferenceInquiries = pgTable(
 
 export type ConferenceInquiry = typeof conferenceInquiries.$inferSelect;
 
-export const INTEREST_TYPES = ["founder", "supporter"] as const;
+/** "supporter" (mentor, invest or partner) was replaced by "investor" in round 28: old rows stay, read-only ("Supporter (legacy)"). */
+export const INTEREST_TYPES = ["founder", "investor", "supporter"] as const;
 export type InterestType = (typeof INTEREST_TYPES)[number];
 export const FOUNDER_AFFILIATIONS = ["alumni", "faculty_staff", "student", "other"] as const;
 export const FOUNDER_STAGES = ["idea", "building", "launched", "raised"] as const;
 export const SUPPORT_KINDS = ["mentor", "invest", "partner", "other"] as const;
+/** Founders' "What would help most?" (round 28). */
+export const FOUNDER_NEEDS = ["investor_intros", "office_hours", "customers", "hiring", "other"] as const;
 export const INTEREST_STATUSES = ["new", "contacted", "closed"] as const;
 export type InterestStatus = (typeof INTEREST_STATUSES)[number];
 
 /**
- * Accelerator interest from /accelerator (round 14): founders and supporters (mentor, invest,
- * partner). Not contacts and not members, unless a founder ticks "Also add me as a member"
- * (then they also join through the normal path). Super admins change the status; admins read.
+ * Accelerator interest from /accelerator (round 14): founders and, since round 28, investors (the
+ * older supporter rows stay as they are). Every submission that isn't suspected spam also creates
+ * or fills a contact (`contactId`, round 28). Not members, unless a founder ticks "Also add me as a
+ * member" (then they also join through the normal path). Super admins change the status; admins read.
  */
 export const acceleratorInterest = pgTable(
   "accelerator_interest",
@@ -453,15 +472,22 @@ export const acceleratorInterest = pgTable(
     /** Founders: the one-line description. */
     oneLiner: text("one_liner"),
     stage: text().$type<(typeof FOUNDER_STAGES)[number]>(),
-    /** Founders: blockchain, finance, ai. */
+    /** Founders and investors: blockchain, finance, ai. */
     focus: text().array().notNull().default(sql`'{}'::text[]`),
     website: text(),
-    /** Supporters: organization. */
+    /** Supporters: organization. Investors: firm (empty for angels). */
     organization: text(),
     /** Supporters: mentor, invest, partner, other. */
     help: text().array().notNull().default(sql`'{}'::text[]`),
     /** Supporters: optional message. */
     message: text(),
+    /** Founders (round 28, all optional): LinkedIn URL, NYU school and grad year, what would help most. */
+    linkedinUrl: text("linkedin_url"),
+    school: text(),
+    gradYear: integer("grad_year"),
+    needs: text().array().notNull().default(sql`'{}'::text[]`),
+    /** The contact this submission created or filled (round 28). */
+    contactId: integer("contact_id").references(() => contacts.id, { onDelete: "set null" }),
     /** Founders ticked "Also add me as a member". */
     addMember: boolean("add_member").notNull().default(false),
     status: text().$type<InterestStatus>().notNull().default("new"),

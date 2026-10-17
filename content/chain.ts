@@ -60,7 +60,7 @@ export const chainBlocks = (next: NextEvent | null): ChainBlock[] => [
     kind: "Accelerator",
     status: "building",
     title: "Accelerator",
-    text: "Support for NYU founders working across digital assets and AI.",
+    text: "Support for NYU founders building across blockchain, finance and AI.",
     page: { label: "About the accelerator", href: "/accelerator" },
     notify: "accelerator",
     src: "chain-accelerator",
