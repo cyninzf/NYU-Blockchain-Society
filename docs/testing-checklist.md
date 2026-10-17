@@ -579,3 +579,21 @@ Round 28.1:
       each, no names or emails. On Inquiries → Accelerator, Delete on the investor row shows "Also
       delete the linked record (contact #n)"; delete it without the tick: the contact stays, unlinked.
 - [ ] Delete the test contacts (Contacts, Delete) and the test accelerator rows (Inquiries → Accelerator, Delete).
+
+## 22. Admin table layout (round 28.2)
+
+Read-only; on the preview, then production. Check at 1440 px and at 390 px (DevTools device mode).
+
+- [ ] `/admin/contacts`: columns Name (company and a LinkedIn link under it), Email, Type, Focus,
+      Relationship, Last touch, Source, Invite, then Edit and Delete as two buttons side by side. No
+      ID, email, source, date, relationship or invite status breaks across lines; names wrap only
+      between words.
+- [ ] "More columns" adds ID, Stage, NYU alum, Headline, Notes, Checked in, Linked member (with Undo /
+      Link to member) and Imported. Reload: it stays on. Untick, reload: it stays off. In a private
+      window it starts off.
+- [ ] At 390 px the table scrolls sideways inside its box; the page itself never scrolls sideways.
+      Edit opens the contact page; Delete opens the confirm step (with "Also delete the linked record"
+      where it applies).
+- [ ] `/admin` (Members): the #, email, source and Joined date never wrap mid-word; Edit and Delete
+      sit side by side; Edit still opens the member form. Same sideways scroll at 390 px.
+- [ ] Search, filters, paging and Export CSV work as before.
