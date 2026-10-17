@@ -11,7 +11,21 @@
 .table{width:100%; border-collapse:collapse}
 .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top}
 .table th{position:sticky; top:0; background:var(--surface); font-weight:600; white-space:nowrap}
-.table td{max-width:260px; overflow-wrap:anywhere}
+/* Round 28.2: break-word, not anywhere: "anywhere" lets a squeezed column shrink to one letter per
+   line. Cells that must never break (IDs, emails, sources, dates, statuses, actions) are .nowrap;
+   names and notes (.words) wrap at word boundaries only. A table too wide scrolls inside .scroll. */
+.table td{max-width:260px; overflow-wrap:break-word}
+.table td.nowrap,.table th.nowrap{white-space:nowrap; max-width:none}
+.table td.words{overflow-wrap:normal; word-break:normal; min-width:10em}
+.table td.words.notes{min-width:16em}
+.sub{display:block; color:var(--muted); font-size:.92em; white-space:normal}
+/* "More columns" (round 28.2): hidden unless the toggle is on. */
+.moreOff .more{display:none}
+.acts{display:flex; flex-wrap:nowrap; align-items:flex-start; gap:6px; white-space:nowrap}
+.acts > a,.acts > details > summary{display:inline-flex; align-items:center; min-height:36px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--surface); text-decoration:none; font-size:14px; cursor:pointer; list-style:none}
+.acts > details > summary::-webkit-details-marker{display:none}
+.acts > details[open]{white-space:normal}
+.acts > details.del > summary{border-color:#B4234F}
 .del summary{cursor:pointer; color:#B4234F}
 .del button{margin-top:6px; border-color:#B4234F; color:#B4234F}
 .head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--line)}
@@ -95,3 +109,5 @@
 .pager p{margin:0;display:flex;align-items:center;gap:12px}
 .pager a,.pager span[aria-disabled]{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 .pager span[aria-disabled]{opacity:.45}
+.moreToggle{display:inline-flex; align-items:center; gap:8px; min-height:44px; margin-bottom:8px; color:var(--muted)}
+.moreToggle input{width:18px; height:18px}

@@ -5,16 +5,16 @@ import { isSuper, type Admin } from "@/lib/admin";
 import { NOTIFY } from "@/content/notify";
 import { industries } from "@/content/industries";
 import { getDb } from "@/lib/db";
-import { adminAudit, AFFILIATIONS, pendingJoins, type AdminAudit, type Affiliation } from "@/lib/db/schema";
+import { adminAudit, AFFILIATIONS, pendingJoins, type AdminAudit } from "@/lib/db/schema";
 import { AFFILIATION_LABELS, countMembers, listMembers, membersByCountry, parseFilters } from "@/lib/members-query";
 import { investorNetwork } from "@/lib/contacts-query";
 import { CONTACT_TYPE_LABELS, CONTACT_TYPES, RELATIONSHIP_LABELS, RELATIONSHIPS } from "@/lib/contact-fields";
 import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
 import Pager from "./Pager";
 import { listPendingJoins } from "@/lib/pending-joins";
-import { approvePending, deleteMember, removePending } from "./actions";
+import { approvePending, removePending } from "./actions";
+import MembersTable from "./MembersTable";
 import { NotSpamButton, SpamBadge } from "./Spam";
-import EditMember from "./EditMember";
 import Guard from "./Guard";
 import styles from "./admin.module.css";
 
@@ -36,15 +36,8 @@ export default function AdminPage({ searchParams }: { searchParams: SP }) {
   );
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
 const timeFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" });
-const AFFILIATION_OPTIONS = AFFILIATIONS.map((a): [Affiliation, string] => [a, AFFILIATION_LABELS[a]]);
 
-/** "email a@example.com → b@example.com · affiliation Alumni → Student" */
-function describe(c: AdminAudit["changes"]) {
-  const label = (k: string, v: string | null) => (k === "affiliation" && v ? AFFILIATION_LABELS[v as Affiliation] ?? v : v ?? "none");
-  return Object.entries(c).map(([k, [from, to]]) => k === "contact" ? `linked contact ${to}` : `${k} ${label(k, from)} → ${label(k, to)}`).join(" · ");
-}
 
 async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
   const sp = await searchParams;
@@ -112,62 +105,7 @@ async function Members({ searchParams, admin }: { searchParams: SP; admin: Admin
         {isSuper(admin) && <a className={styles.export} href={`/admin/export${qs ? `?${qs}` : ""}`}>Export CSV ({total})</a>}
       </form>
 
-      <div className={styles.scroll}>
-        <table className={styles.table}>
-          <caption className="sr">Members, newest first</caption>
-          <thead>
-            <tr>
-              <th scope="col">#</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Affiliation</th>
-              <th scope="col">Blocks</th><th scope="col">Notify</th><th scope="col">Source</th><th scope="col">Details</th>
-              <th scope="col">Joined</th><th scope="col"><span className="sr">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((m) => (
-              <tr key={m.id}>
-                <td>{m.id}</td>
-                <td>{m.name}</td>
-                <td>{m.email}</td>
-                <td>{AFFILIATION_LABELS[m.affiliation]}</td>
-                <td>{m.blocks.join(", ")}</td>
-                <td>{m.notify.join(", ")}</td>
-                <td>{m.source}</td>
-                <td>
-                  {[m.role, m.company].filter(Boolean).join(", ")}
-                  {m.school && <div>{m.school}{m.gradYear ? ` '${String(m.gradYear).slice(2)}` : ""}</div>}
-                  {m.location && <div>{m.location}</div>}
-                  {m.linkedinUrl && <div><a href={m.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>}
-                </td>
-                <td>{dateFmt.format(m.createdAt)}</td>
-                <td className={styles.actions}>
-                  <details className={styles.editd}>
-                    <summary>Edit</summary>
-                    <EditMember m={{ id: m.id, name: m.name, email: m.email, affiliation: m.affiliation, blocks: m.blocks, notify: m.notify, linkedinUrl: m.linkedinUrl, role: m.role, company: m.company, school: m.school, gradYear: m.gradYear, location: m.location }} options={AFFILIATION_OPTIONS} />
-                  </details>
-                  {audit.has(m.id) && (
-                    <ul className={styles.audit} aria-label={`Last edits to #${m.id}`}>
-                      {audit.get(m.id)!.map((a) => (
-                        <li key={a.id}><time dateTime={a.createdAt.toISOString()}>{timeFmt.format(a.createdAt)}</time> · {a.actor}: {describe(a.changes) || a.detail}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {isSuper(admin) && (
-                    <details className={styles.del}>
-                      <summary>Delete</summary>
-                      <form action={deleteMember}>
-                        <input type="hidden" name="id" value={m.id} />
-                        <input type="hidden" name="confirm" value="yes" />
-                        <button type="submit">Delete #{m.id} permanently</button>
-                      </form>
-                    </details>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!rows.length && <p>No members match these filters.</p>}
-      </div>
+      <MembersTable rows={rows} audit={audit} isSuper={isSuper(admin)} />
       <Pager path="/admin" qs={qs} page={pg.page} last={pg.last} total={total} shown={rows.length} label="Members" />
     </>
   );

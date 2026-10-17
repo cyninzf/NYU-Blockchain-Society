@@ -3,16 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { isSuper, type Admin } from "@/lib/admin";
 import { getDb } from "@/lib/db";
-import { LINK_LABELS, nameMatches, type Review } from "@/lib/contact-links";
+import { nameMatches, type Review } from "@/lib/contact-links";
 import { countContacts, INVITE_STATUS_LABELS, INVITE_STATUSES, listContacts, listSources, parseContactFilters } from "@/lib/contacts-query";
-import {
-  CONTACT_FOCUS, CONTACT_FOCUS_LABELS, CONTACT_TYPE_LABELS, CONTACT_TYPES, INVESTOR_STAGE_LABELS, INVESTOR_STAGES, nyuAlumLabel, RELATIONSHIP_LABELS, RELATIONSHIPS,
-  type ContactFocus,
-} from "@/lib/contact-fields";
+import { CONTACT_FOCUS, CONTACT_FOCUS_LABELS, CONTACT_TYPE_LABELS, CONTACT_TYPES, INVESTOR_STAGE_LABELS, INVESTOR_STAGES, RELATIONSHIP_LABELS, RELATIONSHIPS } from "@/lib/contact-fields";
 import { PAGE_SIZE, pageWindow, parsePage } from "@/lib/paging";
 import { linkedInterest } from "@/lib/contact-save";
 import Pager from "../Pager";
-import { deleteContact, linkContact, unlinkContact } from "./actions";
+import { linkContact } from "./actions";
+import ContactsTable, { LinkForm } from "./ContactsTable";
 import Guard from "../Guard";
 import styles from "../admin.module.css";
 
@@ -35,8 +33,6 @@ export default function ContactsPage({ searchParams }: { searchParams: SP }) {
   );
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" });
-const checked = (v: boolean | null) => (v === null ? "Unknown" : v ? "Yes" : "No");
 
 async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admin }) {
   const sp = await searchParams;
@@ -117,80 +113,9 @@ async function Contacts({ searchParams, admin }: { searchParams: SP; admin: Admi
         {isSuper(admin) && <a className={styles.export} href={`/admin/contacts/export${qs ? `?${qs}` : ""}`}>Export CSV ({total})</a>}
       </form>
 
-      <div className={styles.scroll}>
-        <table className={styles.table}>
-          <caption className="sr">Contacts, newest first</caption>
-          <thead>
-            <tr>
-              <th scope="col">ID</th><th scope="col">Name</th><th scope="col">Headline</th><th scope="col">Company</th><th scope="col">Email</th>
-              <th scope="col">Type</th><th scope="col">Focus</th><th scope="col">Stage</th><th scope="col">NYU alum</th><th scope="col">Relationship</th><th scope="col">Last touch</th>
-              <th scope="col">Source</th><th scope="col">Notes</th>
-              <th scope="col">Checked in</th><th scope="col">Linked member</th><th scope="col">Invite</th><th scope="col">Imported</th>
-              <th scope="col"><span className="sr">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ c, memberName, invite }) => (
-              <tr key={c.id}>
-                <td>{c.id}</td>
-                <td>{c.name}{c.linkedinUrl && <div><a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer nofollow">LinkedIn</a></div>}</td>
-                <td>{c.headline}</td>
-                <td>{c.company}</td>
-                <td>{c.email ?? "—"}</td>
-                <td>{c.contactType ? CONTACT_TYPE_LABELS[c.contactType] : ""}</td>
-                <td>{(c.focus as ContactFocus[]).map((x) => CONTACT_FOCUS_LABELS[x] ?? x).join(", ")}</td>
-                <td>{c.stage ? INVESTOR_STAGE_LABELS[c.stage] : ""}</td>
-                <td>{nyuAlumLabel(c.nyuAlum)}</td>
-                <td>{RELATIONSHIP_LABELS[c.relationship] ?? c.relationship}</td>
-                <td>{c.lastTouchAt ?? ""}</td>
-                <td>{c.source}</td>
-                <td className={styles.notes}>{c.notes}</td>
-                <td>{checked(c.checkedIn)}</td>
-                <td>{c.memberId ? (
-                  <form action={unlinkContact}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <div>Block #{c.memberId}{memberName ? ` · ${memberName}` : ""}</div>
-                    <div className={styles.row}><span className={styles.badge}>{LINK_LABELS[c.linkMethod ?? ""] ?? "linked"}</span><button type="submit">Undo</button></div>
-                  </form>
-                ) : <LinkForm id={c.id} />}</td>
-                <td>{INVITE_STATUS_LABELS[invite]}{c.invitedAt && <div className={styles.note}>Invited {dateFmt.format(c.invitedAt)}</div>}</td>
-                <td>{dateFmt.format(c.importedAt)}</td>
-                <td>
-                  <Link href={`/admin/contacts/${c.id}`}>Edit</Link>
-                  {isSuper(admin) && (
-                    <details className={styles.del}>
-                      <summary>Delete</summary>
-                      <form action={deleteContact}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <input type="hidden" name="confirm" value="yes" />
-                        {linked.get(c.id) && <label className={styles.row}><input type="checkbox" name="alsoLinked" /> Also delete the linked {linked.get(c.id)!.length === 1 ? "record" : "records"} (accelerator {linked.get(c.id)!.map((l) => `#${l.id}`).join(", ")})</label>}
-                        <button type="submit">Delete contact {c.id} permanently</button>
-                      </form>
-                    </details>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!rows.length && <p className={styles.empty}>No contacts match these filters.</p>}
-      </div>
+      <ContactsTable rows={rows} linked={linked} isSuper={isSuper(admin)} />
       <Pager path="/admin/contacts" qs={qs} page={pg.page} last={pg.last} total={total} shown={rows.length} label="Contacts" />
     </>
-  );
-}
-
-/** Block-number field for linking by hand. */
-function LinkForm({ id }: { id: number }) {
-  return (
-    <details className={styles.editd}>
-      <summary>Link to member</summary>
-      <form action={linkContact} className={styles.row}>
-        <input type="hidden" name="id" value={id} />
-        <label>Block number<input name="memberId" inputMode="numeric" pattern="#?[0-9]*" required /></label>
-        <button type="submit">Link</button>
-      </form>
-    </details>
   );
 }
 
