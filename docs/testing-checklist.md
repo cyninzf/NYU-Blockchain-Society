@@ -504,7 +504,7 @@ Read-only on production; the counts below 50 and from 50 are best checked on a p
       static, nothing breathes.
 - [ ] The live screen (`/networking/<slug>/live?test=1`, super admin) shows no pulses.
 
-## 21. Investor network, quick-add and the accelerator investor list (round 28)
+## 21. Investor network, quick-add and the accelerator investor list (rounds 28 and 28.1)
 
 On the **preview deployment only**, with fake data (every address `@example.com`, LinkedIn URLs like
 `linkedin.com/in/example-test`). Nothing here sends to anyone but the super admin's own inbox.
@@ -527,7 +527,7 @@ Admin:
 - [ ] `/admin/inquiries/accelerator`: the rows show Founder / Investor; Type filter has Founders,
       Investors, Supporters (legacy); any old supporter rows read "Supporter (legacy)". The founder
       row shows LinkedIn, school and year, "Would help most"; each row's Contact column says
-      "Contact #n" and opens Contacts searched by that email. Export CSV has the new columns.
+      "Contact #n" and opens that contact's edit page. Export CSV has the new columns.
 - [ ] `/admin/contacts`: the founder is type Founder, source `accelerator-form`, relationship Replied,
       NYU alum Yes, focus copied, notes "…: Accelerator founder form (#n)", Last touch today. The
       investors are VC (company Example Ventures) and Angel (no company), source `investor-list`.
@@ -538,7 +538,8 @@ Admin:
 - [ ] `/admin` (Members): "Investor network" shows the counts by type and relationship; a figure
       opens Contacts with that filter.
 - [ ] Quick-add, `/admin/contacts/new` ("Add contact" on Contacts), as an Admin (not super) too:
-      Source is pre-filled `via-<your email name>` with the personal-introduction note. Add a
+      without a display name, Source is pre-filled `via-<your email name>` and the page says so; with
+      one (below), `via-<display name>`. The personal-introduction note shows under Source. Add a
       LinkedIn-only person (no email), type Angel, a first note: "Added contact #n". On Contacts their
       note is dated today and Last touch is today; Invite reads "No email".
 - [ ] Add them again with the same LinkedIn URL written differently (`https://www.LinkedIn.com/in/…/`)
@@ -551,6 +552,30 @@ Admin:
       (e.g. `Test Vc,testvc@example.com,VC,"Blockchain, AI",Seed,linkedin.com/in/test-vc,yes,Contacted`):
       the mapping finds the six new columns; the contact gets them. Re-import with relationship Cold:
       it stays Contacted.
-- [ ] `/privacy` shows "Last updated October 17, 2026" and mentions the LinkedIn URL, NYU school,
-      graduation year, investor focus and that founders and investors are kept with contacts.
+- [ ] `/privacy` shows "Last updated October 18, 2026" and mentions the LinkedIn URL, NYU school,
+      graduation year, investor focus and that founders and investors are kept with contacts; the
+      investor list gets emails about the accelerator and founder showcases (each with an unsubscribe
+      link) and nothing else; the founder form adds no one to a mailing list unless "Also add me as a
+      member" is ticked. The investor form's fine print says the same.
+Round 28.1:
+- [ ] `/admin/contacts`: the `accelerator-form` and `investor-list` contacts show Invite "Form
+      submission (not auto-invited)"; the Invite filter lists it; the CSV export says `form`.
+- [ ] `/admin/contacts/invite`: those two sources sit under "Form submissions (not auto-invited)" and
+      are never pre-selected. Picking one shows "These people wrote to us through a form on the site.
+      They'll get the standard society invite." with an unticked "Include these form submissions";
+      Send stays disabled until ticked; the confirm dialog repeats the warning; on a preview the server
+      answers that invites only go out from production. via- sources work as before.
+- [ ] `/admin/team` (super admin): set your display name to "Fang" (any row, the recovery row too):
+      "Saved: Fang."; `/admin/audit` shows `team.display_name` none → Fang. Quick-add now pre-fills
+      `via-fang`. "<b>x</b>" is refused. Clear it again afterwards if it was only a test.
+- [ ] `/admin/contacts/<id>` ("Edit" on a test contact), as an Admin too: change type, focus, stage,
+      LinkedIn URL, NYU alum, company and title; move the relationship back (e.g. Replied → Cold); add a
+      note. "Saved: …" lists the fields; Contacts shows the changes, the dated note and today's last
+      touch. Audit: `contact.edit` with each field old → new and "note: none → added" (no note text).
+      Saving again without changes says "Nothing changed." and logs nothing. A bad LinkedIn URL shows
+      its error under the field, nothing typed is lost.
+- [ ] Linked deletes (super admin): on Contacts, Delete on the founder test contact shows "Also delete
+      the linked record (accelerator #n)"; tick it and delete: both are gone, the audit has one row
+      each, no names or emails. On Inquiries → Accelerator, Delete on the investor row shows "Also
+      delete the linked record (contact #n)"; delete it without the tick: the contact stays, unlinked.
 - [ ] Delete the test contacts (Contacts, Delete) and the test accelerator rows (Inquiries → Accelerator, Delete).
