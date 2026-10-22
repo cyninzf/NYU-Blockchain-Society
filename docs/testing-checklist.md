@@ -598,7 +598,7 @@ Read-only; on the preview, then production. Check at 1440 px and at 390 px (DevT
       sit side by side; Edit still opens the member form. Same sideways scroll at 390 px.
 - [ ] Search, filters, paging and Export CSV work as before.
 
-## 23. Spotlight on Block 01 and the join token fix (rounds 29 and 29.1)
+## 23. Spotlight on Block 01 and the join token fix (rounds 29 to 29.2)
 
 Read-only except the last item; on the preview, then production. Check at 390 px and 1440 px.
 
@@ -612,9 +612,17 @@ Read-only except the last item; on the preview, then production. Check at 390 px
       logo or speaker names. Hovering Block 01 lights the connector. At 390 px the connector stays
       vertical under the stacked blocks; the page never scrolls sideways.
 - [ ] Block 01 (no upcoming event in /admin/events): "Upcoming", "Next: Where Finance, Digital Assets
-      and AI Meet · Monday, November 16, 2026 · 5:00–8:00 pm ET" (title not a link), "Private event ·
-      By invitation", "Request an invite", then "See all events" and "Get notified". `/networking`
-      Upcoming shows the same event and button instead of "Next date soon".
+      and AI Meet · Monday, November 16, 2026 · 5:00–8:00 pm ET" (title not a link), then only "See all
+      events" and "Get notified", like the other blocks (no label, no button). `/networking` Upcoming
+      shows the event with "Private event · By invitation" and "Request an invite" instead of "Next
+      date soon".
+- [ ] Layout (390, 1024, 1440 px): the chain intro's last line sits on the heading's baseline at
+      desktop widths, in the smaller muted text, and stacks under it on phones. The spotlight is a
+      full-width band (slightly deeper violet, a soft glow behind the featured card, thin lines top and
+      bottom). The connector runs unbroken from Block 01 into the band (its node on the band's top
+      line) down to the featured card. "Block 01 · Networking · Up next" and "Coming up" sit on one
+      row; the featured card and the first "Coming up" card start at the same height. Nothing moves
+      with reduced motion.
 - [ ] Block 00's chip reads "Next: Spring 2027 · Planning underway"; `/conference` reads "Spring 2027 ·
       Planning underway" under the title.
 - [ ] "Request an invite" opens `/contact?about=invite-nov-16` with the message "Invite request: Nov 16"
