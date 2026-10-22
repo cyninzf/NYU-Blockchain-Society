@@ -55,7 +55,11 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
   const stepRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => { formToken.current = startJoin(); }, []);
+  // The signed minimum-fill-time token. A failed request (offline, a dropped connection) must
+  // never become an unhandled rejection: it resolves to "" and is asked for again on the next
+  // step, seconds before the final submit, so the token still predates it.
+  const fetchToken = () => { formToken.current = startJoin().catch(() => { formToken.current = null; return ""; }); };
+  useEffect(fetchToken, []);
 
   // Phones: when the on-screen keyboard opens, keep the focused field in view above it.
   useEffect(() => {
@@ -85,7 +89,7 @@ export default function JoinFlow({ sel, toggle, notify, onProgress, onJoined, on
     const id = STEPS[step];
     if (id === "name" && !name.trim()) { setErr(MSG.name); return; }
     if (id === "email" && !EMAIL_RE.test(email.trim())) { setErr(MSG.email); return; }
-    if (id !== "you") { setStep(step + 1); return; }
+    if (id !== "you") { if (!formToken.current) fetchToken(); setStep(step + 1); return; }
 
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const affiliation = YOU.find(([v]) => v === submitter?.value)?.[0];
