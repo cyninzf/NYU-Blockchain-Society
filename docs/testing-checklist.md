@@ -597,3 +597,19 @@ Read-only; on the preview, then production. Check at 1440 px and at 390 px (DevT
 - [ ] `/admin` (Members): the #, email, source and Joined date never wrap mid-word; Edit and Delete
       sit side by side; Edit still opens the member form. Same sideways scroll at 390 px.
 - [ ] Search, filters, paging and Export CSV work as before.
+
+## 23. Home Events section and the join token fix (round 29)
+
+Read-only except the last item; on the preview, then production. Check at 390 px and 1440 px.
+
+- [ ] Home, after "The chain so far": "Events" with the featured card ("Private event · By invitation",
+      "Upcoming", the title, "Monday, November 16, 2026 · 5:00–8:00 pm ET · New York City", the
+      description, "Request an invite") and "Coming up" (Quarterly Series, Session 2 · January 2027 ·
+      Details to come; Annual Conference · Spring 2027 · Save the date coming soon). No address,
+      partner, logo or speaker names. The page never scrolls sideways.
+- [ ] "Request an invite" opens `/contact?about=invite-nov-16` with the message "Invite request: Nov 16"
+      (22/1,000), topic General question, the privacy note under the form. `/contact` alone starts empty.
+- [ ] Preview only: send it with a fake name and test@example.com: the normal thank-you; it shows
+      under Inquiries → Contact (topic General, the prefilled message). Delete it.
+- [ ] Join flow: open "Join the network", go offline (DevTools → Network → Offline) for a few
+      seconds, back online, finish the steps: no console error, and Sentry gets no "Failed to fetch".
