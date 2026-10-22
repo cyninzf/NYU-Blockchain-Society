@@ -598,15 +598,25 @@ Read-only; on the preview, then production. Check at 1440 px and at 390 px (DevT
       sit side by side; Edit still opens the member form. Same sideways scroll at 390 px.
 - [ ] Search, filters, paging and Export CSV work as before.
 
-## 23. Home Events section and the join token fix (round 29)
+## 23. Spotlight on Block 01 and the join token fix (rounds 29 and 29.1)
 
 Read-only except the last item; on the preview, then production. Check at 390 px and 1440 px.
 
-- [ ] Home, after "The chain so far": "Events" with the featured card ("Private event · By invitation",
-      "Upcoming", the title, "Monday, November 16, 2026 · 5:00–8:00 pm ET · New York City", the
-      description, "Request an invite") and "Coming up" (Quarterly Series, Session 2 · January 2027 ·
-      Details to come; Annual Conference · Spring 2027 · Save the date coming soon). No address,
-      partner, logo or speaker names. The page never scrolls sideways.
+- [ ] Home, "The chain so far": under the three blocks, a connector (line, node, a dot running down
+      it; no dot with reduced motion) from Block 01's card to the featured card, the kicker
+      "Block 01 · Networking · Up next", the featured card with a soft violet glow ("Private event ·
+      By invitation", "Upcoming", the title, "Monday, November 16, 2026 · 5:00–8:00 pm ET · New York
+      City", the description, "Request an invite") and "Coming up" (Block 01 · Networking: Quarterly
+      Series, Session 2 · January 2027 · Details to come; Block 00 · Conference: Annual Conference ·
+      Spring 2027 · Save the date coming soon). No separate "Events" heading. No address, partner,
+      logo or speaker names. Hovering Block 01 lights the connector. At 390 px the connector stays
+      vertical under the stacked blocks; the page never scrolls sideways.
+- [ ] Block 01 (no upcoming event in /admin/events): "Upcoming", "Next: Where Finance, Digital Assets
+      and AI Meet · Monday, November 16, 2026 · 5:00–8:00 pm ET" (title not a link), "Private event ·
+      By invitation", "Request an invite", then "See all events" and "Get notified". `/networking`
+      Upcoming shows the same event and button instead of "Next date soon".
+- [ ] Block 00's chip reads "Next: Spring 2027 · Planning underway"; `/conference` reads "Spring 2027 ·
+      Planning underway" under the title.
 - [ ] "Request an invite" opens `/contact?about=invite-nov-16` with the message "Invite request: Nov 16"
       (22/1,000), topic General question, the privacy note under the form. `/contact` alone starts empty.
 - [ ] Preview only: send it with a fake name and test@example.com: the normal thank-you; it shows
