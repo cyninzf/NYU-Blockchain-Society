@@ -28,6 +28,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 - Fonts: Geist + Geist Mono via `next/font/google`
 - Hero animation: a `"use client"` component wrapping the prototype's canvas code (no three.js needed)
 - Database (phase 1): Postgres via the Vercel Marketplace (Neon), accessed with Drizzle ORM (`lib/db/`)
+- Neon is on the Free plan (10-branch limit): each preview creates a preview/<branch> database branch; after merging a PR, delete its preview branch in the Neon console (never main).
 - Migrations: `npm run db:generate` creates SQL in `drizzle/`; `npm run build` runs `drizzle-kit migrate` (never `push`) before `next build`, so each Vercel deployment migrates its own database (preview → its Neon branch, production → main). Locally without `DATABASE_URL` the step is skipped.
 - No local database and no Vercel CLI in Codespaces. Verify database features on the preview deployment only.
 - Next 16: auth for `/admin` lives in `proxy.ts` (the renamed middleware).
@@ -37,6 +38,7 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 
 ## Commands
 - Production testing after deploys that touch email, sign-in, members or events: `docs/testing-checklist.md` (section 6 covers events, round 10.1; section 7 check-in, QR, live screen, calendar and share previews, on a draft in test mode since round 12.1; section 8 invites, round 12; section 9 the 2027 conference hub and inquiries, round 13; section 10 the accelerator, round 14; section 11 canonical URLs and /events redirects, round 15; section 12 privacy, Sentry and analytics, round 16; section 13 the contact form and privacy requests, round 19; section 14 suspected spam and form validation, rounds 20 and 21; section 15 Members by country, join sources, the welcome email and the daily digest, round 22; section 16 admin paging, round 23; section 17 footer copy, round 24; section 18 contacts import with company, source and notes, round 25; section 19 personal introductions in invites, round 26; section 20 member nodes, round 27; section 21 investor network, quick-add, the accelerator investor list, form sources in invites, display names, the contact edit page and linked deletes, rounds 28 and 28.1, preview only; section 22 admin table layout, round 28.2; section 23 the home Events section and the join token fix, round 29; section 24 the accelerator path chooser, round 30).
+- After merging a PR, delete its preview database branch in Neon (Free plan limit: 10 branches; each preview creates a preview/<branch> database branch; never delete main). At the end of every round that merges a PR, remind the maintainer to delete that branch in the Neon console, naming it.
 - `npm run dev`: dev server (Codespaces: open forwarded port 3000)
 - `npm run build`: must pass before every commit
 - `npm run lint`
