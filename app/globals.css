@@ -229,9 +229,25 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ed-blk:hover .go{text-decoration:underline; text-underline-offset:4px}
 .ed-blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:2px}
 
-/* home Events (components/HomeEvents.tsx): the featured event as an active block (a past one as a
-   confirmed block), "Coming up" as dashed blocks still being mined, like the next edition chip */
-.chain.evs{padding-top:0}
+/* the spotlight on Block 01 (components/HomeEvents.tsx), inside "The chain so far": a connector
+   (line, node, travelling dot, like .flink) runs from Block 01's card (the middle column, so 50%)
+   down past the kicker to the featured event, drawn as an active block with a soft violet glow (a
+   past one as a confirmed block); "Coming up" as dashed blocks still being mined, like the next
+   edition chip. Phones: the connector stays vertical in the gap, as the chain's do. */
+.spot{--sgap:72px; --kick:36px; position:relative; margin-top:var(--sgap)}
+.spot-k{margin:0 0 16px; color:var(--lilac); font-size:11.5px; line-height:20px; letter-spacing:.08em; text-transform:uppercase}
+.spot-link{position:absolute; left:50%; top:calc(-1 * var(--sgap)); width:1px; height:calc(var(--sgap) + var(--kick)); background:#7B5A9E; pointer-events:none; transition:background .2s ease, box-shadow .2s ease}
+.spot-link i{position:absolute; left:0; top:calc(var(--sgap) / 2); width:11px; height:11px; margin:-5px 0 0 -5px; border-radius:50%; border:1px solid var(--lilac); background:var(--ink)}
+.spot-link b{position:absolute; left:0; top:0; width:5px; height:5px; margin:-2px 0 0 -2px; border-radius:50%; background:#F5EEFB; box-shadow:0 0 8px rgba(216,194,240,1); opacity:0}
+@media (prefers-reduced-motion: no-preference){
+  .spot-link b{animation:sdot 5s linear 1.8s infinite}
+  @keyframes sdot{0%{opacity:0; transform:none} 2%{opacity:1} 16%{opacity:1; transform:translateY(calc(var(--sgap) + var(--kick)))} 18%,100%{opacity:0; transform:translateY(calc(var(--sgap) + var(--kick)))}}
+}
+.chain:has(.blocks > .blk:nth-child(2):is(:hover,:focus-within)) .spot-link,.spot:has(.ev-feat:is(:hover,:focus-within)) .spot-link{background:var(--glow); box-shadow:0 0 10px rgba(155,77,219,.9)}
+.chain:has(.blocks > .blk:nth-child(2):is(:hover,:focus-within)) .spot-link i,.spot:has(.ev-feat:is(:hover,:focus-within)) .spot-link i{border-color:#fff; box-shadow:0 0 10px rgba(216,194,240,.9)}
+.ev-feat.active{background:radial-gradient(120% 100% at 50% 0%, rgba(87,6,140,.42), rgba(87,6,140,.1) 70%, rgba(87,6,140,0)); box-shadow:0 0 56px -12px rgba(155,77,219,.45)}
+.blk .next-act{align-self:flex-start}
+.ev-up .ev-blk{color:var(--ink-muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase}
 .evs-grid{display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:48px; align-items:start}
 .ev-feat{min-height:0}
 .ev-feat h3{font-size:clamp(24px,2.4vw,32px)}
@@ -253,7 +269,10 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ev-note{color:var(--ink-muted); font-size:15px}
 .ev-notice{margin-top:24px; color:var(--ink-muted); font-size:12.5px}
 .ev-notice p{margin:0}
-@media (max-width:860px){ .evs-grid{grid-template-columns:1fr; gap:40px} }
+@media (max-width:860px){
+  .evs-grid{grid-template-columns:1fr; gap:40px}
+  .spot{--sgap:40px; --kick:0px}
+}
 
 /* join */
 .join{position:relative; overflow:hidden; color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(64px,7vw,112px); border-top:1px solid var(--ink-line)}

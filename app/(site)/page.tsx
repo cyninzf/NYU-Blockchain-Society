@@ -2,7 +2,6 @@ import Story from "@/components/story/Story";
 import Chain from "@/components/Chain";
 import JoinSection from "@/components/JoinSection";
 import ChainStats from "@/components/ChainStats";
-import HomeEvents from "@/components/HomeEvents";
 import { links, siteDescription, siteName, siteUrl } from "@/content/site";
 import { eventJsonLd, publicEvents } from "@/lib/events";
 
@@ -27,7 +26,6 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
       <Story />
       <Chain />
-      <HomeEvents />
       <ChainStats />
       <JoinSection />
     </>

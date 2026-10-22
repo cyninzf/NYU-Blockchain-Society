@@ -15,6 +15,8 @@ export type Edition = {
   status: EditionStatus;
   /** Shown instead of the generic status label, e.g. "Planning underway". */
   statusText?: string;
+  /** Season before the year while there's no date, e.g. "Spring" → "Spring 2027". */
+  season?: string;
   stats?: { registrations: number; speakers: number; panels: number; fireside: boolean };
   program?: Session[];
   /** Firms speakers came from (text only, never logos). */
@@ -41,11 +43,13 @@ export const editions: Edition[] = [
   // The next edition (round 13): /conference is its hub and Block 00 points to it. Only the year
   // and the status text are public so far. Fill in date and venue (and address, lumaUrl) when
   // they're confirmed: they appear on /conference only once set. Set status "announced" with a
-  // lumaUrl when registration opens. Never invent a month, venue or speakers here.
+  // lumaUrl when registration opens. Never invent a month, venue or speakers here. The season
+  // ("Spring", round 29.1) was set by the maintainer.
   {
     year: 2027,
     status: "planning",
     statusText: "Planning underway",
+    season: "Spring",
     date: undefined,
     venue: undefined,
   },
@@ -58,6 +62,8 @@ export const editionByYear = (year: number) => editions.find((e) => e.year === y
 export const editionTitle = (e: Edition) => (e.year ? `${series.name} ${e.year}` : "Next edition");
 /** "Planning underway", or the generic label. */
 export const editionStatus = (e: Edition) => e.statusText ?? statusLabel[e.status];
+/** "Spring 2027" (or just the year) for the next edition's labels. */
+export const editionWhen = (e: Edition) => [e.season, e.year].filter(Boolean).join(" ");
 /** The join source for "Get notified" on /conference, e.g. conference-2027. */
 export const nextEditionSource = nextEdition?.year ? `conference-${nextEdition.year}` : "conference";
 export const statusLabel: Record<EditionStatus, string> = { done: "Done", announced: "Announced", planning: "Planning" };

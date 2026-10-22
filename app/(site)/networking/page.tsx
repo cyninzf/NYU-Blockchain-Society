@@ -5,7 +5,10 @@ import OpenJoin from "@/components/OpenJoin";
 import { siteName } from "@/content/site";
 import { eventDay, eventWhen } from "@/lib/event-time";
 import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
+import { FeaturedCta } from "@/components/HomeEvents";
+import { featuredEvent } from "@/content/home-events";
 import { publicEvents } from "@/lib/events";
+import { featuredEventOver } from "@/lib/home-events";
 
 const description = "Networking events from NYU Blockchain Society: mixers, workshops, roundtables and more, for NYU alumni and industry professionals.";
 
@@ -17,9 +20,10 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: "Networking", description },
 };
 
-// Block 01's page (round 15: /networking, headed "Networking" like the block), upcoming then past events.
+// Block 01's page (round 15: /networking, headed "Networking" like the block), upcoming then past
+// events. With no upcoming event in the table, the home page's featured event while it's ahead.
 export default async function NetworkingPage() {
-  const { upcoming, past } = await publicEvents();
+  const [{ upcoming, past }, over] = await Promise.all([publicEvents(), featuredEventOver()]);
   return (
     <section className="series ev-list page-top" aria-labelledby="events-h">
       <div className="wrap">
@@ -44,6 +48,18 @@ export default async function NetworkingPage() {
                 <Link className="blk-go go" href={eventPath(e.slug)}>Details{e.status === "published" && e.registrationUrl ? " and registration" : ""} <Icon name="arrow-right" /></Link>
               </li>
             ))}
+          </ol>
+        ) : !over ? (
+          <ol className="ed-chain">
+            <li className="ed-blk" data-bg="dim">
+              <div className="top mono">
+                <span>{featuredEvent.label}</span>
+                <span className="st pend"><i></i>Upcoming</span>
+              </div>
+              <h3 className="ev-title">{featuredEvent.title}</h3>
+              <p>{featuredEvent.when}</p>
+              <p><FeaturedCta /></p>
+            </li>
           </ol>
         ) : (
           <p className="series-sub" data-bg="dim">Next date soon. <OpenJoin className="ev-link" notify="networking">Get notified</OpenJoin></p>

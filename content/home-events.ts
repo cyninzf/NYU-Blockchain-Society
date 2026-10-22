@@ -1,7 +1,8 @@
 // The home page's Events section: one featured event and a short "Coming up" list. Plain data,
 // no server-only imports (the contact form reads `inviteRequest`). Turn the partner, speakers or
 // registration on here; nothing else needs to change. Past/upcoming is decided on the server
-// (lib/home-events.ts) from `startsAt` / `endsAt`, in New York time.
+// (lib/home-events.ts) from `startsAt` / `endsAt`, in New York time. While it's ahead and the
+// events table has no upcoming event, Block 01 and /networking show it too (the table wins).
 
 export type Speaker = { name: string; title: string; company: string; headshot: string };
 
@@ -30,7 +31,7 @@ export type FeaturedEvent = {
   speakers: Speaker[];
 };
 
-export type ComingUp = { title: string; when: string; note: string };
+export type ComingUp = { title: string; when: string; note: string; /** Its block, "Block 01 · Networking". */ block: string };
 
 export const featuredEvent: FeaturedEvent = {
   title: "Where Finance, Digital Assets and AI Meet",
@@ -55,11 +56,17 @@ export const featuredEvent: FeaturedEvent = {
 };
 
 export const comingUp: ComingUp[] = [
-  { title: "Quarterly Series, Session 2", when: "January 2027", note: "Details to come" },
-  { title: "Annual Conference", when: "Spring 2027", note: "Save the date coming soon" },
+  { title: "Quarterly Series, Session 2", when: "January 2027", note: "Details to come", block: "Block 01 · Networking" },
+  { title: "Annual Conference", when: "Spring 2027", note: "Save the date coming soon", block: "Block 00 · Conference" },
 ];
 
-export const eventsHeading = "Events";
+/** The spotlight's kicker (round 29.1: the featured event is Block 01's next one, brought forward). */
+export const spotlightKicker = "Block 01 · Networking";
+
+/** The featured event's button, wherever it shows (the spotlight, Block 01, /networking). */
+export const featuredCta = () => featuredEvent.registrationUrl
+  ? { label: featuredEvent.registrationLabel, href: featuredEvent.registrationUrl, external: true }
+  : { label: featuredEvent.inviteRequest.label, href: `/contact?about=${featuredEvent.inviteRequest.key}`, external: false };
 
 /** /contact?about=<key> → the message the contact form starts with (known keys only). */
 export const contactPrefill = (key: string | null) =>
