@@ -598,7 +598,7 @@ Read-only; on the preview, then production. Check at 1440 px and at 390 px (DevT
       sit side by side; Edit still opens the member form. Same sideways scroll at 390 px.
 - [ ] Search, filters, paging and Export CSV work as before.
 
-## 23. Spotlight on Block 01 and the join token fix (rounds 29 to 29.2)
+## 23. Spotlight on Block 01 and the join token fix (rounds 29 to 29.3)
 
 Read-only except the last item; on the preview, then production. Check at 390 px and 1440 px.
 
@@ -617,10 +617,12 @@ Read-only except the last item; on the preview, then production. Check at 390 px
       shows the event with "Private event · By invitation" and "Request an invite" instead of "Next
       date soon".
 - [ ] Layout (390, 1024, 1440 px): the chain intro's last line sits on the heading's baseline at
-      desktop widths, in the smaller muted text, and stacks under it on phones. The spotlight is a
-      full-width band (slightly deeper violet, a soft glow behind the featured card, thin lines top and
-      bottom). The connector runs unbroken from Block 01 into the band (its node on the band's top
-      line) down to the featured card. "Block 01 · Networking · Up next" and "Coming up" sit on one
+      desktop widths, in the smaller muted text, and stacks under it on phones. No band: the page
+      background and network run straight through the spotlight, with the chain's usual spacing above
+      it and before the join section. The featured card has a fainter second frame 8px down and to
+      the right behind it, and larger corner nodes that pulse slowly (still with reduced motion); its
+      tint stays inside the card. The connector runs unbroken from Block 01 (its node mid-gap) down to
+      the featured card. "Block 01 · Networking · Up next" and "Coming up" sit on one
       row; the featured card and the first "Coming up" card start at the same height. Nothing moves
       with reduced motion.
 - [ ] Block 00's chip reads "Next: Spring 2027 · Planning underway"; `/conference` reads "Spring 2027 ·
