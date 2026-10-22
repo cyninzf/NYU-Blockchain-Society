@@ -23,7 +23,7 @@ export const accelerator = {
     {
       id: "investor",
       title: "I'm an investor",
-      text: "Get first look at NYU founders building across blockchain, finance and AI. Join our investor list for invites to founder showcases as we launch them.",
+      text: "Get a first look at NYU founders building across blockchain, finance and AI. Join our investor list for invites to founder showcases as we launch them.",
       cta: "Join the investor list",
     },
   ],
