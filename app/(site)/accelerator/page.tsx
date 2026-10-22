@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FounderForm, InvestorForm } from "@/components/accelerator/InterestForms";
-import Icon from "@/components/Icon";
+import PathChooser from "@/components/accelerator/PathChooser";
 import { accelerator } from "@/content/accelerator";
 import { siteName } from "@/content/site";
 
@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 
 // Block 02 (round 14): the accelerator is still being built. Two paths, each with its own form
 // (round 28: founder and investor), and one line for partners and sponsors (the contact form).
+// Round 30: the path cards choose which form shows (PathChooser), one at a time.
 export default function AcceleratorPage() {
   const [founder, investor] = accelerator.paths;
   return (
@@ -31,29 +32,18 @@ export default function AcceleratorPage() {
           <p className="series-sub acc-intro">{accelerator.intro}</p>
         </div>
 
-        <ol className="acc-paths" aria-label="Two ways in">
-          {accelerator.paths.map((p, i) => (
-            <li className="ed-blk next" key={p.id} data-bg="dim">
-              <div className="top mono"><span>Path {String(i + 1).padStart(2, "0")}</span></div>
-              <h2>{p.title}</h2>
-              <p>{p.text}</p>
-              <a className="blk-go go" href={`#${p.id}`}>{p.cta} <Icon name="arrow-down" /></a>
-            </li>
-          ))}
-        </ol>
-        <p className="series-sub acc-partner" data-bg="dim">{accelerator.partnerLine.text} <Link href="/contact">{accelerator.partnerLine.link}</Link></p>
-
-        <div className="iq acc-form" id={founder.id}>
-          <h2 className="conf-proof-h" data-bg="dim">{founder.title}</h2>
-          <p className="series-sub" data-bg="dim">{founder.text}</p>
-          <div data-bg="dim"><FounderForm /></div>
-        </div>
-
-        <div className="iq acc-form" id={investor.id}>
-          <h2 className="conf-proof-h" data-bg="dim">{investor.title}</h2>
-          <p className="series-sub" data-bg="dim">{investor.text}</p>
-          <div data-bg="dim"><InvestorForm /></div>
-        </div>
+        <PathChooser
+          paths={accelerator.paths}
+          heads={Object.fromEntries([founder, investor].map((p) => [p.id, <>
+            <h2 className="conf-proof-h" id={`${p.id}-form`} data-bg="dim">{p.title}</h2>
+            <p className="series-sub" data-bg="dim">{p.text}</p>
+          </>]))}
+          forms={{
+            [founder.id]: <div data-bg="dim"><FounderForm /></div>,
+            [investor.id]: <div data-bg="dim"><InvestorForm /></div>,
+          }}
+          after={<p className="series-sub acc-partner" data-bg="dim">{accelerator.partnerLine.text} <Link href="/contact">{accelerator.partnerLine.link}</Link></p>}
+        />
       </div>
     </section>
   );

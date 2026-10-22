@@ -650,6 +650,14 @@ footer ul{gap:0 22px}
 .acc-paths .ed-blk .go{margin-top:auto; padding-top:6px}
 @media (max-width:760px){.acc-paths{grid-template-columns:1fr}}
 .acc-form{scroll-margin-top:96px}
+.acc-form[hidden]{display:none}
+/* opened from its card (no repeated heading): the form starts a short step below the cards */
+.acc-form > div:first-child{margin-top:32px}
+/* round 30: the path cards choose the form; the chosen card gets solid lilac edges (static) */
+.acc-paths .ed-blk{transition:none}
+.acc-paths .ed-blk.on{border-color:var(--lilac); background:transparent}
+.acc-paths button.blk-go{background:none; border:0; padding:6px 0 0; font:inherit; font-weight:550; color:var(--ink-fg); text-align:left; cursor:pointer}
+.acc-paths .ed-blk:hover button.blk-go{text-decoration:underline; text-underline-offset:4px}
 .acc-partner{margin-top:20px; font-size:16px}
 .acc-partner a{color:var(--lilac); text-decoration:underline; text-underline-offset:3px}
 /* Every chain block (round 15): the text link to its page (stretched over the card) and
