@@ -3,7 +3,7 @@ import Link from "next/link";
 import ConferenceNotify from "@/components/conference/ConferenceNotify";
 import InquiryForm from "@/components/conference/InquiryForm";
 import Icon from "@/components/Icon";
-import { editionStatus, editionTitle, nextEdition, pastEditions, series } from "@/content/conferences";
+import { editionStatus, editionTitle, editionWhen, nextEdition, pastEditions, series } from "@/content/conferences";
 import { siteName } from "@/content/site";
 
 const title = nextEdition ? editionTitle(nextEdition) : series.name;
@@ -30,7 +30,7 @@ export default function ConferencePage() {
         <div data-bg="dim">
           <p className="kicker mono">Conference · annual since {series.since}</p>
           <h1 id="series-h">{next ? editionTitle(next) : series.name}</h1>
-          {next && <p className="series-sub">{editionStatus(next)}</p>}
+          {next && <p className="series-sub">{next.season ? `${editionWhen(next)} · ` : ""}{editionStatus(next)}</p>}
           {next && (next.date || next.venue) && <p className="conf-when mono">{[next.date, next.venue].filter(Boolean).join(" · ")}</p>}
         </div>
         {next && <ConferenceNotify />}

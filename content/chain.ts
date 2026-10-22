@@ -2,7 +2,8 @@
 // (round 15): the whole card opens the block's page, and every card has the same two actions, a
 // text link to that page and "Get notified" (the join flow with the block's notify and src).
 // The accelerator is "building": never present it as live. New programs get a block only once
-// someone owns them. Block 01's next event comes from the events table (/admin/events).
+// someone owns them. Block 01's next event comes from the events table (/admin/events); with
+// none upcoming, the home page's featured event while it's ahead (content/home-events.ts).
 
 import { series } from "./conferences";
 import type { Notify } from "./notify";
@@ -11,7 +12,10 @@ export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" 
 
 /** The next networking event as Block 01 shows it (already formatted). */
 export type NextEvent = {
-  title: string; slug: string; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
+  /** No slug: there's no event page (the featured event from content/home-events.ts). */
+  title: string; slug: string | null; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
+  /** The featured event: no "Registration opens soon" (its label and button are in the spotlight). */
+  featured?: boolean;
 };
 
 export type ChainBlock = {
