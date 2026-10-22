@@ -250,8 +250,8 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .chain:has(.blocks > .blk:nth-child(2):is(:hover,:focus-within)) .spot-link i,.spot:has(.ev-feat:is(:hover,:focus-within)) .spot-link i{border-color:#fff; box-shadow:0 0 10px rgba(216,194,240,.9)}
 .ev-feat.active{background:radial-gradient(120% 100% at 50% 0%, rgba(87,6,140,.42), rgba(87,6,140,.1) 70%, rgba(87,6,140,0))}
 .blk.ev-feat .frame .c{width:10px; height:10px; margin:-5px 0 0 -5px; background:#fff; box-shadow:0 0 14px rgba(216,194,240,1), 0 0 4px #fff}
-/* static: Block 01 above already pulses (the active block's node pulse is switched off here) */
-.blk.ev-feat.active.in .frame .c{animation:none}
+/* static: Block 01 above already pulses (the active block's edge and node pulse are switched off here) */
+.blk.ev-feat.active.in .frame :is(.e,.c){animation:none}
 .ev-up .ev-blk{color:var(--ink-muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase}
 .evs-grid{display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); grid-template-areas:"k u" "f l"; gap:16px 48px; align-items:start}
 .spot-k{grid-area:k} .ev-up-h{grid-area:u} .ev-feat{grid-area:f} ol.ev-up{grid-area:l}

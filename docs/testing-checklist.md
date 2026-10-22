@@ -620,7 +620,7 @@ Read-only except the last item; on the preview, then production. Check at 390 px
       desktop widths, in the smaller muted text, and stacks under it on phones. No band: the page
       background and network run straight through the spotlight, with the chain's usual spacing above
       it and before the join section. The featured card has one frame (no second frame behind it)
-      and larger, brighter corner nodes that don't pulse; its tint stays inside the card. The connector runs unbroken from Block 01 (its node mid-gap) down to
+      and larger, brighter corner nodes; neither its edges nor its nodes pulse (Block 01's still do); its tint stays inside the card. The connector runs unbroken from Block 01 (its node mid-gap) down to
       the featured card. "Block 01 · Networking · Up next" and "Coming up" sit on one
       row; the featured card and the first "Coming up" card start at the same height. Nothing moves
       with reduced motion.
