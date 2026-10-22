@@ -34,17 +34,13 @@ export default function AcceleratorPage() {
 
         <PathChooser
           paths={accelerator.paths}
+          heads={Object.fromEntries([founder, investor].map((p) => [p.id, <>
+            <h2 className="conf-proof-h" id={`${p.id}-form`} data-bg="dim">{p.title}</h2>
+            <p className="series-sub" data-bg="dim">{p.text}</p>
+          </>]))}
           forms={{
-            [founder.id]: <>
-              <h2 className="conf-proof-h" data-bg="dim">{founder.title}</h2>
-              <p className="series-sub" data-bg="dim">{founder.text}</p>
-              <div data-bg="dim"><FounderForm /></div>
-            </>,
-            [investor.id]: <>
-              <h2 className="conf-proof-h" data-bg="dim">{investor.title}</h2>
-              <p className="series-sub" data-bg="dim">{investor.text}</p>
-              <div data-bg="dim"><InvestorForm /></div>
-            </>,
+            [founder.id]: <div data-bg="dim"><FounderForm /></div>,
+            [investor.id]: <div data-bg="dim"><InvestorForm /></div>,
           }}
           after={<p className="series-sub acc-partner" data-bg="dim">{accelerator.partnerLine.text} <Link href="/contact">{accelerator.partnerLine.link}</Link></p>}
         />

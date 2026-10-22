@@ -651,6 +651,8 @@ footer ul{gap:0 22px}
 @media (max-width:760px){.acc-paths{grid-template-columns:1fr}}
 .acc-form{scroll-margin-top:96px}
 .acc-form[hidden]{display:none}
+/* opened from its card (no repeated heading): the form starts a short step below the cards */
+.acc-form > div:first-child{margin-top:32px}
 /* round 30: the path cards choose the form; the chosen card gets solid lilac edges (static) */
 .acc-paths .ed-blk{transition:none}
 .acc-paths .ed-blk.on{border-color:var(--lilac); background:transparent}
