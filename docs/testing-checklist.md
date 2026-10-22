@@ -643,11 +643,13 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px; nothing
       edges. "Join the investor list" switches to the investor form (the founder form hides); clicking
       it again closes it. The address bar shows `#founder` / `#investor` (or no hash), Back doesn't
       step through the switches, and the page doesn't jump. Nothing animates or pulses.
+- [ ] An opened form starts right under the cards with no heading or intro of its own (the selected
+      card says it); a screen reader names the form region by the card's title ("I'm a founder").
 - [ ] Keyboard: Tab to a card's button, Enter or Space opens and closes it; a screen reader announces
       it as expanded or collapsed.
 - [ ] `/accelerator#founder` and `/accelerator#investor` open that form and scroll to it, also with
       `?src=…` in front of the hash (the source is still remembered).
-- [ ] With JavaScript off (DevTools → Settings → Debugger → Disable JavaScript): both forms show and the
-      card links jump to them.
+- [ ] With JavaScript off (DevTools → Settings → Debugger → Disable JavaScript): both forms show, each
+      with its heading and intro, and the card links jump to them.
 - [ ] Type something into the founder form, switch to investor and back: what was typed is still there.
       An empty Send shows the field errors and sends nothing.
