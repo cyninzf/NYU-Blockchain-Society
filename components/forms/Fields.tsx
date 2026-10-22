@@ -32,7 +32,7 @@ export function TextField({ label, name, hint, msgRequired, msgShort, ...rest }:
 
 export function TextArea({ label, name, hint, msgRequired, msgShort, maxLength = 1000, ...rest }: TextProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "name">) {
   const f = useForm();
-  const [len, setLen] = useState(0);
+  const [len, setLen] = useState(String(rest.defaultValue ?? "").length);
   return (
     <div className="iq-field">
       <label><span>{label}{hint && <> <span className="iq-hint">{hint}</span></>} <span className="iq-count" aria-live="polite">{len}/{maxLength.toLocaleString("en-US")}</span></span>

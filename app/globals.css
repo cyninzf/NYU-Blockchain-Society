@@ -229,6 +229,32 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ed-blk:hover .go{text-decoration:underline; text-underline-offset:4px}
 .ed-blk:has(.blk-go:focus-visible){outline:2px solid var(--glow); outline-offset:2px}
 
+/* home Events (components/HomeEvents.tsx): the featured event as an active block (a past one as a
+   confirmed block), "Coming up" as dashed blocks still being mined, like the next edition chip */
+.chain.evs{padding-top:0}
+.evs-grid{display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:48px; align-items:start}
+.ev-feat{min-height:0}
+.ev-feat h3{font-size:clamp(24px,2.4vw,32px)}
+.blk .ev-when{color:var(--ink-fg); font-size:15px}
+.ev-feat .blk-acts{margin-top:8px}
+.ev-partner{display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px}
+.ev-partner .mono{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
+.ev-partner img{height:32px; width:auto}
+.ev-speakers{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px}
+.ev-speakers li{display:flex; align-items:center; gap:12px; font-size:14px; color:var(--ink-muted)}
+.ev-speakers img{border-radius:50%; object-fit:cover}
+.ev-speakers b{display:block; color:var(--ink-fg); font-weight:550}
+.ev-up{color:var(--ink-fg)}
+.ev-up h3{margin:0 0 14px; color:var(--lilac); font-family:var(--font-geist-mono),ui-monospace,monospace; font-size:11.5px; font-weight:400; letter-spacing:.08em; text-transform:uppercase}
+.ev-up ol{list-style:none; margin:0; padding:0; display:grid; gap:14px}
+.ev-up li{display:flex; flex-direction:column; gap:4px; padding:16px 18px; border:1px dashed rgba(216,194,240,.55); border-radius:4px}
+.ev-up b{font-weight:600; font-size:18px; letter-spacing:-.015em; line-height:1.2}
+.ev-up .mono{color:var(--lilac)}
+.ev-note{color:var(--ink-muted); font-size:15px}
+.ev-notice{margin-top:24px; color:var(--ink-muted); font-size:12.5px}
+.ev-notice p{margin:0}
+@media (max-width:860px){ .evs-grid{grid-template-columns:1fr; gap:40px} }
+
 /* join */
 .join{position:relative; overflow:hidden; color:var(--ink-fg); padding-top:clamp(64px,7vw,112px); padding-bottom:clamp(64px,7vw,112px); border-top:1px solid var(--ink-line)}
 .join::before{content:""; position:absolute; left:50%; top:100%; width:1100px; height:700px; transform:translate(-50%,-50%); background:radial-gradient(closest-side, rgba(87,6,140,.75), rgba(87,6,140,0)); pointer-events:none}
