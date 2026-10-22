@@ -8,7 +8,7 @@ import { featuredEvent } from "@/content/home-events";
 import { publicEvents, type PublicEvent } from "@/lib/events";
 import { featuredEventOver } from "@/lib/home-events";
 import DrawIn from "./DrawIn";
-import HomeEvents, { FeaturedCta } from "./HomeEvents";
+import HomeEvents from "./HomeEvents";
 import Icon from "./Icon";
 import NotifyButton from "./NotifyButton";
 
@@ -34,7 +34,7 @@ const nextEvent = (e: PublicEvent | undefined): NextEvent | null => e ? {
 /** With no upcoming event in the table: the home page's featured event, while it's ahead. */
 const featuredNext = (): NextEvent => ({
   title: featuredEvent.title, slug: null, when: featuredEvent.when, venue: null, cohost: null, registrationUrl: null, cancelled: false,
-  featured: { label: featuredEvent.label },
+  featured: true,
 });
 
 export default async function Chain() {
@@ -71,11 +71,9 @@ export default async function Chain() {
                     {ev.next.cancelled && <span className="tag mono">Cancelled</span>}
                     <span>Next: {ev.next.slug ? <Link className="next-go" href={eventPath(ev.next.slug)}>{ev.next.title}</Link> : <b>{ev.next.title}</b>} · {ev.next.when}{ev.next.venue && <> · {ev.next.venue}</>}</span>
                     {ev.next.cohost && <span className="cohost">Co-hosted with {ev.next.cohost}</span>}
-                    {ev.next.featured && <span className="cohost">{ev.next.featured.label}</span>}
                     {!ev.next.cancelled && !ev.next.registrationUrl && !ev.next.featured && <span className="cohost">Registration opens soon</span>}
                   </p>
                 )}
-                {ev.next?.featured && <FeaturedCta className="btn btn-w blk-act next-act" />}
                 {ev.editions && (
                   <ol className="editions" aria-label="Editions">
                     {pastEditions.map((e) => (
@@ -105,9 +103,9 @@ export default async function Chain() {
             );
           })}
         </ol>
-        <HomeEvents over={over} />
-        <DrawIn selector=".blocks > .blk, .ev-feat" />
       </div>
+      <HomeEvents over={over} />
+      <DrawIn selector=".blocks > .blk, .ev-feat" />
     </section>
   );
 }

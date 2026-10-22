@@ -14,8 +14,8 @@ export type BlockStatus = "annual" | "done" | "upcoming" | "soon" | "cancelled" 
 export type NextEvent = {
   /** No slug: there's no event page (the featured event from content/home-events.ts). */
   title: string; slug: string | null; when: string; venue: string | null; cohost: string | null; registrationUrl: string | null; cancelled: boolean;
-  /** The featured event: its label ("Private event · By invitation") and its button. */
-  featured?: { label: string };
+  /** The featured event: no "Registration opens soon" (its label and button are in the spotlight). */
+  featured?: boolean;
 };
 
 export type ChainBlock = {
