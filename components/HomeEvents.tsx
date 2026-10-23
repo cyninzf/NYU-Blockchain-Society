@@ -12,6 +12,26 @@ export function FeaturedCta({ className = "btn btn-w" }: { className?: string })
 }
 
 /**
+ * "Co-hosted with" and the co-host's logo (content/home-events.ts, while showPartner is on): the
+ * blue logo on a small white tile, since the site is dark in every theme. Never recolored.
+ */
+export function FeaturedPartner() {
+  if (!ev.showPartner || !ev.partnerName) return null;
+  return (
+    <p className="ev-partner">
+      <span className="mono">Co-hosted with</span>
+      <span className="ev-tile"><Image src={ev.partnerLogoPath} alt={ev.partnerName} width={1198} height={491} /></span>
+    </p>
+  );
+}
+
+/** The license line, on every page that shows the logo. */
+export function PartnerNotice() {
+  if (!ev.showPartner || !ev.partnerName || !ev.partnerNotice.length) return null;
+  return <div className="ev-notice" data-bg="dim">{ev.partnerNotice.map((l) => <p key={l}>{l}</p>)}</div>;
+}
+
+/**
  * The spotlight on Block 01 (content/home-events.ts): a full-width band inside "The chain so far"
  * right under the blocks, with a connector from Block 01's card down into it to the featured event,
  * drawn as an active block (a past one as a confirmed block), and "Coming up" as dashed blocks still
@@ -21,7 +41,6 @@ export function FeaturedCta({ className = "btn btn-w" }: { className?: string })
  * (featuredEventOver).
  */
 export default function HomeEvents({ over }: { over: boolean }) {
-  const partner = ev.showPartner && ev.partnerName;
   const speakers = ev.showSpeakers ? ev.speakers : [];
   return (
     <div className="spot" id="events">
@@ -42,12 +61,7 @@ export default function HomeEvents({ over }: { over: boolean }) {
             <h3 id="ev-feat-h">{ev.title}</h3>
             <p className="ev-when">{ev.when} · {ev.place}</p>
             <p>{ev.description}</p>
-            {partner && (
-              <p className="ev-partner">
-                <span className="mono">In partnership with</span>
-                <Image src={ev.partnerLogoPath} alt={ev.partnerName} width={120} height={40} />
-              </p>
-            )}
+            <FeaturedPartner />
             {speakers.length > 0 && (
               <ul className="ev-speakers" aria-label="Speakers">
                 {speakers.map((s) => (
@@ -71,9 +85,7 @@ export default function HomeEvents({ over }: { over: boolean }) {
             ))}
           </ol>
         </div>
-        {partner && ev.partnerNotice.length > 0 && (
-          <div className="ev-notice" data-bg="dim">{ev.partnerNotice.map((l) => <p key={l}>{l}</p>)}</div>
-        )}
+        <PartnerNotice />
       </div>
     </div>
   );

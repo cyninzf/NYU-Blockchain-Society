@@ -259,9 +259,11 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ev-feat h3{font-size:clamp(24px,2.4vw,32px)}
 .blk .ev-when{color:var(--ink-fg); font-size:15px}
 .ev-feat .blk-acts{margin-top:8px}
-.ev-partner{display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px}
-.ev-partner .mono{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
-.ev-partner img{height:32px; width:auto}
+/* the co-host (round 31): a quiet label, then the blue logo on a small white tile (never recolored) */
+.ev-partner{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0}
+.ev-partner .mono{color:var(--ink-muted); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
+.ev-tile{display:inline-flex; align-items:center; padding:8px 14px; border-radius:6px; background:#fff}
+.ev-tile img{display:block; height:30px; width:auto}
 .ev-speakers{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px}
 .ev-speakers li{display:flex; align-items:center; gap:12px; font-size:14px; color:var(--ink-muted)}
 .ev-speakers img{border-radius:50%; object-fit:cover}
@@ -587,14 +589,6 @@ footer ul{gap:0 22px}
 @keyframes ci-snap{from{transform:translateX(40px); opacity:0} to{transform:none; opacity:1}}
 @media (prefers-reduced-motion: reduce){.ci-chain i.new{animation:none}}
 
-/* Live screen (round 11): /networking/<slug>/live */
-.live{position:fixed; inset:0; pointer-events:none; color:var(--ink-fg)}
-.live-title{position:absolute; left:0; right:0; bottom:28px; margin:0; text-align:center; font-size:15px; letter-spacing:.06em; color:var(--ink-muted)}
-.live-count{position:absolute; left:0; right:0; bottom:56px; margin:0; text-align:center; font-size:clamp(20px,2.4vw,34px); font-weight:550; letter-spacing:-.02em}
-.live-lost{position:absolute; top:20px; left:20px; margin:0; font-size:12px; color:var(--ink-muted)}
-.live-fs{position:absolute; top:16px; right:16px; pointer-events:auto; min-height:40px; padding:0 14px; border:1px solid #6A4590; border-radius:8px; background:rgba(28,5,51,.6); color:var(--ink-muted); font-size:12px; cursor:pointer; opacity:.35; transition:opacity .3s ease}
-.live-fs:hover,.live-fs:focus-visible{opacity:1}
-:fullscreen .live-fs{display:none}
 
 /* Add to calendar (round 11) */
 .cal{display:flex; flex-wrap:wrap; align-items:center; gap:4px 16px; margin:0; font-size:15px}
@@ -607,7 +601,6 @@ footer ul{gap:0 22px}
 .ci-test{margin:0 0 4px; padding:8px 12px; border:1px dashed #FFB86B; border-radius:8px; color:#FFD9A8; font-size:12px; letter-spacing:.04em}
 .ci-check{display:flex !important; align-items:center; gap:10px; min-height:44px; color:var(--ink-fg) !important}
 .ci-check input{width:20px; height:20px; min-height:0 !important}
-.live-test{position:absolute; top:20px; left:0; right:0; margin:0 auto; width:max-content; padding:6px 12px; border:1px dashed #FFB86B; border-radius:8px; color:#FFD9A8; font-size:12px}
 
 /* /conference: the next edition's hub (round 13) */
 .conf-when{margin:12px 0 0; color:var(--ink-muted)}
@@ -636,11 +629,6 @@ footer ul{gap:0 22px}
 .iq-fine{margin:0; font-size:13px; color:var(--ink-muted)}
 .iq-err{min-height:1.2em; margin:0; color:#FFB4C8; font-size:15px}
 .iq-done{margin:24px 0 0; padding:16px 18px; border:1px solid var(--ink-line); border-radius:10px; color:var(--ink-fg)}
-/* Live screen count: each change ticks in (round 13.1); a plain fade under reduced motion */
-.live-n{display:inline-block; min-width:1ch; color:#D6B0F7; animation:live-tick .6s cubic-bezier(.2,.8,.2,1) both}
-@keyframes live-tick{from{opacity:0; transform:translateY(.45em) scale(1.25)} to{opacity:1; transform:none}}
-@media (prefers-reduced-motion: reduce){.live-n{animation:live-fade .6s ease both}}
-@keyframes live-fade{from{opacity:0} to{opacity:1}}
 /* Accelerator (round 14): Block 02's page, "Building", two paths with a form each */
 .acc-kicker{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center}
 .acc-intro{max-width:60ch}

@@ -3,11 +3,11 @@ import type { Breadcrumb, ErrorEvent } from "@sentry/nextjs";
 // Sentry settings shared by the server, edge and browser (round 16). Off unless a DSN is set.
 // Privacy first: no default PII, no session replay, no tracing, and every event is scrubbed
 // before it leaves: no user, cookies, headers, request bodies or query strings (magic-link,
-// unsubscribe, invite and display-link tokens all live in query strings); email addresses and
+// unsubscribe and invite tokens all live in query strings); email addresses and
 // token-like parameters are masked in messages, exceptions and breadcrumbs.
 
 /** Where an error happened, as a Sentry tag, so event-night problems are easy to filter. */
-export type Area = "join" | "checkin" | "live" | "invite" | "announcements" | "admin" | "update" | "forms" | "site";
+export type Area = "join" | "checkin" | "invite" | "announcements" | "admin" | "update" | "forms" | "site";
 
 const EMAIL = /[^\s@<>"'(),;:/]+@[^\s@<>"'(),;:/]+\.[a-z]{2,}/gi;
 const TOKEN_PARAM = /\b(t|d|token|invite|code|key|secret|sig)=([^&\s#"']+)/gi;
@@ -27,7 +27,6 @@ export const scrubUrl = (u: string) => scrubText(u.split(/[?#]/)[0]);
 /** The area for a request path (errors reported with reportError carry their own). */
 export function areaForPath(path: string): Area {
   if (/^\/networking\/[^/]+\/checkin/.test(path)) return "checkin";
-  if (/^\/networking\/[^/]+\/live/.test(path) || /^\/api\/events\/[^/]+\/checkins/.test(path)) return "live";
   if (path.startsWith("/admin/contacts/invite") || path.startsWith("/api/cron/invites")) return "invite";
   if (path.startsWith("/admin/announcements")) return "announcements";
   if (path.startsWith("/admin")) return "admin";

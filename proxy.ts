@@ -22,7 +22,7 @@ const notFound = (request: NextRequest) => NextResponse.rewrite(new URL("/_not-f
 
 /**
  * Whether /networking/<slug> has a public page: published, or cancelled until it would have ended.
- * Never a draft. "published": check-in and the live screen, which cancelled events don't get.
+ * Never a draft. "published": check-in, which cancelled events don't get.
  * "any": test mode (round 12.1), where drafts are allowed too (the pages check the role).
  */
 async function eventIsPublic(slug: string, mode: "page" | "published" | "any" = "page") {
@@ -52,10 +52,10 @@ export async function proxy(request: NextRequest) {
   }
   const slug = /^\/networking\/([^/]+)\/?$/.exec(pathname)?.[1];
   if (slug !== undefined) return SLUG_RE.test(slug) && (await eventIsPublic(slug)) ? NextResponse.next() : notFound(request);
-  // Check-in (and its emailed link) and the live screen: published events only, except test mode
+  // Check-in (and its emailed link): published events only, except test mode
   // (?test=1) with a signed admin session (the page re-checks for a super admin), and a test
   // link's confirm page (?test=1 with its token; the token itself decides).
-  const subMatch = /^\/networking\/([^/]+)\/(checkin(?:\/confirm)?|live)\/?$/.exec(pathname);
+  const subMatch = /^\/networking\/([^/]+)\/(checkin(?:\/confirm)?)\/?$/.exec(pathname);
   if (subMatch) {
     const [, sub, page] = subMatch;
     const q = request.nextUrl.searchParams;

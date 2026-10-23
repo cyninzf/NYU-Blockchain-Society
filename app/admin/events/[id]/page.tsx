@@ -10,7 +10,6 @@ import EventForm from "../EventForm";
 import ShareLink from "../ShareLink";
 import StatusActions, { STATUS_LABELS } from "../StatusActions";
 import Checkins from "./Checkins";
-import DisplayLinks from "./DisplayLinks";
 import { checkinUrl, qrSvg } from "@/lib/qr";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
@@ -72,13 +71,11 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
           </div>
         </section>
       )}
-      {isSuper(admin) && e.status === "published" && <DisplayLinks db={db} eventId={e.id} slug={e.slug} />}
       {isSuper(admin) && (
         <section className={styles.mix} aria-labelledby="test-h">
-          <h2 id="test-h">Test mode <span>Try check-in and the live screen on any event, drafts included, at any time. Test check-ins are marked, never counted, and listed apart below; the test join form creates nothing unless you tick &ldquo;Create a real member&rdquo;.</span></h2>
+          <h2 id="test-h">Test mode <span>Try check-in on any event, drafts included, at any time. Test check-ins are marked, never counted, and listed apart below; the test join form creates nothing unless you tick &ldquo;Create a real member&rdquo;.</span></h2>
           <p className={styles.row}>
             <a href={`${eventPath(e.slug)}/checkin?test=1`} target="_blank" rel="noopener">Check-in (test mode)</a>
-            <a href={`${eventPath(e.slug)}/live?test=1&count=1`} target="_blank" rel="noopener">Live screen (test mode)</a>
           </p>
         </section>
       )}

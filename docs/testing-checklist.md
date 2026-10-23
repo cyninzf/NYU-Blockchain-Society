@@ -653,3 +653,21 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px; nothing
       with its heading and intro, and the card links jump to them.
 - [ ] Type something into the founder form, switch to investor and back: what was typed is still there.
       An empty Send shows the field errors and sends nothing.
+
+## 25. KPMG co-host and the live screen's removal (round 31)
+
+Read-only; on the preview, then production. Check at 390 px and 1440 px, with the system in light and in dark mode.
+
+- [ ] Home, "The chain so far": the featured Nov 16 card shows "Co-hosted with" and the blue KPMG logo on a
+      small white rounded tile, about the height of a line of the card's heading; the license line
+      "KPMG logo used under license. The KPMG trademarks are the sole property of KPMG International
+      Cooperative." sits under the section. Nothing new moves or glows; "Coming up" and Block 01's card show no logo.
+- [ ] `/networking`: the featured card shows the same label and tile, with the license line under it.
+- [ ] No other page shows the logo (`/conference`, `/accelerator`, `/contact`, footer). The logo's alt text is "KPMG".
+- [ ] Light and dark system settings look the same (the public site is dark in both); the black logo never shows.
+- [ ] `/networking/<slug>/live` (with or without `?test=1` or `?d=`) is a 404, and
+      `/api/events/<slug>/checkins` is a 404. `/admin/events/<id>` has no "Live screen" panel and no
+      "Live screen (test mode)" link; check-in, its test mode, the check-ins list and the CSV export still work.
+- [ ] The background network and member nodes look as before on home and the check-in page.
+- [ ] No new Sentry issues after the deploy.
+

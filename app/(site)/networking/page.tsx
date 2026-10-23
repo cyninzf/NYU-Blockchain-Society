@@ -5,7 +5,7 @@ import OpenJoin from "@/components/OpenJoin";
 import { siteName } from "@/content/site";
 import { eventDay, eventWhen } from "@/lib/event-time";
 import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
-import { FeaturedCta } from "@/components/HomeEvents";
+import { FeaturedCta, FeaturedPartner, PartnerNotice } from "@/components/HomeEvents";
 import { featuredEvent } from "@/content/home-events";
 import { publicEvents } from "@/lib/events";
 import { featuredEventOver } from "@/lib/home-events";
@@ -50,17 +50,21 @@ export default async function NetworkingPage() {
             ))}
           </ol>
         ) : !over ? (
-          <ol className="ed-chain">
-            <li className="ed-blk" data-bg="dim">
-              <div className="top mono">
-                <span>{featuredEvent.label}</span>
-                <span className="st pend"><i></i>Upcoming</span>
-              </div>
-              <h3 className="ev-title">{featuredEvent.title}</h3>
-              <p>{featuredEvent.when}</p>
-              <p><FeaturedCta /></p>
-            </li>
-          </ol>
+          <>
+            <ol className="ed-chain">
+              <li className="ed-blk" data-bg="dim">
+                <div className="top mono">
+                  <span>{featuredEvent.label}</span>
+                  <span className="st pend"><i></i>Upcoming</span>
+                </div>
+                <h3 className="ev-title">{featuredEvent.title}</h3>
+                <p>{featuredEvent.when}</p>
+                <FeaturedPartner />
+                <p><FeaturedCta /></p>
+              </li>
+            </ol>
+            <PartnerNotice />
+          </>
         ) : (
           <p className="series-sub" data-bg="dim">Next date soon. <OpenJoin className="ev-link" notify="networking">Get notified</OpenJoin></p>
         )}
