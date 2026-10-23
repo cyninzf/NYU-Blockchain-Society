@@ -75,7 +75,7 @@ function TestCheckins({ tests, eventId, admin }: { tests: { id: number; name: st
   if (!tests.length) return null;
   return (
     <div className={styles.mix}>
-      <h3>Test check-ins ({tests.length}) <span className={styles.note}>From test mode: never counted, never on the real live screen.</span></h3>
+      <h3>Test check-ins ({tests.length}) <span className={styles.note}>From test mode: never counted.</span></h3>
       <ul className={styles.edit}>
         {tests.map((r) => <li key={r.id}>{r.name} · #{r.id} · {timeFmt.format(r.at)} · {METHOD[r.method]}</li>)}
       </ul>

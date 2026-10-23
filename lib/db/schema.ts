@@ -405,9 +405,8 @@ export const inviteQueue = pgTable(
 );
 
 /**
- * Display links for an event's live screen (round 12.1): a signed URL a TV can open without
- * signing in. Only a SHA-256 of the token is stored. Valid only for that event's live screen,
- * only while check-in is open, and until revoked; it never sets a cookie or opens anything else.
+ * Display links for the retired live screen (round 12.1, removed with the screen): kept so no
+ * migration drops the table; nothing reads or writes it.
  */
 export const displayLinks = pgTable(
   "display_links",

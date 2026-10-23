@@ -4,10 +4,9 @@ import { Analytics, type BeforeSendEvent } from "@vercel/analytics/next";
 
 // Vercel Web Analytics (round 16): cookieless page views on public pages only. Private pages and
 // token links are never sent: the admin, "Update your block" and unsubscribe pages, emailed
-// check-in links (/checkin/confirm?t=…), live screens and display links (/live?d=…), the
-// event preview and privacy-request confirmations (/contact/verify?t=…).
+// check-in links (/checkin/confirm?t=…), the event preview and privacy-request confirmations (/contact/verify?t=…).
 // Query strings are dropped except a valid ?src= (how people arrived).
-const PRIVATE = [/^\/admin(\/|$)/, /^\/update(\/|$)/, /^\/unsubscribe(\/|$)/, /^\/networking\/preview/, /^\/networking\/[^/]+\/checkin\/confirm/, /^\/networking\/[^/]+\/live/, /^\/contact\/verify/];
+const PRIVATE = [/^\/admin(\/|$)/, /^\/update(\/|$)/, /^\/unsubscribe(\/|$)/, /^\/networking\/preview/, /^\/networking\/[^/]+\/checkin\/confirm/, /^\/contact\/verify/];
 
 export function beforeSend(event: BeforeSendEvent): BeforeSendEvent | null {
   const u = new URL(event.url);

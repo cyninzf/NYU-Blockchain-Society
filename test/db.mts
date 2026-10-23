@@ -113,25 +113,13 @@ ok(!(await recordCheckin(db, ev.id, 1, "qr")) && (await isCheckedIn(db, ev.id, 1
 const audits = await db.select().from(adminAudit);
 ok(audits.some((a: any) => a.action === "event.checkin" && a.actor === "system"), "check-in audited as system");
 
-// Round 12.1: test check-ins apart from real ones; display links.
+// Round 12.1: test check-ins apart from real ones.
 ok(await recordCheckin(db, ev.id, 1, "qr", "system", true), "test check-in recorded beside the real one");
 ok(await isCheckedIn(db, ev.id, 1, true) && await isCheckedIn(db, ev.id, 1, false), "real and test check-ins are separate");
 const [{ real }] = await db.select({ real: sql<number>`count(*) filter (where not ${eventCheckins.isTest})::int` }).from(eventCheckins);
 ok(real === 1, "real count excludes test check-ins");
 const draftEv = await checkinEvent(db, "draft", true);
 ok(draftEv && draftEv.status === "draft", "test mode finds a draft");
-const { createDisplayLink, displayAccess } = await import(`${P}/lib/display-links.ts`);
-const link = await createDisplayLink(db, ev.id, "test");
-ok((await displayAccess(db, "now", link.token)).ok, "display link opens its event while open");
-ok(!(await displayAccess(db, "later", link.token)).ok, "display link refuses another event");
-const laterEv = await checkinEvent(db, "later");
-const l2 = await createDisplayLink(db, laterEv.id, "test");
-const a2 = await displayAccess(db, "later", l2.token);
-ok(!a2.ok && a2.reason === "closed", "display link closed outside the window");
-await db.update(schema.displayLinks).set({ revokedAt: new Date() }).where(eq(schema.displayLinks.id, link.id));
-const a3 = await displayAccess(db, "now", link.token);
-ok(!a3.ok && a3.reason === "invalid", "revoked display link refused");
-ok(!(await displayAccess(db, "now", "x".repeat(43))).ok, "unknown token refused");
 // Round 13: conference inquiries.
 const { saveInquiry, setInquiryStatus, InquiryInput } = await import(`${P}/lib/inquiries.ts`);
 const input = InquiryInput.parse({ name: "Gus Sponsor", email: "gus@example.com", company: "", interest: "sponsor", message: "We'd like to sponsor the 2027 edition." });

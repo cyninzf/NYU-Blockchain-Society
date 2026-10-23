@@ -41,13 +41,6 @@ export function addPainter(p: Painter) {
 /** The background network as drawn last frame (screen positions), e.g. for the logo to assemble from. */
 export const networkSnapshot = () => engine?.snapshot() ?? null;
 
-/** The live screen: one check-in node; `quiet` for ones already there when the screen opened. */
-export const backdropArrive = (quiet = false) => engine?.arrive(quiet);
-
-/** The live screen dims the ambient network so the evening's check-ins stand out. */
-let liveMode = false;
-export function setBackdropLiveMode(on: boolean) { liveMode = on; engine?.request(); }
-
 /** Ask for a frame (only needed under reduced motion; otherwise the loop runs anyway). */
 export const requestBackdropFrame = () => engine?.request();
 
@@ -101,9 +94,7 @@ function createEngine(cv: HTMLCanvasElement) {
     if (w !== W || h !== H) { W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
     const d = densityFor(W, H, members);
     if (!network || Math.abs(d.nodes - network.density.nodes) > network.density.nodes * .2 || d.maxFormations !== network.density.maxFormations || d.members !== network.density.members) {
-      const kept = network?.exportCheckins();
       network = createNetwork(rnd, d);
-      if (kept) network.takeCheckins(kept);
     }
   }
 
@@ -175,12 +166,11 @@ function createEngine(cv: HTMLCanvasElement) {
 
     ctx.clearRect(0, 0, W, H);
     const logo = [...painters].find((p) => p.anchors);
-    network!.draw(ctx, { now, el, reduce, gk, ambient: liveMode ? .4 : 1, P, W, H, fade, blocked, boxBlocked, boxFade, crossesSolid, near: core.wantNear(now, logo?.anchors?.() ?? null), recent: recent && !liveMode });
+    network!.draw(ctx, { now, el, reduce, gk, P, W, H, fade, blocked, boxBlocked, boxFade, crossesSolid, near: core.wantNear(now, logo?.anchors?.() ?? null), recent });
     for (const p of painters) p.draw(ctx, now);
     // the core: ~30% of the page's node count, so it follows the same desktop/phone density rules
     core.draw(ctx, now, el, reduce, gk, network!.snapshot(), logo?.anchors?.() ?? null, Math.round((network!.density.nodes - network!.density.members) * .3), fade);
-    // Under reduced motion only a check-in's short fade keeps frames coming.
-    if ((!reduce || network!.animating(now, true)) && !document.hidden) raf = requestAnimationFrame(frame);
+    if (!reduce && !document.hidden) raf = requestAnimationFrame(frame);
   }
 
   const request = () => { if (!raf && alive && !document.hidden) raf = requestAnimationFrame(frame); };
@@ -196,7 +186,6 @@ function createEngine(cv: HTMLCanvasElement) {
 
   return {
     request,
-    arrive: (quiet = false) => { network?.arrive(performance.now(), quiet); request(); },
     snapshot: () => network?.snapshot() ?? null,
     destroy() {
       alive = false; cancelAnimationFrame(raf);
