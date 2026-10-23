@@ -21,11 +21,11 @@ export type FeaturedEvent = {
   registrationLabel: string;
   /** The button while there's no registrationUrl: /contact?about=<key>, message prefilled. */
   inviteRequest: { label: string; key: string; message: string };
-  /** The partner shows on this card only, never on "Coming up". */
+  /** The co-host's logo shows on this card and on /networking's featured card only, never on "Coming up". */
   showPartner: boolean;
   partnerName: string;
   partnerLogoPath: string;
-  /** Lines under the section while the partner shows. */
+  /** The license line, shown on the same page as the logo while the partner shows. */
   partnerNotice: string[];
   showSpeakers: boolean;
   speakers: Speaker[];
@@ -44,12 +44,12 @@ export const featuredEvent: FeaturedEvent = {
   registrationUrl: null,
   registrationLabel: "Register",
   inviteRequest: { label: "Request an invite", key: "invite-nov-16", message: "Invite request: Nov 16" },
-  showPartner: false,
+  showPartner: true,
   partnerName: "KPMG",
-  partnerLogoPath: "/partners/kpmg.svg",
+  /** The blue logo, cropped to its bounds (the black one is never used on the dark site). */
+  partnerLogoPath: "/partners/kpmg-blue.png",
   partnerNotice: [
-    "KPMG logo used under license from KPMG.",
-    "The KPMG trademarks are the sole property of KPMG International Cooperative.",
+    "KPMG logo used under license. The KPMG trademarks are the sole property of KPMG International Cooperative.",
   ],
   showSpeakers: false,
   speakers: [],
