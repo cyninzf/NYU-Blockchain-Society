@@ -5,8 +5,8 @@ import OpenJoin from "@/components/OpenJoin";
 import { siteName } from "@/content/site";
 import { eventDay, eventWhen } from "@/lib/event-time";
 import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
-import { FeaturedCta, FeaturedPartner, PartnerNotice } from "@/components/HomeEvents";
-import { featuredEvent } from "@/content/home-events";
+import { FeaturedCta, FeaturedPartner, FeaturedProgram, PartnerNotice } from "@/components/HomeEvents";
+import { eveningFormat, featuredEvent } from "@/content/home-events";
 import { publicEvents } from "@/lib/events";
 import { featuredEventOver } from "@/lib/home-events";
 
@@ -31,6 +31,7 @@ export default async function NetworkingPage() {
           <p className="kicker mono">Block 01 · Networking</p>
           <h1 id="events-h">Networking</h1>
           <p className="series-sub">Mixers, workshops, roundtables and more, for NYU alumni wherever they are.</p>
+          <p className="series-sub ev-format">{eveningFormat}</p>
         </div>
 
         <h2 data-bg="dim">Upcoming</h2>
@@ -60,6 +61,7 @@ export default async function NetworkingPage() {
                 <h3 className="ev-title">{featuredEvent.title}</h3>
                 <p>{featuredEvent.when}</p>
                 <FeaturedPartner />
+                <FeaturedProgram />
                 <p><FeaturedCta /></p>
               </li>
             </ol>

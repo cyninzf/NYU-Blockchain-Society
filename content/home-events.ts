@@ -31,6 +31,11 @@ export type FeaturedEvent = {
   speakers: Speaker[];
 };
 
+/** One agenda line: the time (shown muted, mono) and what happens; `detail` is a second line. */
+export type AgendaItem = { time: string; item: string; detail?: string };
+/** A confirmed panelist: name, then role as written on the co-host's registration page. */
+export type Panelist = { name: string; role: string };
+
 export type ComingUp = { title: string; when: string; note: string; /** Its block, "Block 01 · Networking". */ block: string };
 
 export const featuredEvent: FeaturedEvent = {
@@ -54,6 +59,34 @@ export const featuredEvent: FeaturedEvent = {
   showSpeakers: false,
   speakers: [],
 };
+
+/**
+ * /networking's featured card: the agenda and speakers (round 32, copied exactly from the co-host's
+ * registration page; never add a name before it's confirmed). The home spotlight only links here
+ * ("View agenda", `/networking#<agendaId>`) while the event is ahead.
+ */
+export const agendaId = "agenda";
+export const agenda: AgendaItem[] = [
+  { time: "5:00 PM", item: "Check-in" },
+  {
+    time: "5:20 PM",
+    item: "Opening remarks from KPMG and the NYU Blockchain Society",
+    detail: "Ruth Tang (Partner, KPMG) and Fang Zhang (Co-founder, NYU Blockchain Society)",
+  },
+  { time: "5:30–6:15 PM", item: "Speakers and panel" },
+  { time: "6:15–8:00 PM", item: "Networking" },
+];
+export const panelists: Panelist[] = [
+  { name: "John Conneely", role: "Global Head of Business Development, Sky Frontier Foundation" },
+  { name: "Rob Hadick", role: "Managing Partner, Dragonfly" },
+  { name: "Roshan Robert", role: "CEO, OKX US" },
+  { name: "Will Su", role: "Digital Assets Research, BlackRock" },
+  { name: "Adrian Wyland", role: "General Manager – Stablecoins, Payward" },
+];
+export const moderator: Panelist = { name: "Greg Genega", role: "Senior Advisor, KPMG" };
+
+/** /networking's standing line under its subline: the shape of every evening. */
+export const eveningFormat = "Each evening: check-in and networking, brief remarks, a moderated panel with audience Q&A, then extended networking.";
 
 export const comingUp: ComingUp[] = [
   { title: "Quarterly Series, Session 2", when: "January 2027", note: "Details to come", block: "Block 01 · Networking" },

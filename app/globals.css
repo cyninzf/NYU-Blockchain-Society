@@ -264,6 +264,20 @@ body:has(.backdrop){background:transparent; color:var(--ink-fg)}
 .ev-partner .mono{color:var(--ink-muted); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
 .ev-tile{display:inline-flex; align-items:center; padding:8px 14px; border-radius:6px; background:#fff}
 .ev-tile img{display:block; height:30px; width:auto}
+/* the featured event's agenda and speakers (round 32, /networking): the co-host's label style, muted
+   times and labels, content in the foreground, hairline rows */
+.ev-prog{margin-top:8px; scroll-margin-top:96px}
+.ev-prog .ev-k{margin:0 0 8px; color:var(--ink-muted); font-size:11.5px; font-weight:400; line-height:20px; letter-spacing:.08em; text-transform:uppercase}
+.ev-rows{list-style:none; margin:0; padding:0; border-top:1px solid var(--ink-line)}
+.ev-rows li{padding:10px 0; border-bottom:1px solid var(--ink-line); color:var(--ink-fg); font-size:15px; line-height:1.45}
+.ev-agenda li{display:grid; grid-template-columns:8.5rem minmax(0,1fr); gap:2px 16px}
+.ev-t{color:var(--ink-muted); line-height:inherit}
+.ev-d{display:block; margin-top:2px; font-size:14px}
+.ev-ppl li > *{display:block}
+.ev-ppl b{font-weight:550}
+.ev-ppl .ev-t{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase}
+.ev-format{margin-top:10px; font-size:16px; max-width:62ch}
+@media (max-width:480px){.ev-agenda li{grid-template-columns:minmax(0,1fr)}}
 .ev-speakers{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px}
 .ev-speakers li{display:flex; align-items:center; gap:12px; font-size:14px; color:var(--ink-muted)}
 .ev-speakers img{border-radius:50%; object-fit:cover}
