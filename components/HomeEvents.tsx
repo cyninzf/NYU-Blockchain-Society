@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { comingUp, featuredCta, featuredEvent as ev, spotlightKicker } from "@/content/home-events";
+import { agenda, agendaId, comingUp, featuredCta, featuredEvent as ev, moderator, panelists, spotlightKicker } from "@/content/home-events";
+import { NETWORKING_PATH } from "@/lib/event-fields";
 import Icon from "./Icon";
 
 /** The featured event's button: "Request an invite" (the contact form), or "Register" in a new tab. */
@@ -22,6 +23,35 @@ export function FeaturedPartner() {
       <span className="mono">Co-hosted with</span>
       <span className="ev-tile"><Image src={ev.partnerLogoPath} alt={ev.partnerName} width={1198} height={491} /></span>
     </p>
+  );
+}
+
+/**
+ * The featured event's agenda and speakers (round 32), on /networking's featured card only, under
+ * "Co-hosted with". Times and labels muted, content in the foreground, hairlines between rows.
+ */
+export function FeaturedProgram() {
+  return (
+    <>
+      <section id={agendaId} className="ev-prog" aria-labelledby={`${agendaId}-h`}>
+        <h4 id={`${agendaId}-h`} className="ev-k mono">Agenda</h4>
+        <ol className="ev-rows ev-agenda">
+          {agenda.map((a) => (
+            <li key={a.time}>
+              <span className="ev-t mono">{a.time}</span>
+              <span>{a.item}{a.detail && <span className="ev-d">{a.detail}</span>}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="ev-prog" aria-labelledby="speakers-h">
+        <h4 id="speakers-h" className="ev-k mono">Speakers</h4>
+        <ul className="ev-rows ev-ppl">
+          {panelists.map((p) => <li key={p.name}><b>{p.name}</b><span>{p.role}</span></li>)}
+          <li><span className="ev-t mono">Moderated by</span><b>{moderator.name}</b><span>{moderator.role}</span></li>
+        </ul>
+      </section>
+    </>
   );
 }
 
@@ -72,7 +102,12 @@ export default function HomeEvents({ over }: { over: boolean }) {
                 ))}
               </ul>
             )}
-            {!over && <div className="blk-acts"><FeaturedCta /></div>}
+            {!over && (
+              <div className="blk-acts">
+                <FeaturedCta />
+                <Link className="go" href={`${NETWORKING_PATH}#${agendaId}`}>View agenda <Icon name="arrow-right" /></Link>
+              </div>
+            )}
           </article>
           <ol className="ev-up" data-bg="dim" aria-label="Coming up">
             {comingUp.map((c) => (
