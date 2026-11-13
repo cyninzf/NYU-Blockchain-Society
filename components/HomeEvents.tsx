@@ -39,7 +39,7 @@ export function FeaturedProgram() {
           {agenda.map((a) => (
             <li key={a.time}>
               <span className="ev-t mono">{a.time}</span>
-              <span>{a.item}{a.detail && <span className="ev-d">{a.detail}</span>}</span>
+              <span>{a.item}{a.details?.map((d) => <span key={d} className="ev-d">{d}</span>)}</span>
             </li>
           ))}
         </ol>

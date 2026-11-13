@@ -31,8 +31,8 @@ export type FeaturedEvent = {
   speakers: Speaker[];
 };
 
-/** One agenda line: the time (shown muted, mono) and what happens; `detail` is a second line. */
-export type AgendaItem = { time: string; item: string; detail?: string };
+/** One agenda line: the time (shown muted, mono) and what happens; each of `details` is its own line under it. */
+export type AgendaItem = { time: string; item: string; details?: string[] };
 /** A confirmed panelist: name, then role as written on the co-host's registration page. */
 export type Panelist = { name: string; role: string };
 
@@ -71,7 +71,7 @@ export const agenda: AgendaItem[] = [
   {
     time: "5:20 PM",
     item: "Opening remarks from KPMG and the NYU Blockchain Society",
-    detail: "Ruth Tang (Partner, KPMG) and Fang Zhang (Co-founder, NYU Blockchain Society)",
+    details: ["Ruth Tang — Partner, KPMG", "Fang Zhang — Co-founder, NYU Blockchain Society"],
   },
   { time: "5:30–6:15 PM", item: "Speakers and panel" },
   { time: "6:15–8:00 PM", item: "Networking" },
