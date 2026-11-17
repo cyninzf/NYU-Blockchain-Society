@@ -10,6 +10,8 @@
 .previews{display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--ink-line); border-radius:12px; overflow:hidden}
 .tile{position:relative; display:grid; place-items:center; aspect-ratio:1; padding:22%}
 .tile img{width:100%; height:auto}
+.wide{grid-template-columns:minmax(0,1fr)}
+.wide .tile{aspect-ratio:2/1; padding:10%}
 .dark{background:#1C0533}
 .light{background:#F5F1F9}
 .best{position:absolute; left:8px; bottom:6px; font-size:11px}

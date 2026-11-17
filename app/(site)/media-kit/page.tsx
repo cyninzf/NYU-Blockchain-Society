@@ -3,7 +3,7 @@ import Image from "next/image";
 import Boilerplate from "@/components/Boilerplate";
 import CopyButton from "@/components/CopyButton";
 import { boilerplateStatus } from "@/content/boilerplate";
-import { colors, marks, PNG_SIZES, ZIP_FILE } from "@/content/brand";
+import { colors, LOCKUP_PNG_SIZES, lockups, marks, PNG_SIZES, ZIP_FILE } from "@/content/brand";
 import { siteName } from "@/content/site";
 import s from "./media-kit.module.css";
 
@@ -29,6 +29,30 @@ export default function MediaKitPage() {
           <p className={s.lede}>Everything you need to write about or feature NYU Blockchain Society. Please follow the usage rules below.</p>
           <a className="btn btn-w" href={ZIP_FILE} download>Download all (ZIP)</a>
         </header>
+
+        <section className={s.section} data-bg="dim" aria-labelledby="mk-lockup">
+          <h2 id="mk-lockup">Lockup</h2>
+          <p className={s.note}>The node mark with the name: our primary identity, as in the site header. SVG is preferred; PNGs are transparent.</p>
+          <ul className={s.marks}>
+            {lockups.map((l) => (
+              <li key={l.file} className={s.mark}>
+                <div className={`${s.previews} ${s.wide}`}>
+                  <div className={`${s.tile} ${l.bg === "dark" ? s.dark : s.light}`}>
+                    <Image src={`/brand/lockup/lockup-${l.file}.svg`} width={1906} height={360} alt={`${l.name} on a ${l.bg} background`} />
+                  </div>
+                </div>
+                <h3>{l.name}</h3>
+                <p className={s.use}>{l.use}</p>
+                <p className={`${s.dl} mono`}>
+                  <a href={`/brand/lockup/lockup-${l.file}.svg`} download>SVG</a>
+                  {LOCKUP_PNG_SIZES.map((size) => (
+                    <a key={size} href={`/brand/lockup/lockup-${l.file}-${size}.png`} download>PNG {size}</a>
+                  ))}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <section className={s.section} data-bg="dim" aria-labelledby="mk-logos">
           <h2 id="mk-logos">Logo marks</h2>
@@ -60,6 +84,7 @@ export default function MediaKitPage() {
         <section className={s.section} data-bg="dim" aria-labelledby="mk-usage">
           <h2 id="mk-usage">Usage rules</h2>
           <ul className={s.rules}>
+            <li><b>Lockup first.</b> Use the lockup wherever space allows; marks alone are for small sizes.</li>
             <li><b>Clear space.</b> Keep empty space around the mark of at least a quarter of its height on every side.</li>
             <li><b>Minimum size.</b> Use the node mark at 48 px and up. Below 48 px, use the solid mark (never smaller than 16 px).</li>
             <li><b>Contrast.</b> White marks on dark backgrounds, violet marks on light ones.</li>
