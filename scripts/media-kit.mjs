@@ -8,6 +8,7 @@ import { ZipArchive } from "archiver";
 import sharp from "sharp";
 
 const SRC = "public/brand";
+const LOCKUP = "public/brand/lockup";
 const OUT = "public/media-kit";
 const SIZES = [512, 1024, 2048];
 const ZIP = "nyu-blockchain-society-media-kit.zip";
@@ -31,11 +32,23 @@ for (const file of files) {
   }
 }
 
+// The lockup ships as supplied (SVG plus transparent PNGs at 1024, 2048 and 4096 px wide), so it's
+// zipped as is, not re-rendered.
+const lockupFiles = (await readdir(LOCKUP)).sort();
+const lockupSvgs = lockupFiles.filter((f) => f.endsWith(".svg"));
+const lockupPngs = lockupFiles.filter((f) => f.endsWith(".png"));
+
 await writeFile(join(OUT, "README.txt"), [
   "NYU Blockchain Society media kit",
   "",
-  "svg/  vector marks (preferred)",
-  "png/  transparent PNGs at 512, 1024 and 2048 px",
+  "svg/         vector marks (preferred)",
+  "svg/lockup/  the lockup (mark + name), our primary identity",
+  "png/         transparent PNGs of the marks at 512, 1024 and 2048 px",
+  "png/lockup/  transparent PNGs of the lockup at 1024, 2048 and 4096 px wide",
+  "",
+  "Lockups: dark for dark backgrounds (the website header); light-ink is the default for print",
+  "and name tags; light-violet is an alternative on light backgrounds. Use the lockup wherever",
+  "space allows; marks alone are for small sizes.",
   "",
   "Usage: keep clear space around the mark; use the node mark at 48 px and up and the solid",
   "mark below that; don't recolor, stretch or rotate it; don't combine it with or use the",
@@ -49,10 +62,12 @@ await new Promise((resolve, reject) => {
   stream.on("close", resolve);
   zip.on("error", reject);
   zip.pipe(stream);
+  for (const f of lockupSvgs) zip.file(join(LOCKUP, f), { name: `svg/lockup/${f}` });
+  for (const f of lockupPngs) zip.file(join(LOCKUP, f), { name: `png/lockup/${f}` });
   for (const f of files) zip.file(join(SRC, f), { name: `svg/${f}` });
   for (const f of pngs) zip.file(join(OUT, f), { name: `png/${f}` });
   zip.file(join(OUT, "README.txt"), { name: "README.txt" });
   zip.finalize();
 });
 
-console.log(`media-kit: ${files.length} marks → ${pngs.length} PNGs + ${ZIP}`);
+console.log(`media-kit: ${files.length} marks → ${pngs.length} PNGs, ${lockupSvgs.length} lockups + ${lockupPngs.length} PNGs → ${ZIP}`);

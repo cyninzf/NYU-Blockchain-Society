@@ -47,6 +47,9 @@ is by email link only (basic auth was removed in round 10).
 ## 5. Public pages: `/media-kit`, `/api/chain`
 
 - [ ] `/media-kit` shows the Boilerplate section with no "Draft" tag; Copy works.
+- [ ] `/media-kit` opens with "Lockup" above "Logo marks": dark on a dark tile, light ink and light
+      violet on light tiles; SVG and PNG 1024/2048/4096 download; "Download all (ZIP)" has
+      `svg/lockup/` and `png/lockup/`; Usage rules start with "Lockup first." (390 and 1440 px).
 - [ ] `/api/chain` returns `{"stats":null}` while there are fewer than 50 members (no count of any
       kind), and the home page has no "blocks on the chain" section.
 - [ ] No member names appear on any public page.

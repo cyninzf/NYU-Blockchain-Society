@@ -13,6 +13,18 @@ export const marks: Mark[] = [
   { file: "avatar", name: "Avatar", use: "X and LinkedIn profile image" },
 ];
 
+/** The lockup (node mark + "NYU Blockchain Society", text outlined), the primary identity.
+ *  Files in public/brand/lockup/: lockup-<file>.svg and supplied transparent PNGs at LOCKUP_PNG_SIZES px wide. */
+export type Lockup = { file: string; name: string; use: string; bg: "dark" | "light" };
+
+export const lockups: Lockup[] = [
+  { file: "dark", name: "Lockup, dark", use: "Website header", bg: "dark" },
+  { file: "light-ink", name: "Lockup, light ink", use: "Default for print and name tags", bg: "light" },
+  { file: "light-violet", name: "Lockup, light violet", use: "Alternative on light backgrounds", bg: "light" },
+];
+
+export const LOCKUP_PNG_SIZES = [1024, 2048, 4096];
+
 export const PNG_SIZES = [512, 1024, 2048];
 export const ZIP_FILE = "/media-kit/nyu-blockchain-society-media-kit.zip";
 
