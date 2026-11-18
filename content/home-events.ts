@@ -47,8 +47,8 @@ export const featuredEvent: FeaturedEvent = {
   title: "Where Finance, Digital Assets and AI Meet",
   when: "January 2027 — date announced soon",
   place: "",
-  description: "The second evening of our quarterly series for NYU alumni and industry professionals working across finance, digital assets and AI.",
-  label: "Quarterly series · Session 2",
+  description: "The second evening of our series for NYU alumni and industry professionals working across finance, digital assets and AI.",
+  label: "Series · Session 2",
   startsAt: null,
   endsAt: null,
   registrationUrl: null,
@@ -92,7 +92,7 @@ export const pastEvenings: PastEvening[] = [
   {
     title: "Where Finance, Digital Assets and AI Meet",
     when: "Monday, November 16, 2026 · 5:00–8:00 pm ET",
-    label: "Quarterly series · Session 1",
+    label: "Series · Session 1",
     partner: kpmg,
     id: agendaId,
     agenda: [
