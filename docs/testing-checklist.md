@@ -699,6 +699,16 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] `/sitemap.xml` lists `/events` and `/events/<slug>`, no `/networking`.
 - [ ] Light and dark system settings, 390 and 1440 px: no horizontal overflow, no page errors.
 
+## 28. Chain stats as one segmented chain (round 34, read-only, preview then production)
+- [ ] Home, "<n> blocks on the chain": one bar of three wireframe segments (Blockchain, Finance, AI),
+      widths matching the shares, joined by connector nodes; densest fill on Blockchain, faintest on AI.
+- [ ] Under each segment its name (mono) and percentage; the caption "Share of blocks picked across
+      Blockchain, Finance and AI." below; no boxes, nothing animates.
+- [ ] Under the caption: a small loose cluster of nodes joined by hairlines, one per country (8 today;
+      not a straight row), with "Members across <n> countries"; quieter than the bar.
+- [ ] 360, 390 and 1440 px, light and dark system settings: the chain stays one continuous row, labels
+      never overlap, no horizontal overflow, no page errors.
+
 ## 29. Events in the nav (round 34, read-only)
 - [ ] Desktop (901, 1024, 1280, 1440 px): The chain · Events · Conference · Accelerator, then Join;
       "Events" is underlined as current on /events and /events/<slug>; nothing wraps or overlaps.
