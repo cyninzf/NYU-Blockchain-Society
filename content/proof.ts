@@ -16,7 +16,7 @@ export type Proof = {
 };
 
 export const proof: Proof = {
-  label: "Networking Evening with KPMG — Nov 2026",
+  label: "Evening with KPMG — Nov 2026",
   theme: "Where Finance, Digital Assets and AI Meet",
   copy: "First evening of our quarterly series at KPMG Two Manhattan West — with speakers from BlackRock, Sky Foundation, Kraken and OKX US.",
   link: { label: "See the series", href: "/events" },
