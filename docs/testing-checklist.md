@@ -685,3 +685,16 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] `/networking`: Upcoming shows the January card; "Past evenings" shows the Nov 16 card with the
       KPMG tile, agenda and speakers; the license line shows once; `/networking#agenda` lands on the agenda.
 - [ ] 390 and 1440 px: no horizontal overflow, no page errors. No new Sentry issues after the deploy.
+
+## 27. "Networking" renamed "Events", /networking → /events (round 33, read-only, preview then production)
+- [ ] Home: Block 01 reads "BLOCK 01 · EVENTS" with the title "Events"; the spotlight kicker is
+      "Block 01 · Events · Up next"; "See all events" and "See the series" open `/events`.
+- [ ] `/events`: kicker "Block 01 · Events", heading "Events", tab title "Events · NYU Blockchain
+      Society", og:title "Events", canonical `/events`; the Nov 16 agenda still says "Networking".
+- [ ] Footer: "Events" → `/events`; no "Networking" link anywhere. An event page's back link says "Events".
+- [ ] Redirects (301, query kept): `/networking`, `/networking?src=linkedin`, `/networking#agenda`
+      (lands on the agenda), `/networking/<slug>`, `/networking/<slug>/checkin?test=1`,
+      `/networking/<slug>/calendar.ics`, `/networking/<slug>/opengraph-image-9a9qmr` (→ `-1j24gg`).
+- [ ] An old check-in QR code (it encodes `/networking/<slug>/checkin`) opens the check-in page.
+- [ ] `/sitemap.xml` lists `/events` and `/events/<slug>`, no `/networking`.
+- [ ] Light and dark system settings, 390 and 1440 px: no horizontal overflow, no page errors.

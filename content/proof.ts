@@ -19,7 +19,7 @@ export const proof: Proof = {
   label: "Networking Evening with KPMG — Nov 2026",
   theme: "Where Finance, Digital Assets and AI Meet",
   copy: "First evening of our quarterly series at KPMG Two Manhattan West — with speakers from BlackRock, Sky Foundation, Kraken and OKX US.",
-  link: { label: "See the series", href: "/networking" },
+  link: { label: "See the series", href: "/events" },
   // The 2024 firms plus the November 2026 evening's (BlackRock and Kraken were already there).
   firms: [...firms2024, "OKX", "KPMG", "Sky Foundation"],
 };

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { comingUp, featuredCta, featuredEvent as ev, spotlightKicker, type Partner, type PastEvening } from "@/content/home-events";
-import { NETWORKING_PATH } from "@/lib/event-fields";
+import { EVENTS_PATH } from "@/lib/event-fields";
 import Icon from "./Icon";
 
 /** The featured event's button: "Request an invite" (the contact form), or "Register" in a new tab. */
@@ -31,7 +31,7 @@ export function FeaturedPartner({ partner }: { partner: Partner | null }) {
 }
 
 /**
- * An evening's agenda and speakers (round 32), on /networking only, under "Co-hosted with". Times
+ * An evening's agenda and speakers (round 32), on /events only, under "Co-hosted with". Times
  * and labels muted, content in the foreground, hairlines between rows.
  */
 export function FeaturedProgram({ evening: e }: { evening: PastEvening }) {
@@ -114,7 +114,7 @@ export default function HomeEvents({ over }: { over: boolean }) {
             {!over && (
               <div className="blk-acts">
                 <FeaturedCta />
-                <Link className="go" href={NETWORKING_PATH}>See the series <Icon name="arrow-right" /></Link>
+                <Link className="go" href={EVENTS_PATH}>See the series <Icon name="arrow-right" /></Link>
               </div>
             )}
           </article>

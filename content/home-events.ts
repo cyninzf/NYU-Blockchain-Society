@@ -2,7 +2,7 @@
 // no server-only imports (the contact form reads `inviteRequest`). Turn the partner, speakers or
 // registration on here; nothing else needs to change. Past/upcoming is decided on the server
 // (lib/home-events.ts) from `startsAt` / `endsAt`, in New York time. While it's ahead and the
-// events table has no upcoming event, Block 01 and /networking show it too (the table wins).
+// events table has no upcoming event, Block 01 and /events show it too (the table wins).
 
 export type Speaker = { name: string; title: string; company: string; headshot: string };
 
@@ -21,7 +21,7 @@ export type FeaturedEvent = {
   registrationLabel: string;
   /** The button while there's no registrationUrl: /contact?about=<key>, message prefilled. */
   inviteRequest: { label: string; key: string; message: string };
-  /** The co-host's logo shows on this card and on /networking's featured card only, never on "Coming up". */
+  /** The co-host's logo shows on this card and on /events's featured card only, never on "Coming up". */
   showPartner: boolean;
   partnerName: string;
   partnerLogoPath: string;
@@ -36,7 +36,7 @@ export type AgendaItem = { time: string; item: string; details?: string[] };
 /** A confirmed panelist: name, then role as written on the co-host's registration page. */
 export type Panelist = { name: string; role: string };
 
-export type ComingUp = { title: string; when: string; note: string; /** Its block, "Block 01 · Networking". */ block: string };
+export type ComingUp = { title: string; when: string; note: string; /** Its block, "Block 01 · Events". */ block: string };
 
 /**
  * The next evening (round 33, November 18, 2026): Session 2 of the quarterly series, in January
@@ -63,7 +63,7 @@ export const featuredEvent: FeaturedEvent = {
 };
 
 /**
- * Past evenings on /networking (newest first), each with its co-host, agenda and speakers as they
+ * Past evenings on /events (newest first), each with its co-host, agenda and speakers as they
  * were (round 32, copied exactly from the co-host's registration page). The co-host's logo shows
  * on these cards with its license line on the same page.
  */
@@ -73,7 +73,7 @@ export type PastEvening = {
   when: string;
   label: string;
   partner: Partner | null;
-  /** The card's anchor; the first one is `agendaId`, so /networking#agenda keeps working. */
+  /** The card's anchor; the first one is `agendaId`, so /events#agenda keeps working. */
   id: string;
   agenda: AgendaItem[];
   panelists: Panelist[];
@@ -116,7 +116,7 @@ export const pastEvenings: PastEvening[] = [
   },
 ];
 
-/** /networking's standing line under its subline: the shape of every evening. */
+/** /events's standing line under its subline: the shape of every evening. */
 export const eveningFormat = "Each evening: check-in and networking, brief remarks, a moderated panel with audience Q&A, then extended networking.";
 
 export const comingUp: ComingUp[] = [
@@ -124,9 +124,9 @@ export const comingUp: ComingUp[] = [
 ];
 
 /** The spotlight's kicker (round 29.1: the featured event is Block 01's next one, brought forward). */
-export const spotlightKicker = "Block 01 · Networking";
+export const spotlightKicker = "Block 01 · Events";
 
-/** The featured event's button, wherever it shows (the spotlight, Block 01, /networking). */
+/** The featured event's button, wherever it shows (the spotlight, Block 01, /events). */
 export const featuredCta = () => featuredEvent.registrationUrl
   ? { label: featuredEvent.registrationLabel, href: featuredEvent.registrationUrl, external: true }
   : { label: featuredEvent.inviteRequest.label, href: `/contact?about=${featuredEvent.inviteRequest.key}`, external: false };

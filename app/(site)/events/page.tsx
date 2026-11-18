@@ -4,7 +4,7 @@ import Icon from "@/components/Icon";
 import OpenJoin from "@/components/OpenJoin";
 import { siteName } from "@/content/site";
 import { eventDay, eventWhen } from "@/lib/event-time";
-import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
+import { eventPath, EVENTS_PATH } from "@/lib/event-fields";
 import { FeaturedCta, FeaturedPartner, FeaturedProgram, PartnerNotice, featuredPartner } from "@/components/HomeEvents";
 import { eveningFormat, featuredEvent, pastEvenings } from "@/content/home-events";
 import { publicEvents } from "@/lib/events";
@@ -13,25 +13,25 @@ import { featuredEventOver } from "@/lib/home-events";
 const description = "Networking events from NYU Blockchain Society: mixers, workshops, roundtables and more, for NYU alumni and industry professionals.";
 
 export const metadata: Metadata = {
-  title: "Networking",
+  title: "Events",
   description,
-  alternates: { canonical: NETWORKING_PATH },
-  openGraph: { type: "website", url: NETWORKING_PATH, siteName, title: "Networking", description, locale: "en_US" },
-  twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: "Networking", description },
+  alternates: { canonical: EVENTS_PATH },
+  openGraph: { type: "website", url: EVENTS_PATH, siteName, title: "Events", description, locale: "en_US" },
+  twitter: { card: "summary_large_image", site: "@NYU_Blockchain", title: "Events", description },
 };
 
-// Block 01's page (round 15: /networking, headed "Networking" like the block), upcoming then past
+// Block 01's page (round 33: /events, headed "Events" like the block; /networking redirects here), upcoming then past
 // events. With no upcoming event in the table, the home page's featured event while it's ahead.
 // "Past evenings": the evenings in content/home-events.ts (co-host, agenda, speakers), then past
 // events from the table.
-export default async function NetworkingPage() {
+export default async function EventsPage() {
   const [{ upcoming, past }, over] = await Promise.all([publicEvents(), featuredEventOver()]);
   return (
     <section className="series ev-list page-top" aria-labelledby="events-h">
       <div className="wrap">
         <div data-bg="dim">
-          <p className="kicker mono">Block 01 · Networking</p>
-          <h1 id="events-h">Networking</h1>
+          <p className="kicker mono">Block 01 · Events</p>
+          <h1 id="events-h">Events</h1>
           <p className="series-sub">Mixers, workshops, roundtables and more, for NYU alumni wherever they are.</p>
           <p className="series-sub ev-format">{eveningFormat}</p>
         </div>

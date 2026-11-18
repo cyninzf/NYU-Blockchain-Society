@@ -26,7 +26,7 @@ export const scrubUrl = (u: string) => scrubText(u.split(/[?#]/)[0]);
 
 /** The area for a request path (errors reported with reportError carry their own). */
 export function areaForPath(path: string): Area {
-  if (/^\/networking\/[^/]+\/checkin/.test(path)) return "checkin";
+  if (/^\/events\/[^/]+\/checkin/.test(path)) return "checkin";
   if (path.startsWith("/admin/contacts/invite") || path.startsWith("/api/cron/invites")) return "invite";
   if (path.startsWith("/admin/announcements")) return "announcements";
   if (path.startsWith("/admin")) return "admin";

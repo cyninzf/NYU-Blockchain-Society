@@ -24,14 +24,14 @@ export const siteDescription =
 const siteNav = [
   { href: "/#chain", label: "The chain", nav: true },
   { href: "/conference", label: "Conference", nav: true },
-  { href: "/networking", label: "Networking", nav: false },
+  { href: "/events", label: "Events", nav: false },
   { href: "/accelerator", label: "Accelerator", nav: true },
 ] as const;
 /** Desktop nav and mobile menu: The chain · Conference · Accelerator, then the Join button. */
 export const navLinks = siteNav.filter((l) => l.nav);
 /** The same label on desktop and in the mobile menu. */
 export const joinLabel = "Join";
-/** The footer: every block's page, Networking included, in block order. */
+/** The footer: every block's page, Events included, in block order. */
 export const footerLinks = siteNav;
 
 export const links = {
