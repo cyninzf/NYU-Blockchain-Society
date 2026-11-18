@@ -676,7 +676,7 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 
 
 ## 26. Proof strip and past evenings (round 33, read-only, preview then production)
-- [ ] Home, right under the hero: "Evening with KPMG — Nov 2026", the series line (no attendance
+- [ ] Home, right under the hero: "Series with KPMG — Nov 2026", the series line (no attendance
       numbers) and "See the series" → `/networking`; the marquee includes OKX, KPMG and Sky Foundation,
       not Dragonfly. `/conference/2024` is unchanged.
 - [ ] Home spotlight and Block 01: the January 2027 evening, "January 2027 — date announced soon",
@@ -698,3 +698,9 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] An old check-in QR code (it encodes `/networking/<slug>/checkin`) opens the check-in page.
 - [ ] `/sitemap.xml` lists `/events` and `/events/<slug>`, no `/networking`.
 - [ ] Light and dark system settings, 390 and 1440 px: no horizontal overflow, no page errors.
+
+## 29. Events in the nav (round 34, read-only)
+- [ ] Desktop (901, 1024, 1280, 1440 px): The chain · Events · Conference · Accelerator, then Join;
+      "Events" is underlined as current on /events and /events/<slug>; nothing wraps or overlaps.
+- [ ] Phone menu (390 px): the same four links in that order; Join stays in the header.
+- [ ] Footer unchanged: The chain, Conference, Events, Accelerator, …. Light and dark look the same.
