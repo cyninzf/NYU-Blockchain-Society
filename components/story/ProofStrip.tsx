@@ -21,7 +21,10 @@ export default function ProofStrip() {
       <div className="wrap proof-in" data-bg="dim">
         <div className="proof-head">
           <h2 id="proof-h" className="mono">{proof.label}</h2>
-          <p className="proof-stats">{proof.copy}</p>
+          <div>
+            <p className="proof-stats proof-theme">{proof.theme}</p>
+            <p className="proof-stats">{proof.copy}</p>
+          </div>
           <Link className="proof-go" href={proof.link.href}>
             {proof.link.label} <Icon name="arrow-right" />
           </Link>
