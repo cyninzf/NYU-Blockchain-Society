@@ -19,16 +19,19 @@ export const siteDescription =
 
 /**
  * The site's navigation, one definition for the desktop nav, the mobile menu and the footer
- * (round 15), so they can't drift apart. Canonical URLs only. `nav: false` = footer only.
+ * (round 15), so they can't drift apart. Canonical URLs only. The footer lists them in block
+ * order; the nav has its own order (`navOrder`, round 34).
  */
 const siteNav = [
-  { href: "/#chain", label: "The chain", nav: true },
-  { href: "/conference", label: "Conference", nav: true },
-  { href: "/events", label: "Events", nav: false },
-  { href: "/accelerator", label: "Accelerator", nav: true },
+  { href: "/#chain", label: "The chain" },
+  { href: "/conference", label: "Conference" },
+  { href: "/events", label: "Events" },
+  { href: "/accelerator", label: "Accelerator" },
 ] as const;
-/** Desktop nav and mobile menu: The chain · Conference · Accelerator, then the Join button. */
-export const navLinks = siteNav.filter((l) => l.nav);
+type NavHref = (typeof siteNav)[number]["href"];
+const navOrder: NavHref[] = ["/#chain", "/events", "/conference", "/accelerator"];
+/** Desktop nav and mobile menu: The chain · Events · Conference · Accelerator, then the Join button. */
+export const navLinks = navOrder.map((href) => siteNav.find((l) => l.href === href)!);
 /** The same label on desktop and in the mobile menu. */
 export const joinLabel = "Join";
 /** The footer: every block's page, Events included, in block order. */
