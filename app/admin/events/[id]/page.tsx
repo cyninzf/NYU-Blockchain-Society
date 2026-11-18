@@ -14,7 +14,7 @@ import { checkinUrl, qrSvg } from "@/lib/qr";
 import Guard from "../../Guard";
 import styles from "../../admin.module.css";
 
-import { eventPath, NETWORKING_PATH } from "@/lib/event-fields";
+import { eventPath, EVENTS_PATH } from "@/lib/event-fields";
 export const metadata: Metadata = {
   title: "Edit event · Admin",
   robots: { index: false, follow: false },
@@ -46,7 +46,7 @@ async function Edit({ params, searchParams, admin }: Props & { admin: Admin }) {
       {created === "1" && <p className={styles.note} role="status">Draft created. Preview it, then publish when it&apos;s ready.</p>}
       <div className={styles.row}>
         <span className={styles.badge}>{STATUS_LABELS[e.status]}</span>
-        <a href={`${NETWORKING_PATH}/preview?id=${e.id}`} target="_blank" rel="noopener">Preview as it will appear</a>
+        <a href={`${EVENTS_PATH}/preview?id=${e.id}`} target="_blank" rel="noopener">Preview as it will appear</a>
         {e.status !== "draft" && <a href={eventPath(e.slug)} target="_blank" rel="noopener">Public page</a>}
       </div>
       {e.status === "published" && (

@@ -12,7 +12,7 @@ export default function Footer() {
           <span>NYU Blockchain Society · Official NYU Alumni Club</span>
         </div>
         <ul>
-          {/* The nav's links plus Networking, in block order (content/site.ts). */}
+          {/* The nav's links plus Events, in block order (content/site.ts). */}
           {footerLinks.map((l) => <li key={l.href}><Link href={l.href}>{l.label}</Link></li>)}
           <li><OpenJoin>Add your block</OpenJoin></li>
           <li><Link href="/update">Update your block</Link></li>

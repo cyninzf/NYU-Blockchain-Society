@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { agenda, agendaId, comingUp, featuredCta, featuredEvent as ev, moderator, panelists, spotlightKicker } from "@/content/home-events";
-import { NETWORKING_PATH } from "@/lib/event-fields";
+import { comingUp, featuredCta, featuredEvent as ev, spotlightKicker, type Partner, type PastEvening } from "@/content/home-events";
+import { EVENTS_PATH } from "@/lib/event-fields";
 import Icon from "./Icon";
 
 /** The featured event's button: "Request an invite" (the contact form), or "Register" in a new tab. */
@@ -12,53 +12,62 @@ export function FeaturedCta({ className = "btn btn-w" }: { className?: string })
     : <Link className={className} href={cta.href}>{cta.label}</Link>;
 }
 
+/** The featured event's co-host, while showPartner is on (content/home-events.ts); else null. */
+export const featuredPartner = (): Partner | null =>
+  ev.showPartner && ev.partnerName ? { name: ev.partnerName, logoPath: ev.partnerLogoPath, notice: ev.partnerNotice } : null;
+
 /**
- * "Co-hosted with" and the co-host's logo (content/home-events.ts, while showPartner is on): the
- * blue logo on a small white tile, since the site is dark in every theme. Never recolored.
+ * "Co-hosted with" and the co-host's logo: the blue logo on a small white tile, since the site is
+ * dark in every theme. Never recolored. Wherever it shows, PartnerNotice shows on the same page.
  */
-export function FeaturedPartner() {
-  if (!ev.showPartner || !ev.partnerName) return null;
+export function FeaturedPartner({ partner }: { partner: Partner | null }) {
+  if (!partner) return null;
   return (
     <p className="ev-partner">
       <span className="mono">Co-hosted with</span>
-      <span className="ev-tile"><Image src={ev.partnerLogoPath} alt={ev.partnerName} width={1198} height={491} /></span>
+      <span className="ev-tile"><Image src={partner.logoPath} alt={partner.name} width={1198} height={491} /></span>
     </p>
   );
 }
 
 /**
- * The featured event's agenda and speakers (round 32), on /networking's featured card only, under
- * "Co-hosted with". Times and labels muted, content in the foreground, hairlines between rows.
+ * An evening's agenda and speakers (round 32), on /events only, under "Co-hosted with". Times
+ * and labels muted, content in the foreground, hairlines between rows.
  */
-export function FeaturedProgram() {
+export function FeaturedProgram({ evening: e }: { evening: PastEvening }) {
   return (
     <>
-      <section id={agendaId} className="ev-prog" aria-labelledby={`${agendaId}-h`}>
-        <h4 id={`${agendaId}-h`} className="ev-k mono">Agenda</h4>
-        <ol className="ev-rows ev-agenda">
-          {agenda.map((a) => (
-            <li key={a.time}>
-              <span className="ev-t mono">{a.time}</span>
-              <span>{a.item}{a.details?.map((d) => <span key={d} className="ev-d">{d}</span>)}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-      <section className="ev-prog" aria-labelledby="speakers-h">
-        <h4 id="speakers-h" className="ev-k mono">Speakers</h4>
-        <ul className="ev-rows ev-ppl">
-          {panelists.map((p) => <li key={p.name}><b>{p.name}</b><span>{p.role}</span></li>)}
-          <li><span className="ev-t mono">Moderated by</span><b>{moderator.name}</b><span>{moderator.role}</span></li>
-        </ul>
-      </section>
+      {e.agenda.length > 0 && (
+        <section id={e.id} className="ev-prog" aria-labelledby={`${e.id}-h`}>
+          <h4 id={`${e.id}-h`} className="ev-k mono">Agenda</h4>
+          <ol className="ev-rows ev-agenda">
+            {e.agenda.map((a) => (
+              <li key={a.time}>
+                <span className="ev-t mono">{a.time}</span>
+                <span>{a.item}{a.details?.map((d) => <span key={d} className="ev-d">{d}</span>)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {(e.panelists.length > 0 || e.moderator) && (
+        <section className="ev-prog" aria-labelledby={`${e.id}-speakers-h`}>
+          <h4 id={`${e.id}-speakers-h`} className="ev-k mono">Speakers</h4>
+          <ul className="ev-rows ev-ppl">
+            {e.panelists.map((p) => <li key={p.name}><b>{p.name}</b><span>{p.role}</span></li>)}
+            {e.moderator && <li><span className="ev-t mono">Moderated by</span><b>{e.moderator.name}</b><span>{e.moderator.role}</span></li>}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
 
-/** The license line, on every page that shows the logo. */
-export function PartnerNotice() {
-  if (!ev.showPartner || !ev.partnerName || !ev.partnerNotice.length) return null;
-  return <div className="ev-notice" data-bg="dim">{ev.partnerNotice.map((l) => <p key={l}>{l}</p>)}</div>;
+/** The license line(s), on every page that shows a co-host's logo (each notice once). */
+export function PartnerNotice({ partners }: { partners: (Partner | null)[] }) {
+  const lines = [...new Set(partners.flatMap((p) => p?.notice ?? []))];
+  if (!lines.length) return null;
+  return <div className="ev-notice" data-bg="dim">{lines.map((l) => <p key={l}>{l}</p>)}</div>;
 }
 
 /**
@@ -89,9 +98,9 @@ export default function HomeEvents({ over }: { over: boolean }) {
               <span className={over ? "st" : "st pend"}><i></i>{over ? "Past event" : "Upcoming"}</span>
             </div>
             <h3 id="ev-feat-h">{ev.title}</h3>
-            <p className="ev-when">{ev.when} · {ev.place}</p>
+            <p className="ev-when">{[ev.when, ev.place].filter(Boolean).join(" · ")}</p>
             <p>{ev.description}</p>
-            <FeaturedPartner />
+            <FeaturedPartner partner={featuredPartner()} />
             {speakers.length > 0 && (
               <ul className="ev-speakers" aria-label="Speakers">
                 {speakers.map((s) => (
@@ -105,7 +114,7 @@ export default function HomeEvents({ over }: { over: boolean }) {
             {!over && (
               <div className="blk-acts">
                 <FeaturedCta />
-                <Link className="go" href={`${NETWORKING_PATH}#${agendaId}`}>View agenda <Icon name="arrow-right" /></Link>
+                <Link className="go" href={EVENTS_PATH}>See the series <Icon name="arrow-right" /></Link>
               </div>
             )}
           </article>
@@ -120,7 +129,7 @@ export default function HomeEvents({ over }: { over: boolean }) {
             ))}
           </ol>
         </div>
-        <PartnerNotice />
+        <PartnerNotice partners={[featuredPartner()]} />
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { Analytics, type BeforeSendEvent } from "@vercel/analytics/next";
 // token links are never sent: the admin, "Update your block" and unsubscribe pages, emailed
 // check-in links (/checkin/confirm?t=…), the event preview and privacy-request confirmations (/contact/verify?t=…).
 // Query strings are dropped except a valid ?src= (how people arrived).
-const PRIVATE = [/^\/admin(\/|$)/, /^\/update(\/|$)/, /^\/unsubscribe(\/|$)/, /^\/networking\/preview/, /^\/networking\/[^/]+\/checkin\/confirm/, /^\/contact\/verify/];
+const PRIVATE = [/^\/admin(\/|$)/, /^\/update(\/|$)/, /^\/unsubscribe(\/|$)/, /^\/events\/preview/, /^\/events\/[^/]+\/checkin\/confirm/, /^\/contact\/verify/];
 
 export function beforeSend(event: BeforeSendEvent): BeforeSendEvent | null {
   const u = new URL(event.url);

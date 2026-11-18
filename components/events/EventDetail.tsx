@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { EventStatus } from "@/lib/db/schema";
 import { baseUrl } from "@/lib/base-url";
 import { calendarLinks } from "@/lib/calendar";
-import { NETWORKING_PATH, eventPath, eventSource } from "@/lib/event-fields";
+import { EVENTS_PATH, eventPath, eventSource } from "@/lib/event-fields";
 import { eventWhen } from "@/lib/event-time";
 import Icon from "../Icon";
 import OpenJoin from "../OpenJoin";
@@ -19,7 +19,7 @@ export default function EventDetail({ event: e, over, banner }: { event: EventVi
   const cancelled = e.status === "cancelled";
   return (
     <section className="conf page-top" aria-labelledby="ev-h">
-      <div className="wrap crumbs mono" data-bg="dim"><Link href={NETWORKING_PATH}><Icon name="arrow-left" /> Networking</Link></div>
+      <div className="wrap crumbs mono" data-bg="dim"><Link href={EVENTS_PATH}><Icon name="arrow-left" /> Events</Link></div>
       <div className="wrap">
       <div className="ev-detail">
         {banner}

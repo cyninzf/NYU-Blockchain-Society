@@ -9,7 +9,7 @@ import { eventPath } from "./event-fields";
 export type CalendarEvent = {
   title: string; slug: string; startsAt: Date; endsAt: Date | null;
   venueName: string | null; address: string | null; description: string | null;
-  /** The event page, e.g. https://www.nyublockchainsociety.com/networking/fall-mixer */
+  /** The event page, e.g. https://www.nyublockchainsociety.com/events/fall-mixer */
   pageUrl: string;
 };
 export type CalendarLinks = { google: string; outlook: string; ics: string };

@@ -1,6 +1,6 @@
 "use server";
 
-// Event check-in at /networking/<slug>/checkin. Three ways in, none of which reveals whether an
+// Event check-in at /events/<slug>/checkin. Three ways in, none of which reveals whether an
 // email belongs to a member:
 // - a member session (from "Update your block" or an earlier check-in link): one button;
 // - an email: if it's a member's, they get a one-tap check-in link (same rules as /update), and

@@ -1,21 +1,18 @@
 "use client";
 
-// Proof right after the hero: the 2024 conference in one compact band, with the firms its
-// speakers came from on a slow single-line scroll (paused on hover or touch, static under
-// reduced motion).
+// Proof right after the hero: our most recent event in one compact band (content/proof.ts), with
+// the firms speakers came from on a slow single-line scroll (paused on hover or touch, static
+// under reduced motion).
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { editionTitle, pastEditions, statsLine } from "@/content/conferences";
+import { proof } from "@/content/proof";
 import Icon from "../Icon";
-
-const edition = pastEditions[pastEditions.length - 1];
 
 export default function ProofStrip() {
   const [held, setHeld] = useState(false);
   const release = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  if (!edition) return null;
-  const firms = edition.firms ?? [];
+  const firms = proof.firms;
   const hold = () => { clearTimeout(release.current); setHeld(true); };
   const letGo = () => { clearTimeout(release.current); release.current = setTimeout(() => setHeld(false), 1500); };
 
@@ -23,10 +20,13 @@ export default function ProofStrip() {
     <section className="proof" aria-labelledby="proof-h">
       <div className="wrap proof-in" data-bg="dim">
         <div className="proof-head">
-          <h2 id="proof-h" className="mono">{editionTitle(edition)}</h2>
-          {edition.stats && <p className="proof-stats">{statsLine(edition.stats)}</p>}
-          <Link className="proof-go" href={`/conference/${edition.year}`}>
-            See the {edition.year} program <Icon name="arrow-right" />
+          <h2 id="proof-h" className="mono">{proof.label}</h2>
+          <div>
+            <p className="proof-stats proof-theme">{proof.theme}</p>
+            <p className="proof-stats">{proof.copy}</p>
+          </div>
+          <Link className="proof-go" href={proof.link.href}>
+            {proof.link.label} <Icon name="arrow-right" />
           </Link>
         </div>
         {firms.length > 0 && (

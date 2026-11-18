@@ -10,6 +10,8 @@ import { nyInputToDate } from "@/lib/event-time";
 export async function featuredEventOver() {
   "use cache";
   cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
-  const end = nyInputToDate(featuredEvent.endsAt) ?? nyInputToDate(featuredEvent.startsAt);
+  // No date yet (endsAt and startsAt null): never over.
+  const at = featuredEvent.endsAt ?? featuredEvent.startsAt;
+  const end = at ? nyInputToDate(at) : null;
   return end ? end.getTime() <= Date.now() : false;
 }
