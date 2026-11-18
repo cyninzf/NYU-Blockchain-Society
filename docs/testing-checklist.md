@@ -674,3 +674,14 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] The background network and member nodes look as before on home and the check-in page.
 - [ ] No new Sentry issues after the deploy.
 
+
+## 26. Proof strip and past evenings (round 33, read-only, preview then production)
+- [ ] Home, right under the hero: "KPMG Networking Evening — Nov 2026", the series line (no attendance
+      numbers) and "See the series" → `/networking`; the marquee includes OKX, KPMG and Sky Foundation,
+      not Dragonfly. `/conference/2024` is unchanged.
+- [ ] Home spotlight and Block 01: the January 2027 evening, "January 2027 — date announced soon",
+      "Request an invite" (→ `/contact?about=invite-jan-2027`, message "Invite request: January 2027")
+      and "See the series" → `/networking`; no KPMG logo or license line on the home page.
+- [ ] `/networking`: Upcoming shows the January card; "Past evenings" shows the Nov 16 card with the
+      KPMG tile, agenda and speakers; the license line shows once; `/networking#agenda` lands on the agenda.
+- [ ] 390 and 1440 px: no horizontal overflow, no page errors. No new Sentry issues after the deploy.
