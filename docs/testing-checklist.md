@@ -698,3 +698,11 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] An old check-in QR code (it encodes `/networking/<slug>/checkin`) opens the check-in page.
 - [ ] `/sitemap.xml` lists `/events` and `/events/<slug>`, no `/networking`.
 - [ ] Light and dark system settings, 390 and 1440 px: no horizontal overflow, no page errors.
+
+## 28. Chain stats as one segmented chain (round 34, read-only, preview then production)
+- [ ] Home, "<n> blocks on the chain": one bar of three wireframe segments (Blockchain, Finance, AI),
+      widths matching the shares, joined by connector nodes; densest fill on Blockchain, faintest on AI.
+- [ ] Under each segment its name (mono) and percentage; the caption "Share of blocks picked across
+      Blockchain, Finance and AI." and then "Countries <n>" below; no boxes, nothing animates.
+- [ ] 360, 390 and 1440 px, light and dark system settings: the chain stays one continuous row, labels
+      never overlap, no horizontal overflow, no page errors.
