@@ -676,7 +676,7 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 
 
 ## 26. Proof strip and past evenings (round 33, read-only, preview then production)
-- [ ] Home, right under the hero: "KPMG Networking Evening — Nov 2026", the series line (no attendance
+- [ ] Home, right under the hero: "Evening with KPMG — Nov 2026", the series line (no attendance
       numbers) and "See the series" → `/networking`; the marquee includes OKX, KPMG and Sky Foundation,
       not Dragonfly. `/conference/2024` is unchanged.
 - [ ] Home spotlight and Block 01: the January 2027 evening, "January 2027 — date announced soon",
