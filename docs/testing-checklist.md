@@ -703,6 +703,8 @@ Read-only; on the preview, then production. Check at 390 px and 1440 px, with th
 - [ ] Home, "<n> blocks on the chain": one bar of three wireframe segments (Blockchain, Finance, AI),
       widths matching the shares, joined by connector nodes; densest fill on Blockchain, faintest on AI.
 - [ ] Under each segment its name (mono) and percentage; the caption "Share of blocks picked across
-      Blockchain, Finance and AI." and then "Countries <n>" below; no boxes, nothing animates.
+      Blockchain, Finance and AI." below; no boxes, nothing animates.
+- [ ] Under the caption: a small loose cluster of nodes joined by hairlines, one per country (8 today;
+      not a straight row), with "Members across <n> countries"; quieter than the bar.
 - [ ] 360, 390 and 1440 px, light and dark system settings: the chain stays one continuous row, labels
       never overlap, no horizontal overflow, no page errors.
