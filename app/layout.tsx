@@ -36,7 +36,11 @@ export const metadata: Metadata = {
     title: homeTitle,
     description: siteDescription,
   },
-  icons: { icon: "/brand/favicon.svg", apple: "/brand/favicon.svg" },
+  icons: {
+    icon: "/brand/favicon.svg",
+    // 180 px PNG generated from favicon.svg by scripts/media-kit.mjs (iOS ignores SVG touch icons).
+    apple: { url: "/media-kit/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+  },
 };
 
 export const viewport: Viewport = {

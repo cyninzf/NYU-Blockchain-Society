@@ -86,7 +86,7 @@ export default function MediaKitPage() {
           <ul className={s.rules}>
             <li><b>Lockup first.</b> Use the lockup wherever space allows; marks alone are for small sizes.</li>
             <li><b>Clear space.</b> Keep empty space around the mark of at least a quarter of its height on every side.</li>
-            <li><b>Minimum size.</b> Use the node mark at 48 px and up. Below 48 px, use the solid mark (never smaller than 16 px).</li>
+            <li><b>Minimum size.</b> The node mark is used at all sizes; at very small sizes, prefer the white-on-violet tile version for contrast. Never smaller than 16 px.</li>
             <li><b>Contrast.</b> White marks on dark backgrounds, violet marks on light ones.</li>
             <li><b>Don&apos;t alter it.</b> Don&apos;t recolor, stretch, rotate, outline or add effects to the mark.</li>
             <li><b>Not the NYU logo.</b> Don&apos;t combine the mark with, or use in its place, the NYU logo or torch.</li>
