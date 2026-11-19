@@ -64,7 +64,8 @@ Maintainer: Fang. Co-leads: two society organizers (names kept out of this publi
 - Logo: three isometric blocks drawn as a network ("node stack"). Files in `public/brand/`:
   - `mark-node-white.svg` / `mark-node-violet.svg`: nav, hero, slides, 48px and up
   - `mark-solid-white.svg` / `mark-solid-violet.svg`: small sizes under 48px
-  - `favicon.svg`: favicon / app icon; `avatar.svg`: X and LinkedIn avatar
+  - `favicon.svg`: favicon / app icon (the node mark on a violet tile since November 19, 2026; was the solid mark); `avatar.svg`: X and LinkedIn avatar
+  - Brand consistency (maintainer, November 19, 2026): the node mark (or the lockup) is the society's only logo wherever the site represents itself (nav, footer, check-in, favicon, share images). The solid mark is never site branding; it stays only as a downloadable/previewed variant on /media-kit.
 - The three blocks represent Blockchain (top), Finance and AI. Headline words and blocks are linked: hovering either highlights the other.
 
 ## Pages and sections
