@@ -32,6 +32,14 @@ for (const file of files) {
   }
 }
 
+// apple-touch-icon: 180 px PNG of the favicon (iOS ignores SVG touch icons). Flattened onto the
+// tile's violet so it's a full square with no transparent corners (iOS rounds it itself and would
+// fill transparency with black). Not part of the ZIP.
+await sharp(Buffer.from(atSize(await readFile(join(SRC, "favicon.svg"), "utf8"), 180)))
+  .flatten({ background: "#57068C" })
+  .png({ compressionLevel: 9 })
+  .toFile(join(OUT, "apple-touch-icon.png"));
+
 // The lockup ships as supplied (SVG plus transparent PNGs at 1024, 2048 and 4096 px wide), so it's
 // zipped as is, not re-rendered.
 const lockupFiles = (await readdir(LOCKUP)).sort();
@@ -50,8 +58,9 @@ await writeFile(join(OUT, "README.txt"), [
   "and name tags; light-violet is an alternative on light backgrounds. Use the lockup wherever",
   "space allows; marks alone are for small sizes.",
   "",
-  "Usage: keep clear space around the mark; use the node mark at 48 px and up and the solid",
-  "mark below that; don't recolor, stretch or rotate it; don't combine it with or use the",
+  "Usage: keep clear space around the mark. The node mark is used at all sizes; at very small",
+  "sizes, prefer the white-on-violet tile version for contrast. Don't recolor, stretch or",
+  "rotate it; don't combine it with or use it in place of the",
   "NYU logo or torch. Full guidelines: https://www.nyublockchainsociety.com/media-kit",
   "",
 ].join("\n"));

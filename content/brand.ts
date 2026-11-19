@@ -5,10 +5,10 @@
 export type Mark = { file: string; name: string; use: string; best?: "dark" | "light" };
 
 export const marks: Mark[] = [
-  { file: "mark-node-white", name: "Node mark, white", use: "Dark backgrounds, 48 px and up", best: "dark" },
-  { file: "mark-node-violet", name: "Node mark, violet", use: "Light backgrounds, 48 px and up", best: "light" },
-  { file: "mark-solid-white", name: "Solid mark, white", use: "Dark backgrounds, under 48 px", best: "dark" },
-  { file: "mark-solid-violet", name: "Solid mark, violet", use: "Light backgrounds, under 48 px", best: "light" },
+  { file: "mark-node-white", name: "Node mark, white", use: "Dark backgrounds", best: "dark" },
+  { file: "mark-node-violet", name: "Node mark, violet", use: "Light backgrounds", best: "light" },
+  { file: "mark-solid-white", name: "Solid mark, white", use: "Alternative mark, dark backgrounds", best: "dark" },
+  { file: "mark-solid-violet", name: "Solid mark, violet", use: "Alternative mark, light backgrounds", best: "light" },
   { file: "favicon", name: "App icon", use: "Favicon and app icon" },
   { file: "avatar", name: "Avatar", use: "X and LinkedIn profile image" },
 ];
